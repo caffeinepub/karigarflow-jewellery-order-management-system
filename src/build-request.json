@@ -1,0 +1,103 @@
+{
+  "kind": "build_request",
+  "title": "Fix post-navigation 'Loading profile' hang and auto-assign Karigar from Master Design PDF mappings",
+  "priority": "high",
+  "requirements": [
+    {
+      "id": "REQ-41",
+      "text": "Fix the UI issue where, after the user clicks any top navigation tab, the app becomes stuck on the “Loading profile…” screen. Ensure that route navigation does not trigger a bootstrap/loading loop and that the app reliably transitions either to the requested page or to an error screen.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "loading isnt happening. after clicking on any tab, page stuck at loading profile."
+        ]
+      },
+      "acceptanceCriteria": [
+        "When logged in, clicking between tabs (e.g., Dashboard → Master Designs → Users → Ingest Orders) does not get stuck on “Loading profile…”.",
+        "If profile/admin bootstrap queries fail during or after navigation, the app shows `BootstrapErrorScreen` (with Retry + Logout) instead of staying on an indefinite spinner.",
+        "Console logs include a non-sensitive diagnostic marker indicating whether the hang was due to actor init, profile fetch, or admin check (no secrets)."
+      ]
+    },
+    {
+      "id": "REQ-42",
+      "text": "Ensure karigar-wise totals and order metrics never show mapped orders as “Unassigned” when a matching master design exists. If an order’s `karigarName` is empty/missing, present a consistent fallback label (e.g., “Unassigned”) only when there is truly no mapping.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "karigar name isnt not appeared on total orders. it says unassigned"
+        ]
+      },
+      "acceptanceCriteria": [
+        "On dashboards where totals/karigar-wise breakdown is shown, orders with a non-empty `karigarName` are grouped under that exact karigar name (not under “Unassigned”).",
+        "If an order has an empty `karigarName`, UI groups it under a single consistent label (e.g., “Unassigned”) rather than an empty string key.",
+        "Changing master designs and reloading data updates the displayed karigar-wise totals accordingly."
+      ]
+    },
+    {
+      "id": "REQ-43",
+      "text": "Implement Master Design PDF parsing so the Admin “Import Master Designs” flow can extract `(design_code -> { genericName, karigarName })` mappings from uploaded PDF files, rather than throwing the current “PDF parsing is not yet implemented…” error.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "identify karigar name from master design pdf"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Uploading a PDF in the Master Designs import dialog no longer throws the current unimplemented-PDF error.",
+        "The PDF import produces a preview list of parsed mappings (design code, generic name, karigar name) consistent with the existing Excel import UX expectations.",
+        "If the PDF text cannot be extracted or no rows are detected, the UI shows an English error explaining that the PDF format is unsupported/unreadable and suggests trying another file (no raw stack traces by default)."
+      ]
+    },
+    {
+      "id": "REQ-44",
+      "text": "Guarantee that orders are automatically assigned `genericName` and `karigarName` from the backend Master Designs mapping based on `designCode` during upload and during unmapped-order reprocessing. Do not rely on the frontend to pre-fill these fields for correctness.",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "identify karigar name from master design pdf and automatically assign to karigars"
+        ]
+      },
+      "acceptanceCriteria": [
+        "When `uploadParsedOrders` receives an order whose `designCode` exists in `masterDesignsMap`, the stored order’s `genericName` and `karigarName` are set/overwritten from the master design entry (even if the client sent them empty).",
+        "When `saveMasterDesigns` is called, any previously-unmapped orders are moved into `ordersMap` with `genericName`/`karigarName` filled from the new mapping (existing `processUnmappedOrders` behavior remains correct).",
+        "After master designs are updated, newly uploaded orders and previously unmapped orders no longer appear as “Unassigned” in downstream dashboards when a mapping exists."
+      ]
+    }
+  ],
+  "constraints": [
+    "Respect the single-actor backend architecture; keep all Motoko logic in `backend/main.mo`.",
+    "Do not edit frontend immutable paths: `frontend/src/hooks/useInternetIdentity.ts`, `frontend/src/hooks/useInternetIdentity.tsx`, `frontend/src/hooks/useActor.ts`, `frontend/src/main.tsx`, `frontend/src/components/ui`.",
+    "Use English for any user-facing text."
+  ],
+  "nonGoals": [
+    "Implementing third-party auth providers (only Internet Identity is supported).",
+    "Adding external databases or non-Motoko backend services.",
+    "Changing application roles/permissions beyond what is required to fix the loading hang and karigar assignment/mapping."
+  ],
+  "imageRequirements": {
+    "required": [],
+    "edits": []
+  },
+  "userProfileUpdate": {
+    "goalsToAdd": [],
+    "goalsToRemove": [],
+    "preferencesToAdd": [],
+    "preferencesToRemove": [],
+    "miscToAdd": [],
+    "miscToRemove": [],
+    "fieldsToSet": {},
+    "fieldsToDelete": []
+  }
+}

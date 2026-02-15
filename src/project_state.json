@@ -1,0 +1,483 @@
+{
+  "schemaVersion": "1.0.0",
+  "projectStateVersion": 23,
+  "summary": "Build “KarigarFlow – Jewellery Order Management System”, a production-ready cloud/PWA web app for jewellery wholesale order intake via daily Excel/PDF uploads, parsing and mapping design codes to master designs, karigar-wise dashboards, CO highlighting, exports, offline-first sync, and role-based access using React PWA + Supabase.",
+  "architectural_notes": [
+    "Frontend: React with PWA (offline-first, installable)",
+    "Backend: Supabase (PostgreSQL + Auth) with role-based access and RLS",
+    "Data ingestion must support Excel parsing and PDF table extraction as input sources",
+    "Offline sync requires local persistence + deduplication to prevent duplicate uploads",
+    "Auth/setup requirement: first authenticated user is treated as initial Admin; Admin then creates other user profiles (Staff/Karigar) within the app",
+    "Excel ingestion requires installing and wiring an Excel parsing library in the frontend (e.g., SheetJS) so Staff/Admin uploads can parse .xlsx and map to the existing ingestion pipeline.",
+    "Add a lightweight backend reachability/health check and surface it in the UI as an online/offline status indicator (should handle canister-stopped/unreachable states)."
+  ],
+  "known_issues": [
+    "User currently unable to upload Excel files in chat; PDFs are being used as the ingestion source instead",
+    "Order parsing is still not active/working in the deployed app (ingestion/parsing flow not functioning)",
+    "Excel upload/parsing path is not configured in the deployed app (missing Excel parsing library/wiring), causing 'Excel file parsing is not yet fully configured' parse errors.",
+    "App page is stuck on \"Loading profile\" (profile/auth bootstrap appears to hang), blocking access/testing.",
+    "Ingestion currently errors or blocks when some uploaded order rows contain design_codes that don't match Master Design mappings; it should instead ingest and surface those rows under Unmapped Codes.",
+    "Admin dashboard navigation/menu (Dashboard/Master Designs/Users/Ingest Order/Unmapped Codes) does not display properly on laptop/PC in the deployed app.",
+    "After latest deployment (v5), app is still stuck on the “Loading profile…” screen (bootstrap hang persists).",
+    "Profile load fails with IC replica rejection because backend canister is stopped (Reject code 5 / IC0508) when calling `getCallerUserProfile` on canister 6wepb-taaaa-aaaan-q2pcq-cai.",
+    "After clicking any tab, app gets stuck on “Loading profile…” (navigation triggers bootstrap hang/loading loop).",
+    "Orders/totals show karigar as “Unassigned” even when Master Design PDF mappings exist; automatic karigar assignment from design_code mapping is not being applied/displayed."
+  ],
+  "isFixRequest": true,
+  "existing_features": [
+    {
+      "id": "feature-implement-role-based-authentication-using-internet-identity-with-three-application-roles-admin-staff-karigar-and-enforce-authorization-across-the-app-ui-backend-so-that-karigars-can-only-access-their-own-assigned-orders-staff-can-upload-and-view-orders-and-admin-has-full-access",
+      "title": "Implement role-based authentication using Internet Identity with three application roles (Admin, Staff, Karigar) and enforce authorization across the app (UI + backend) so that Karigars can only access their own assigned orders, Staff can upload and view orders, and Admin has full access.",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-master-design-import-and-management-ui-admin-can-upload-a-master-design-file-pdf-and-or-excel-and-or-manually-add-edit-mappings-of-design-code-to-generic-name-and-karigar-name-the-system-must-report-duplicates-and-allow-updates-without-creating-conflicting-design-code-entries",
+      "title": "Add Master Design import and management UI: Admin can upload a Master Design file (PDF and/or Excel) and/or manually add/edit mappings of design_code to generic_name and karigar_name; the system must report duplicates and allow updates without creating conflicting design_code entries.",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-daily-order-ingestion-from-uploaded-files-pdf-and-or-excel-parse-rows-to-extract-order-no-order-type-design-design-code-weight-size-qty-remarks-then-auto-map-generic-name-and-karigar-from-master-designs-persist-to-backend-and-flag-any-unmapped-design-codes-for-review",
+      "title": "Implement Daily Order ingestion from uploaded files (PDF and/or Excel): parse rows to extract Order No, Order Type, Design (design_code), Weight, Size, Qty, Remarks; then auto-map Generic Name and Karigar from Master Designs; persist to backend; and flag any unmapped design codes for review.",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-detect-and-highlight-customer-orders-if-order-type-contains-co-set-is-customer-order-true-during-ingestion-and-visually-highlight-those-rows-consistently-across-tables-and-exports",
+      "title": "Detect and highlight Customer Orders: if Order Type contains “CO”, set is_customer_order=true during ingestion and visually highlight those rows consistently across tables and exports.",
+      "reqIds": [
+        "REQ-5"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-build-dashboards-and-order-list-views-per-role-with-required-metrics-grouping-sorting-and-filters-admin-dashboard-totals-co-totals-karigar-wise-totals-date-filter-staff-dashboard-upload-view-filter-export-and-karigar-dashboard-only-assigned-orders-totals-status-updates",
+      "title": "Build dashboards and order list views per role with required metrics, grouping, sorting, and filters: Admin dashboard (totals, CO totals, karigar-wise totals, date filter), Staff dashboard (upload + view/filter/export), and Karigar dashboard (only assigned orders, totals, status updates).",
+      "reqIds": [
+        "REQ-6"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-export-features-for-admin-staff-export-karigar-wise-sheets-co-only-exports-daily-sheet-exports-and-cumulative-exports-using-the-currently-applied-filters-and-including-required-columns",
+      "title": "Implement export features for Admin/Staff: export karigar-wise sheets, CO-only exports, daily sheet exports, and cumulative exports, using the currently applied filters and including required columns.",
+      "reqIds": [
+        "REQ-7"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-offline-first-pwa-behavior-app-is-installable-works-on-mobile-supports-offline-viewing-of-previously-loaded-data-supports-offline-ingestion-queues-for-uploads-syncs-when-online-and-prevents-duplicate-uploads",
+      "title": "Add offline-first PWA behavior: app is installable, works on mobile, supports offline viewing of previously loaded data, supports offline ingestion queues for uploads, syncs when online, and prevents duplicate uploads.",
+      "reqIds": [
+        "REQ-8"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-an-unmapped-design-codes-workflow-provide-a-dedicated-view-admin-staff-listing-unmapped-rows-design-codes-found-during-ingestion-allow-adding-a-master-mapping-for-those-codes-and-reprocessing-affected-orders-to-fill-generic-name-and-karigar-name",
+      "title": "Implement an 'Unmapped Design Codes' workflow: provide a dedicated view (Admin/Staff) listing unmapped rows/design codes found during ingestion, allow adding a master mapping for those codes, and reprocessing affected orders to fill generic_name and karigar_name.",
+      "reqIds": [
+        "REQ-9"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-apply-a-consistent-modern-jewellery-business-visual-theme-across-the-ui-layout-typography-colors-spacing-including-light-and-dark-mode-without-using-a-blue-purple-primary-palette",
+      "title": "Apply a consistent, modern jewellery-business visual theme across the UI (layout, typography, colors, spacing) including light and dark mode, without using a blue/purple primary palette.",
+      "reqIds": [
+        "REQ-10"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-create-basic-production-hardening-input-validation-for-uploads-parsing-clear-error-states-for-failed-parses-sync-auth-and-an-in-app-setup-path-for-initial-admin-creation-configuration",
+      "title": "Create basic production hardening: input validation for uploads/parsing, clear error states for failed parses/sync/auth, and an in-app setup path for initial Admin creation/configuration.",
+      "reqIds": [
+        "REQ-11"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-working-file-parsing-so-that-the-staff-admin-ingestion-flow-can-parse-uploaded-order-files-instead-of-throwing-parsing-not-yet-implemented-errors",
+      "title": "Implement working file parsing so that the Staff/Admin ingestion flow can parse uploaded order files instead of throwing 'parsing not yet implemented' errors.",
+      "reqIds": [
+        "REQ-12"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-change-the-user-provisioning-flow-so-the-first-login-is-admin-and-only-admin-can-create-profiles-for-other-logins-staff-karigar-rather-than-each-user-selecting-their-own-role-on-first-login",
+      "title": "Change the user provisioning flow so the first login is Admin, and only Admin can create profiles for other logins (Staff/Karigar), rather than each user selecting their own role on first login.",
+      "reqIds": [
+        "REQ-13"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-real-excel-parsing-for-order-ingestion-so-that-uploading-xlsx-xls-files-on-the-staff-admin-ingest-orders-page-parses-rows-into-orders-instead-of-throwing-the-current-excel-file-parsing-is-not-yet-fully-configured-error",
+      "title": "Implement real Excel parsing for order ingestion so that uploading .xlsx/.xls files on the Staff/Admin \"Ingest Orders\" page parses rows into Orders instead of throwing the current \"Excel file parsing is not yet fully configured\" error.",
+      "reqIds": [
+        "REQ-14"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-real-excel-parsing-for-master-designs-import-so-that-uploading-xlsx-xls-files-in-the-admin-import-master-designs-dialog-parses-rows-into-design-code-generic-name-karigar-name-entries-instead-of-throwing-the-current-excel-file-parsing-is-not-yet-fully-configured-error",
+      "title": "Implement real Excel parsing for Master Designs import so that uploading .xlsx/.xls files in the Admin \"Import Master Designs\" dialog parses rows into (design_code -> {generic_name, karigar_name}) entries instead of throwing the current \"Excel file parsing is not yet fully configured\" error.",
+      "reqIds": [
+        "REQ-15"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-and-wire-an-excel-workbook-parsing-dependency-in-the-frontend-build-so-that-the-excel-parsing-implementations-can-read-xlsx-xls-files-in-the-browser-and-remove-the-current-hardcoded-excel-file-parsing-is-not-yet-fully-configured-throws-from-the-excel-code-paths",
+      "title": "Add and wire an Excel workbook parsing dependency in the frontend build so that the Excel parsing implementations can read .xlsx/.xls files in the browser, and remove the current hardcoded \"Excel file parsing is not yet fully configured...\" throws from the Excel code paths.",
+      "reqIds": [
+        "REQ-16"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-make-frontend-bootstrap-resilient-if-profile-admin-queries-fail-e-g-due-to-authorization-init-issues-the-app-must-not-remain-indefinitely-on-the-loading-profile-screen-add-a-clear-error-state-in-frontend-src-app-tsx-for-the-profile-bootstrap-step-that-displays-an-english-error-message-includes-a-retry-action-and-includes-a-logout-clear-session-action",
+      "title": "Make frontend bootstrap resilient: if profile/admin queries fail (e.g., due to authorization/init issues), the app must not remain indefinitely on the “Loading profile…” screen. Add a clear error state in `frontend/src/App.tsx` for the profile bootstrap step that displays an English error message, includes a Retry action, and includes a Logout/Clear-session action.",
+      "reqIds": [
+        "REQ-18"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-minimal-diagnostics-to-help-identify-the-cause-of-bootstrap-hangs-log-to-console-distinct-non-sensitive-error-messages-when-profile-fetch-admin-check-or-access-control-initialization-fails-and-ensure-the-error-boundary-fallback-ux-remains-usable",
+      "title": "Add minimal diagnostics to help identify the cause of bootstrap hangs: log (to console) distinct, non-sensitive error messages when profile fetch, admin-check, or access-control initialization fails, and ensure the error boundary/fallback UX remains usable.",
+      "reqIds": [
+        "REQ-20"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-the-runtime-ui-crash-caused-by-shadcn-radix-select-items-using-an-empty-string-value-e-g-in-ordersfiltersbar-so-pages-render-normally-on-desktop-and-mobile-without-triggering-the-global-error-boundary",
+      "title": "Fix the runtime UI crash caused by Shadcn/Radix Select items using an empty string value (e.g., in OrdersFiltersBar), so pages render normally on desktop and mobile without triggering the global error boundary.",
+      "reqIds": [
+        "REQ-21"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-admin-dashboard-navigation-rendering-on-laptop-pc-so-the-top-navigation-items-dashboard-master-designs-users-ingest-orders-unmapped-codes-are-consistently-visible-and-usable-on-desktop-browsers-when-opening-the-app-via-a-link",
+      "title": "Fix Admin dashboard navigation rendering on laptop/PC so the top navigation items (Dashboard, Master Designs, Users, Ingest Orders, Unmapped Codes) are consistently visible and usable on desktop browsers when opening the app via a link.",
+      "reqIds": [
+        "REQ-22"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-make-order-ingestion-resilient-to-rows-whose-design-code-does-not-match-master-designs-parse-and-accept-those-rows-upload-them-without-failing-the-whole-file-and-show-them-separately-in-the-ingestion-preview-so-staff-admin-can-clearly-see-which-rows-are-unmapped",
+      "title": "Make order ingestion resilient to rows whose design code does not match Master Designs: parse and accept those rows, upload them without failing the whole file, and show them separately in the ingestion preview so staff/admin can clearly see which rows are unmapped.",
+      "reqIds": [
+        "REQ-23"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-prevent-the-app-from-getting-stuck-on-the-loading-profile-screen-when-backend-actor-creation-fails-e-g-initializeaccesscontrolwithsecret-throws-introduce-a-new-non-immutable-hook-that-creates-the-actor-safely-exposes-actor-creation-error-state-and-ensures-the-app-can-surface-a-bootstraperrorscreen-instead-of-hanging",
+      "title": "Prevent the app from getting stuck on the “Loading profile…” screen when backend actor creation fails (e.g., `_initializeAccessControlWithSecret(...)` throws). Introduce a new non-immutable hook that creates the actor safely, exposes actor creation error state, and ensures the app can surface a BootstrapErrorScreen instead of hanging.",
+      "reqIds": [
+        "REQ-24"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-the-actor-initialization-flow-so-initializeaccesscontrolwithsecret-cannot-block-app-startup-if-the-caffeineadmintoken-secret-is-missing-empty-skip-calling-initializeaccesscontrolwithsecret-if-the-call-throws-catch-the-error-log-a-non-sensitive-diagnostic-message-to-the-console-and-still-return-a-usable-actor-instance-so-downstream-queries-can-run-and-return-proper-authorization-errors",
+      "title": "Update the actor initialization flow so `_initializeAccessControlWithSecret` cannot block app startup: if the `caffeineAdminToken` secret is missing/empty, skip calling `_initializeAccessControlWithSecret`; if the call throws, catch the error, log a non-sensitive diagnostic message to the console, and still return a usable actor instance so downstream queries can run and return proper authorization errors.",
+      "reqIds": [
+        "REQ-25"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-refactor-bootstrap-queries-to-use-the-new-safe-actor-hook-and-to-treat-actor-not-available-as-an-error-state-rather-than-an-indefinite-loading-state-ensure-usecurrentuser-and-useiscalleradmin-via-frontend-src-hooks-usequeries-ts-can-surface-actor-init-errors-to-frontend-src-app-tsx-so-the-existing-bootstrap-error-ui-is-shown",
+      "title": "Refactor bootstrap queries to use the new safe-actor hook and to treat “actor not available” as an error state rather than an indefinite loading state. Ensure `useCurrentUser` and `useIsCallerAdmin` (via `frontend/src/hooks/useQueries.ts`) can surface actor/init errors to `frontend/src/App.tsx` so the existing bootstrap error UI is shown.",
+      "reqIds": [
+        "REQ-26"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-minimal-distinct-non-sensitive-console-diagnostics-for-each-bootstrap-failure-point-relevant-to-the-hang-1-actor-creation-2-access-control-initialization-attempt-3-getcalleruserprofile-failure-4-iscalleradmin-failure-diagnostics-must-help-differentiate-no-token-token-rejected-and-unauthorized-caller-not-permitted-cases-without-printing-secrets",
+      "title": "Add minimal, distinct, non-sensitive console diagnostics for each bootstrap failure point relevant to the hang: (1) actor creation, (2) access-control initialization attempt, (3) `getCallerUserProfile` failure, (4) `isCallerAdmin` failure. Diagnostics must help differentiate “no token”, “token rejected”, and “unauthorized/caller not permitted” cases without printing secrets.",
+      "reqIds": [
+        "REQ-27"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-when-bootstrap-fails-because-the-replica-rejects-calls-due-to-the-backend-canister-being-stopped-e-g-reject-code-5-ic0508-with-text-like-canister-id-is-stopped-and-therefore-does-not-have-a-callcontextmanager-show-a-specific-user-friendly-english-error-explanation-on-the-existing-bootstraperrorscreen-instead-of-only-dumping-the-raw-error-message",
+      "title": "When bootstrap fails because the replica rejects calls due to the backend canister being stopped (e.g., Reject code 5 / IC0508 with text like “Canister <id> is stopped and therefore does not have a CallContextManager”), show a specific, user-friendly English error explanation on the existing `BootstrapErrorScreen` instead of only dumping the raw error message.",
+      "reqIds": [
+        "REQ-28"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-copy-error-details-action-to-frontend-src-components-auth-bootstraperrorscreen-tsx-that-copies-the-full-raw-error-string-to-the-clipboard-so-users-can-share-diagnostics-e-g-request-id-reject-code-canister-id-without-manually-selecting-text",
+      "title": "Add a “Copy error details” action to `frontend/src/components/auth/BootstrapErrorScreen.tsx` that copies the full raw error string to the clipboard so users can share diagnostics (e.g., request ID / reject code / canister id) without manually selecting text.",
+      "reqIds": [
+        "REQ-29"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-enhance-console-diagnostics-during-bootstrap-failures-to-explicitly-classify-and-log-the-canister-stopped-condition-without-printing-secrets-so-it-is-easy-to-distinguish-from-authorization-token-issues",
+      "title": "Enhance console diagnostics during bootstrap failures to explicitly classify and log the “canister stopped” condition (without printing secrets), so it is easy to distinguish from authorization/token issues.",
+      "reqIds": [
+        "REQ-30"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-frontend-src-components-auth-bootstraperrorscreen-tsx-so-the-raw-technical-error-string-is-not-shown-by-default-instead-show-a-short-english-explanation-including-the-stopped-canister-friendly-message-when-detected-and-place-the-full-raw-error-details-behind-an-explicit-user-action-e-g-show-error-details-collapsible-panel-keep-retry-and-logout-actions-clearly-visible",
+      "title": "Update `frontend/src/components/auth/BootstrapErrorScreen.tsx` so the raw technical error string is not shown by default. Instead, show a short English explanation (including the stopped-canister friendly message when detected) and place the full raw error details behind an explicit user action (e.g., “Show error details” / collapsible panel). Keep “Retry” and “Logout” actions clearly visible.",
+      "reqIds": [
+        "REQ-31"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-enhance-stopped-canister-error-classification-and-messaging-so-that-when-the-error-indicates-a-stopped-backend-canister-e-g-contains-ic0508-or-is-stopped-the-ui-message-explicitly-states-the-service-is-temporarily-unavailable-because-the-backend-is-stopped-and-suggests-trying-again-later-where-possible-extract-and-display-the-canister-id-in-the-user-friendly-message-without-exposing-sensitive-data",
+      "title": "Enhance stopped-canister error classification and messaging so that when the error indicates a stopped backend canister (e.g., contains “IC0508” or “is stopped”), the UI message explicitly states the service is temporarily unavailable because the backend is stopped, and suggests trying again later. Where possible, extract and display the canister ID in the user-friendly message without exposing sensitive data.",
+      "reqIds": [
+        "REQ-32"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-keep-the-ability-to-share-diagnostics-without-forcing-users-to-read-them-ensure-the-copy-error-details-action-remains-available-even-when-error-details-are-hidden-collapsed-and-that-it-copies-the-full-raw-error-string-currently-displayed-in-the-error-details-panel",
+      "title": "Keep the ability to share diagnostics without forcing users to read them: ensure the “Copy error details” action remains available even when error details are hidden/collapsed, and that it copies the full raw error string currently displayed in the error details panel.",
+      "reqIds": [
+        "REQ-33"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-ensure-the-app-never-displays-raw-replica-canister-stopped-technical-error-text-by-default-in-any-user-facing-error-ui-when-an-error-is-detected-as-a-stopped-backend-canister-condition-e-g-contains-ic0508-or-is-stopped-show-a-short-user-friendly-english-explanation-optionally-including-the-canister-id-if-present-and-keep-any-raw-technical-details-behind-an-explicit-user-action-e-g-show-error-details",
+      "title": "Ensure the app never displays raw replica/canister-stopped technical error text by default in any user-facing error UI. When an error is detected as a stopped backend canister condition (e.g., contains “IC0508” or “is stopped”), show a short, user-friendly English explanation (optionally including the canister id if present) and keep any raw technical details behind an explicit user action (e.g., “Show error details”).",
+      "reqIds": [
+        "REQ-34"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-standardize-stopped-canister-error-classification-and-messaging-for-non-bootstrap-data-fetch-failures-by-reusing-the-existing-stopped-canister-detection-utility-frontend-src-utils-bootstraperrorclassification-ts-wherever-ui-error-messages-are-derived-from-an-error-object-e-g-inline-error-components-and-page-level-error-blocks",
+      "title": "Standardize stopped-canister error classification and messaging for non-bootstrap data-fetch failures by reusing the existing stopped-canister detection utility (`frontend/src/utils/bootstrapErrorClassification.ts`) wherever UI error messages are derived from an Error object (e.g., inline error components and page-level error blocks).",
+      "reqIds": [
+        "REQ-35"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-keep-a-reliable-way-for-users-to-share-diagnostics-without-forcing-them-to-read-technical-details-provide-a-copy-error-details-action-for-stopped-canister-errors-and-other-errors-wherever-technical-details-are-available-and-ensure-it-copies-the-full-raw-error-string-even-when-details-are-hidden-collapsed",
+      "title": "Keep a reliable way for users to share diagnostics without forcing them to read technical details: provide a “Copy error details” action for stopped-canister errors and other errors wherever technical details are available, and ensure it copies the full raw error string even when details are hidden/collapsed.",
+      "reqIds": [
+        "REQ-36"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-create-a-frontend-react-query-hook-to-periodically-check-backend-reachability-using-the-health-check-api-and-classify-failures-using-the-existing-stopped-canister-detection-utilities",
+      "title": "Create a frontend React Query hook to periodically check backend reachability using the health-check API and classify failures using the existing stopped-canister detection utilities.",
+      "reqIds": [
+        "REQ-38"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-compact-backend-status-indicator-in-the-top-app-header-so-users-can-immediately-see-whether-the-backend-is-reachable-backend-online-backend-offline",
+      "title": "Add a compact backend status indicator in the top app header so users can immediately see whether the backend is reachable (\"Backend online\" / \"Backend offline\").",
+      "reqIds": [
+        "REQ-39"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-provide-a-minimal-interaction-on-the-backend-status-indicator-to-help-users-self-diagnose-without-exposing-raw-errors-by-default",
+      "title": "Provide a minimal interaction on the backend status indicator to help users self-diagnose without exposing raw errors by default.",
+      "reqIds": [
+        "REQ-40"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-the-ui-issue-where-after-the-user-clicks-any-top-navigation-tab-the-app-becomes-stuck-on-the-loading-profile-screen-ensure-that-route-navigation-does-not-trigger-a-bootstrap-loading-loop-and-that-the-app-reliably-transitions-either-to-the-requested-page-or-to-an-error-screen",
+      "title": "Fix the UI issue where, after the user clicks any top navigation tab, the app becomes stuck on the “Loading profile…” screen. Ensure that route navigation does not trigger a bootstrap/loading loop and that the app reliably transitions either to the requested page or to an error screen.",
+      "reqIds": [
+        "REQ-41"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-ensure-karigar-wise-totals-and-order-metrics-never-show-mapped-orders-as-unassigned-when-a-matching-master-design-exists-if-an-order-s-karigarname-is-empty-missing-present-a-consistent-fallback-label-e-g-unassigned-only-when-there-is-truly-no-mapping",
+      "title": "Ensure karigar-wise totals and order metrics never show mapped orders as “Unassigned” when a matching master design exists. If an order’s `karigarName` is empty/missing, present a consistent fallback label (e.g., “Unassigned”) only when there is truly no mapping.",
+      "reqIds": [
+        "REQ-42"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-master-design-pdf-parsing-so-the-admin-import-master-designs-flow-can-extract-design-code-genericname-karigarname-mappings-from-uploaded-pdf-files-rather-than-throwing-the-current-pdf-parsing-is-not-yet-implemented-error",
+      "title": "Implement Master Design PDF parsing so the Admin “Import Master Designs” flow can extract `(design_code -> { genericName, karigarName })` mappings from uploaded PDF files, rather than throwing the current “PDF parsing is not yet implemented…” error.",
+      "reqIds": [
+        "REQ-43"
+      ],
+      "version": 1
+    }
+  ],
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "Implement Supabase Postgres schema + auth with role-based access (Admin/Staff/Karigar) and row-level security so karigars only see assigned orders",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Master Designs management: import via Excel/PDF and manual CRUD mapping of design_code -> generic_name + karigar_name; flag unmapped design codes on ingestion",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Daily order ingestion: upload Excel and/or PDF, parse required fields (order no/type/design/weight/size/qty/remarks), auto-map from master_designs, persist to orders table",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "CO detection & highlighting: detect order_type containing “CO”, set is_customer_order=true and visually highlight rows in UI and reports",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-5",
+      "summary": "Dashboards: Admin metrics (totals, karigar-wise totals, filters), Staff upload + filters, Karigar view of assigned orders with status updates (Received/In Progress/Completed)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-6",
+      "summary": "Filtering/grouping: karigar-wise grouping, sortable by date, filters by CO, status, date range across relevant views",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-7",
+      "summary": "Export features: karigar-wise sheet export, CO-only export, daily sheet export, cumulative database export (Admin/Staff)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-8",
+      "summary": "Offline-first PWA: installable mobile-friendly UI, local storage caching for offline work, background sync when online, and duplicate upload prevention",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-9",
+      "summary": "UI requirements: clean modern jewellery-business dashboard layout with light/dark mode and mobile responsiveness",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-11",
+      "summary": "Create persistent backend data models and APIs for: (1) Master Design mappings (design_code -> generic_name + karigar_name, with active flag) and (2) Orders (order_no, order_type, design_code, generic_name, karigar_name, weight, size, qty, remarks, status, is_customer_order, upload_date, created_at, plus metadata needed for deduplication).",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-12",
+      "summary": "Initial Admin bootstrap + user management: first login must be Admin; Admin can create/manage profiles for other logins (Staff/Karigar) and assign roles",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-13",
+      "summary": "Fix backend profile/admin-check APIs so authenticated users do not get trapped during app bootstrap (which keeps the UI stuck on “Loading profile…”). Specifically, ensure `getCallerUserProfile` can be called by Admins and returns `null` when no profile exists, rather than trapping due to missing `#user` permission.",
+      "reqIds": [
+        "REQ-17"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-15",
+      "summary": "Update actor initialization so failing `_initializeAccessControlWithSecret(...)` cannot block app startup. In `frontend/src/hooks/useActor.ts`, ensure actor creation resolves even if `_initializeAccessControlWithSecret` throws (e.g., missing/invalid token), and surface initialization failure to the UI via React Query error state rather than keeping `isFetching` stuck.",
+      "reqIds": [
+        "REQ-19"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-16",
+      "summary": "Make Excel/PDF order ingestion resilient to unmapped design codes: do not fail parsing/ingestion; ingest those rows and show them separately (e.g., Unmapped Codes list) for later mapping",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-17",
+      "summary": "Fix Admin dashboard/navigation UI on laptop/PC: sidebar/menu items (Dashboard, Master Designs, Users, Ingest Order, Unmapped Codes) should render and be usable responsively on desktop browsers when opened via link",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-18",
+      "summary": "Update bootstrap error UX so the app never shows raw stopped-canister/replica errors by default; instead show a clean user-friendly message with Retry/Logout and keep full technical details behind an explicit action (and copy-to-clipboard)",
+      "reqIds": [
+        "REQ-28",
+        "REQ-29",
+        "REQ-31",
+        "REQ-32",
+        "REQ-33"
+      ],
+      "status": "in_progress"
+    },
+    {
+      "id": "AR-19",
+      "summary": "Add a small UI status indicator (e.g., in dashboard header) showing backend reachability/health (Backend online/offline) so users can immediately tell when the backend canister is stopped/unreachable",
+      "reqIds": [],
+      "status": "in_progress"
+    },
+    {
+      "id": "AR-20",
+      "summary": "Add a lightweight backend health-check API that can be called without authentication to determine whether the backend canister is reachable.",
+      "reqIds": [
+        "REQ-37"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-21",
+      "summary": "Ensure Orders are automatically assigned a karigar_name from Master Designs (including PDF-imported mappings) during ingestion/reprocessing, and dashboards/totals never show mapped orders as “Unassigned” when a matching design_code exists",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-25",
+      "summary": "Guarantee that orders are automatically assigned `genericName` and `karigarName` from the backend Master Designs mapping based on `designCode` during upload and during unmapped-order reprocessing. Do not rely on the frontend to pre-fill these fields for correctness.",
+      "reqIds": [
+        "REQ-44"
+      ],
+      "status": "pending"
+    }
+  ],
+  "gameProjectType": "none",
+  "projectName": "KarigarFlow – Jewellery Order Management System",
+  "clarification_mode": "instant",
+  "clarification_rounds": 0
+}

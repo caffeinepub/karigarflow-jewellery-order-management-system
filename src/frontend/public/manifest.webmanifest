@@ -1,0 +1,22 @@
+{
+  "name": "KarigarFlow - Jewellery Order Management",
+  "short_name": "KarigarFlow",
+  "description": "Jewellery Order Management System",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1a1a1a",
+  "icons": [
+    {
+      "src": "/assets/generated/karigarflow-icon.dim_1024x1024.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/generated/karigarflow-icon.dim_1024x1024.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
