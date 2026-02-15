@@ -4,6 +4,7 @@
 
 export interface ErrorClassification {
   isStoppedCanister: boolean;
+  isNetworkError: boolean;
   userMessage: string | null;
   diagnosticTag: string | null;
   canisterId: string | null;
@@ -39,11 +40,28 @@ export function isStoppedCanisterError(error: unknown): boolean {
 }
 
 /**
+ * Checks if an error indicates a network/connectivity issue.
+ */
+function isNetworkError(error: unknown): boolean {
+  if (!error) return false;
+  
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  return (
+    errorMessage.toLowerCase().includes('network') ||
+    errorMessage.toLowerCase().includes('fetch') ||
+    errorMessage.toLowerCase().includes('connection') ||
+    errorMessage.toLowerCase().includes('timeout') ||
+    errorMessage.includes('Actor not available')
+  );
+}
+
+/**
  * Classifies a bootstrap error and returns user-facing message and diagnostic info.
  */
 export function classifyBootstrapError(error: unknown): ErrorClassification {
   const errorMessage = error instanceof Error ? error.message : String(error);
   const isStoppedCanister = isStoppedCanisterError(error);
+  const isNetwork = isNetworkError(error);
   
   if (isStoppedCanister) {
     const canisterId = extractCanisterId(errorMessage);
@@ -58,14 +76,26 @@ export function classifyBootstrapError(error: unknown): ErrorClassification {
     
     return {
       isStoppedCanister: true,
+      isNetworkError: false,
       userMessage,
       diagnosticTag: '[bootstrap] backend canister stopped',
       canisterId,
     };
   }
   
+  if (isNetwork) {
+    return {
+      isStoppedCanister: false,
+      isNetworkError: true,
+      userMessage: 'Unable to reach the backend service. Please check your internet connection and try again.',
+      diagnosticTag: '[bootstrap] network error',
+      canisterId: null,
+    };
+  }
+  
   return {
     isStoppedCanister: false,
+    isNetworkError: false,
     userMessage: null,
     diagnosticTag: null,
     canisterId: null,

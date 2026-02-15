@@ -3,16 +3,20 @@ import type { DesignCode, MasterDesignEntry } from '../../../backend';
 /**
  * Parse master designs from extracted PDF text
  * Expects text to contain rows with: Design Code, Generic Name, Karigar Name
+ * @param pageTexts - Array of pages, each page is an array of lines
  */
-export function parseMasterDesignsFromPdfText(pageTexts: string[]): [DesignCode, MasterDesignEntry][] {
+export function parseMasterDesignsFromPdfText(pageTexts: string[][]): [DesignCode, MasterDesignEntry][] {
   const designs: [DesignCode, MasterDesignEntry][] = [];
   const seenCodes = new Set<string>();
   
-  // Combine all pages
-  const fullText = pageTexts.join('\n');
+  // Flatten all pages into a single array of lines
+  const allLines: string[] = [];
+  for (const pageLines of pageTexts) {
+    allLines.push(...pageLines);
+  }
   
-  // Split into lines
-  const lines = fullText.split(/[\n\r]+/).map(line => line.trim()).filter(line => line.length > 0);
+  // Filter out empty lines
+  const lines = allLines.map(line => line.trim()).filter(line => line.length > 0);
   
   if (lines.length === 0) {
     throw new Error(

@@ -13,7 +13,7 @@ function getXLSX(): any {
 
 /**
  * Parses master design mappings from a SheetJS workbook object.
- * Expected columns: Design Code, Generic Name, Karigar Name
+ * Expected columns: Design Code, Generic Name, Karigar Name (or Factory)
  * @param workbook - SheetJS workbook object
  * @returns Array of tuples [DesignCode, MasterDesignEntry]
  */
@@ -31,8 +31,18 @@ export function parseMasterDesignsFromWorkbook(workbook: any): [DesignCode, Mast
     throw new Error('The Excel sheet is empty. Please upload a file with master design data.');
   }
   
-  // Normalize header names (case-insensitive, trim spaces)
-  const normalizeKey = (key: string): string => key.toLowerCase().trim().replace(/\s+/g, '_');
+  // Normalize header names (case-insensitive, trim spaces, convert separators to underscores)
+  const normalizeKey = (key: string): string => {
+    return key
+      .toLowerCase()
+      .trim()
+      // Replace common separators (spaces, hyphens, slashes, dots) with underscores
+      .replace(/[\s\-\/\\.]+/g, '_')
+      // Collapse multiple underscores into one
+      .replace(/_+/g, '_')
+      // Remove leading/trailing underscores
+      .replace(/^_+|_+$/g, '');
+  };
   
   // Get the first row to check headers
   const firstRow = rawData[0];
@@ -42,7 +52,26 @@ export function parseMasterDesignsFromWorkbook(workbook: any): [DesignCode, Mast
   const columnAliases = {
     designCode: ['design_code', 'designcode', 'design', 'code', 'item_code'],
     genericName: ['generic_name', 'genericname', 'generic', 'name', 'item_name'],
-    karigarName: ['karigar_name', 'karigarname', 'karigar', 'artisan', 'craftsman']
+    karigarName: [
+      'karigar_name', 
+      'karigarname', 
+      'karigar', 
+      'artisan', 
+      'craftsman',
+      'factory',
+      'factory_name',
+      'factoryname',
+      'karigar_factory',
+      'karigarfactory',
+      'factory_karigar',
+      'factorykarigar',
+      'manufacturer',
+      'manufacturer_name',
+      'manufacturername',
+      'vendor',
+      'vendor_name',
+      'vendorname'
+    ]
   };
   
   // Find matching columns

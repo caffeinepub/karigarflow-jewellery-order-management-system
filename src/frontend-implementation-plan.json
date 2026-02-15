@@ -1,98 +1,58 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Fix bootstrap loading hang, normalize karigar totals, and implement Master Design PDF import parsing",
+  "title": "PDF Daily Orders parsing with karigar-section assignment preserved in ingestion preview",
   "requirements": [
     {
-      "id": "REQ-41",
-      "summary": "Prevent top-nav route changes from triggering an indefinite “Loading profile…” bootstrap loop; surface bootstrap failures as BootstrapErrorScreen with safe diagnostics.",
+      "id": "REQ-65",
+      "summary": "Implement PDF order parsing for Daily Orders with karigar/factory section tracking so each parsed order inherits the most recently encountered karigar/factory name until the next header appears.",
       "acceptanceCriteria": [
-        "When logged in, clicking between tabs (e.g., Dashboard → Master Designs → Users → Ingest Orders) does not get stuck on “Loading profile…”.",
-        "If profile/admin bootstrap queries fail during or after navigation, the app shows `BootstrapErrorScreen` (with Retry + Logout) instead of staying on an indefinite spinner.",
-        "Console logs include a non-sensitive diagnostic marker indicating whether the hang was due to actor init, profile fetch, or admin check (no secrets)."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/App.tsx",
-          "operation": "modify",
-          "description": "Refactor the authenticated bootstrap gating to (1) compute a clear bootstrap phase (actor init vs profile fetch vs admin check), (2) add a time-bounded bootstrap watchdog that converts prolonged “Loading profile…” states into a handled error rendered via `BootstrapErrorScreen`, and (3) ensure phase-specific, non-sensitive console diagnostic markers are emitted. Use the existing authorization-driven bootstrap flow (profile + admin check) and verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/hooks/useSafeActor.ts",
-          "operation": "modify",
-          "description": "Harden actor creation state reporting for bootstrap: ensure logs clearly indicate actor init start/success/failure with a stable diagnostic marker, and avoid any state pattern that could cause repeated refetch loops during route transitions (no secrets in logs). Use the existing authorization bootstrap expectations and verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/hooks/useCurrentUser.ts",
-          "operation": "modify",
-          "description": "Align profile bootstrap query state to avoid false “not fetched”/loading conditions during navigation: ensure `isLoading`/`isFetched` semantics don’t keep the Layout in an indefinite spinner when actor/profile are unavailable or errored, and emit a safe diagnostic marker for profile-fetch failures distinct from actor-init/admin-check markers. Use the existing authorization profile bootstrap behavior and verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/hooks/useQueries.ts",
-          "operation": "modify",
-          "description": "Strengthen `useIsCallerAdmin` bootstrap error/diagnostic behavior so admin-check failures are distinctly logged with a non-sensitive marker and reliably propagate into `BootstrapErrorScreen` rather than allowing indefinite loading states. Use the existing authorization/admin-check flow and verify the component's usage instructions before implementing."
-        }
-      ]
-    },
-    {
-      "id": "REQ-42",
-      "summary": "Normalize karigar-wise grouping so empty/missing karigar names consistently display as a single fallback label and mapped orders group under their correct karigar after master design changes.",
-      "acceptanceCriteria": [
-        "On dashboards where totals/karigar-wise breakdown is shown, orders with a non-empty `karigarName` are grouped under that exact karigar name (not under “Unassigned”).",
-        "If an order has an empty `karigarName`, UI groups it under a single consistent label (e.g., “Unassigned”) rather than an empty string key.",
-        "Changing master designs and reloading data updates the displayed karigar-wise totals accordingly."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/lib/orders/deriveMetrics.ts",
-          "operation": "modify",
-          "description": "Update karigar-wise aggregation to normalize keys: treat missing/empty/whitespace-only `karigarName` as a single consistent fallback label (e.g., “Unassigned”) while preserving exact non-empty karigar names for grouping."
-        },
-        {
-          "path": "frontend/src/pages/admin/AdminDashboardPage.tsx",
-          "operation": "modify",
-          "description": "Ensure karigar-wise totals reflect the latest master design mappings by deriving dashboard metrics from orders after applying master design mapping (so orders lacking `karigarName` can still be grouped under the mapped karigar when a mapping exists)."
-        },
-        {
-          "path": "frontend/src/pages/karigar/KarigarDashboardPage.tsx",
-          "operation": "modify",
-          "description": "Apply master design mapping before computing metrics so karigar dashboards do not display mapped orders under the fallback label when a mapping exists."
-        },
-        {
-          "path": "frontend/src/components/orders/OrdersFiltersBar.tsx",
-          "operation": "modify",
-          "description": "Normalize any karigar filter option generation and display labeling so empty/missing karigar names appear as a single consistent fallback label (e.g., “Unassigned”) and do not create empty-string options."
-        }
-      ]
-    },
-    {
-      "id": "REQ-43",
-      "summary": "Implement Master Design PDF parsing and update the import dialog to preview parsed (design_code, genericName, karigarName) mappings with clear unsupported/unreadable PDF errors.",
-      "acceptanceCriteria": [
-        "Uploading a PDF in the Master Designs import dialog no longer throws the current unimplemented-PDF error.",
-        "The PDF import produces a preview list of parsed mappings (design code, generic name, karigar name) consistent with the existing Excel import UX expectations.",
-        "If the PDF text cannot be extracted or no rows are detected, the UI shows an English error explaining that the PDF format is unsupported/unreadable and suggests trying another file (no raw stack traces by default)."
+        "Uploading a PDF on the Staff/Admin “Ingest Orders” page no longer throws the current \"PDF parsing is not yet implemented\" error.",
+        "The PDF parser extracts orders and sets each parsed order’s `karigarName` to the most recently encountered karigar/factory name found earlier in the PDF text (until a new karigar/factory name is encountered).",
+        "If a PDF contains multiple karigar/factory sections, orders are correctly grouped/assigned per section (no leakage across sections).",
+        "If the parser cannot find any karigar/factory name in the PDF, it still parses orders but sets `karigarName` to an empty string (not \"Unassigned\") and the UI treats them as unmapped/unassigned in the existing unmapped workflow."
       ],
       "file_operations": [
         {
           "path": "frontend/src/lib/parsers/pdf/extractText.ts",
           "operation": "modify",
-          "description": "Implement client-side PDF text extraction (returning per-page text) to replace the current placeholder error, and ensure failures are converted into user-safe, English error messages (no raw stack traces by default)."
+          "description": "Improve PDF text extraction fidelity for tabular parsing by preserving reading order and line breaks (e.g., grouping text items into rows) so downstream PDF order parsing can reliably detect karigar/factory headers and order rows."
         },
         {
-          "path": "frontend/src/lib/parsers/pdf/parseMasterDesignsFromPdfText.ts",
+          "path": "frontend/src/lib/parsers/pdf/parseOrdersFromPdfText.ts",
           "operation": "modify",
-          "description": "Implement parsing logic that converts extracted PDF page text into a validated list of master design mappings: `(designCode -> { genericName, karigarName, isActive })`, with robust row detection and a clear failure mode when no rows/unsupported format is detected."
+          "description": "Replace the current stub with a real Daily Orders PDF parser that (1) scans the extracted per-page text row-by-row, (2) detects karigar/factory header lines and updates `currentKarigarName`, (3) parses subsequent order rows into `Order` objects inheriting `karigarName = currentKarigarName`, and (4) falls back to `karigarName: ''` when no header is ever detected. Ensure createdAt/uploadDate/status/isCustomerOrder are set consistently with the Excel parser."
         },
         {
-          "path": "frontend/src/lib/parsers/masterDesignParser.ts",
+          "path": "frontend/src/lib/parsers/orderParser.ts",
           "operation": "modify",
-          "description": "Update PDF parsing dispatch to use the implemented PDF extract/parse functions and to surface friendly, English errors for unreadable/unsupported PDFs; avoid logging raw errors to the UI."
+          "description": "Keep the PDF parsing path intact but adjust error messaging/handling if needed so PDF uploads no longer fail with the previous \"not yet implemented\" error and instead surface actionable parse failures when the PDF format is unsupported."
+        }
+      ]
+    },
+    {
+      "id": "REQ-66",
+      "summary": "Update ingestion preview/mapping flow so PDF-derived `karigarName` is preserved and visible while still supporting master-design mapping for `genericName` and unmapped design-code detection.",
+      "acceptanceCriteria": [
+        "After selecting a PDF, the ingestion preview tables show the PDF-derived `karigarName` values for the parsed orders.",
+        "The existing master-design mapping step still fills `genericName` where a design-code mapping exists, and continues to classify unmapped design codes into the existing “Unmapped Orders” preview section.",
+        "The ingestion preview does not overwrite non-empty `karigarName` values produced by the PDF parser with a fallback label like \"Unassigned\"."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/lib/mapping/applyMasterDesignMapping.ts",
+          "operation": "modify",
+          "description": "Preserve PDF-derived karigar assignment during master-design mapping: when a design-code match exists, always fill `genericName` from the master design, but only fill/overwrite `karigarName` from the master design when the incoming order’s `karigarName` is empty."
         },
         {
-          "path": "frontend/src/components/masterDesigns/MasterDesignImportDialog.tsx",
+          "path": "frontend/src/components/orders/IngestionPreviewTable.tsx",
           "operation": "modify",
-          "description": "Update the import flow to (1) parse the uploaded file, (2) show a preview list/table of parsed mappings (design code, generic name, karigar name) before saving, and (3) show a user-friendly English error when PDF extraction/parsing fails or yields no rows (no raw stack traces by default)."
+          "description": "Adjust the preview table rendering so `karigarName` remains visible even when the design code is unmapped (do not replace the Karigar cell with an \"Unmapped\" label). Keep unmapped detection for design/generic columns and continue highlighting unmapped design codes."
+        },
+        {
+          "path": "frontend/src/pages/staff/IngestOrdersPage.tsx",
+          "operation": "modify",
+          "description": "Ensure the ingestion preview/mapping flow continues to pass through parsed `karigarName` values from PDF parsing into the preview tables and that no UI-level fallback overwrites non-empty `karigarName` during parse/mapping state updates."
         }
       ]
     }

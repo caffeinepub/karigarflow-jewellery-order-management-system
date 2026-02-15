@@ -25,7 +25,7 @@ import { useEffect, useState } from 'react';
 
 function Layout() {
   const { identity } = useInternetIdentity();
-  const { actor: safeActor, refetch: refetchActor } = useSafeActor();
+  const { actor: safeActor, isError: actorError, error: actorErrorObj, refetch: refetchActor } = useSafeActor();
   const { userProfile, isLoading: profileLoading, isFetched, isError: profileError, error: profileErrorObj, refetch: refetchProfile } = useCurrentUser();
   const { data: isAdmin, isLoading: isCheckingAdmin, isError: adminCheckError, error: adminCheckErrorObj, refetch: refetchAdmin } = useIsCallerAdmin();
   const isAuthenticated = !!identity;
@@ -39,7 +39,7 @@ function Layout() {
     
     // If we're still loading after 15 seconds, consider it a timeout
     const timeoutId = setTimeout(() => {
-      const isStillLoading = (profileLoading || !isFetched || isCheckingAdmin) && !profileError && !adminCheckError;
+      const isStillLoading = (profileLoading || !isFetched || isCheckingAdmin) && !profileError && !adminCheckError && !actorError;
       if (isStillLoading) {
         console.error('[bootstrap/timeout] Bootstrap exceeded 15s timeout - likely stuck');
         setHasTimedOut(true);
@@ -47,17 +47,24 @@ function Layout() {
     }, 15000);
 
     return () => clearTimeout(timeoutId);
-  }, [isAuthenticated, profileLoading, isFetched, isCheckingAdmin, profileError, adminCheckError]);
+  }, [isAuthenticated, profileLoading, isFetched, isCheckingAdmin, profileError, adminCheckError, actorError]);
+
+  // Reset timeout flag when errors clear or loading completes
+  useEffect(() => {
+    if (hasTimedOut && (!profileLoading && isFetched && !isCheckingAdmin)) {
+      setHasTimedOut(false);
+    }
+  }, [hasTimedOut, profileLoading, isFetched, isCheckingAdmin]);
 
   if (!isAuthenticated) {
     return <LoginPage />;
   }
 
   // Check for bootstrap errors (actor creation, profile fetch, or admin check)
-  const hasBootstrapError = profileError || adminCheckError || hasTimedOut;
+  const hasBootstrapError = actorError || profileError || adminCheckError || hasTimedOut;
   const bootstrapError = hasTimedOut 
     ? new Error('Bootstrap timed out after 15 seconds. This may indicate a network issue or the backend is not responding.')
-    : (profileErrorObj || adminCheckErrorObj);
+    : (actorErrorObj || profileErrorObj || adminCheckErrorObj);
 
   if (hasBootstrapError) {
     const handleRetry = async () => {

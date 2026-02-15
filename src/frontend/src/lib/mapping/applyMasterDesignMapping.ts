@@ -1,4 +1,5 @@
 import type { Order, DesignCode, MasterDesignEntry } from '../../backend';
+import { normalizeDesignCode } from './normalizeDesignCode';
 
 export interface MappingResult {
   mappedOrders: Order[];
@@ -6,25 +7,40 @@ export interface MappingResult {
   unmappedDesignCodes: string[];
 }
 
+/**
+ * Applies master design mapping to parsed orders.
+ * Preserves PDF-derived karigarName when present (non-empty).
+ * Only fills karigarName from master design when incoming order has empty karigarName.
+ */
 export function applyMasterDesignMapping(
   rawOrders: Order[],
   masterDesigns: [DesignCode, MasterDesignEntry][]
 ): MappingResult {
-  const designMap = new Map(masterDesigns);
+  // Build a normalized design map
+  const designMap = new Map<string, MasterDesignEntry>();
+  masterDesigns.forEach(([code, entry]) => {
+    const normalizedCode = normalizeDesignCode(code);
+    designMap.set(normalizedCode, entry);
+  });
+
   const mappedOrders: Order[] = [];
   const unmappedOrders: Order[] = [];
   const unmappedCodes = new Set<string>();
 
   rawOrders.forEach((order) => {
-    const mapping = designMap.get(order.designCode);
+    const normalizedOrderCode = normalizeDesignCode(order.designCode);
+    const mapping = designMap.get(normalizedOrderCode);
     
-    if (mapping) {
+    if (mapping && mapping.isActive) {
+      // Design code is mapped
       mappedOrders.push({
         ...order,
         genericName: mapping.genericName,
-        karigarName: mapping.karigarName,
+        // Preserve PDF-derived karigarName if present, otherwise use master design karigarName
+        karigarName: order.karigarName ? order.karigarName : mapping.karigarName,
       });
     } else {
+      // Design code is not mapped or inactive
       unmappedCodes.add(order.designCode);
       unmappedOrders.push(order);
     }

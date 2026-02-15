@@ -48,6 +48,7 @@ export function IngestOrdersPage() {
         throw new Error('No orders found in the file. Please check the file format.');
       }
 
+      // Apply normalized mapping (preserves PDF-derived karigarName)
       const { mappedOrders: mapped, unmappedOrders: unmapped, unmappedDesignCodes } = applyMasterDesignMapping(rawOrders, masterDesigns);
       
       setMappedOrders(mapped);
@@ -204,10 +205,7 @@ export function IngestOrdersPage() {
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <AlertCircle className="h-5 w-5 text-orange-600" />
-                    Unmapped Orders ({unmappedOrders.length})
-                  </CardTitle>
+                  <CardTitle>Unmapped Orders ({unmappedOrders.length})</CardTitle>
                 </div>
               </CardHeader>
               <CardContent>
@@ -216,46 +214,35 @@ export function IngestOrdersPage() {
             </Card>
           )}
 
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex justify-between items-center">
-                <div className="text-sm text-muted-foreground">
-                  <p>Total: {totalOrders} order(s)</p>
-                  {mappedOrders.length > 0 && <p>Mapped: {mappedOrders.length}</p>}
-                  {unmappedOrders.length > 0 && <p>Unmapped: {unmappedOrders.length}</p>}
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setFile(null);
-                      setMappedOrders([]);
-                      setUnmappedOrders([]);
-                      setUnmappedCodes([]);
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={handleUpload}
-                    disabled={uploadMutation.isPending}
-                  >
-                    {uploadMutation.isPending ? (
-                      <>
-                        <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                        Uploading...
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle className="mr-2 h-4 w-4" />
-                        Confirm Upload
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="flex justify-end gap-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setFile(null);
+                setMappedOrders([]);
+                setUnmappedOrders([]);
+                setUnmappedCodes([]);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleUpload}
+              disabled={uploadMutation.isPending}
+            >
+              {uploadMutation.isPending ? (
+                <>
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent mr-2" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <Upload className="mr-2 h-4 w-4" />
+                  Upload {totalOrders} Order{totalOrders !== 1 ? 's' : ''}
+                </>
+              )}
+            </Button>
+          </div>
         </>
       )}
     </div>

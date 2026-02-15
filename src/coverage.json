@@ -1,67 +1,48 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-15T10:53:49.245Z",
+  "generatedAt": "2026-02-15T14:57:59.671Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 4,
-    "implemented": 3,
+    "total": 3,
+    "implemented": 2,
     "items": [
       {
-        "id": "REQ-41",
-        "summary": "Fix the UI issue where, after the user clicks any top navigation tab, the app becomes stuck on the “Loading profile…” screen. Ensure that route navigation does not trigger a bootstrap/loading loop and that the app reliably transitions either to the requested page or to an error screen.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/App.tsx",
-          "frontend/src/hooks/useSafeActor.ts",
-          "frontend/src/hooks/useCurrentUser.ts",
-          "frontend/src/hooks/useQueries.ts"
-        ],
-        "matchedFiles": [
-          "frontend/src/App.tsx",
-          "frontend/src/hooks/useSafeActor.ts",
-          "frontend/src/hooks/useCurrentUser.ts",
-          "frontend/src/hooks/useQueries.ts"
-        ]
-      },
-      {
-        "id": "REQ-42",
-        "summary": "Ensure karigar-wise totals and order metrics never show mapped orders as “Unassigned” when a matching master design exists. If an order’s `karigarName` is empty/missing, present a consistent fallback label (e.g., “Unassigned”) only when there is truly no mapping.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/lib/orders/deriveMetrics.ts",
-          "frontend/src/pages/admin/AdminDashboardPage.tsx",
-          "frontend/src/pages/karigar/KarigarDashboardPage.tsx",
-          "frontend/src/components/orders/OrdersFiltersBar.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/lib/orders/deriveMetrics.ts",
-          "frontend/src/components/orders/OrdersFiltersBar.tsx"
-        ]
-      },
-      {
-        "id": "REQ-43",
-        "summary": "Implement Master Design PDF parsing so the Admin “Import Master Designs” flow can extract `(design_code -> { genericName, karigarName })` mappings from uploaded PDF files, rather than throwing the current “PDF parsing is not yet implemented…” error.",
+        "id": "REQ-65",
+        "summary": "Implement PDF order parsing for Daily Orders so that orders are assigned to the correct karigar based on the PDF’s layout rule: when a karigar/factory name appears in the PDF, all subsequent order rows belong to that karigar until the next karigar/factory name appears.",
         "status": "implemented",
         "plannedFiles": [
           "frontend/src/lib/parsers/pdf/extractText.ts",
-          "frontend/src/lib/parsers/pdf/parseMasterDesignsFromPdfText.ts",
-          "frontend/src/lib/parsers/masterDesignParser.ts",
-          "frontend/src/components/masterDesigns/MasterDesignImportDialog.tsx"
+          "frontend/src/lib/parsers/pdf/parseOrdersFromPdfText.ts",
+          "frontend/src/lib/parsers/orderParser.ts"
         ],
         "matchedFiles": [
           "frontend/src/lib/parsers/pdf/extractText.ts",
-          "frontend/src/lib/parsers/pdf/parseMasterDesignsFromPdfText.ts",
-          "frontend/src/lib/parsers/masterDesignParser.ts",
-          "frontend/src/components/masterDesigns/MasterDesignImportDialog.tsx"
+          "frontend/src/lib/parsers/pdf/parseOrdersFromPdfText.ts",
+          "frontend/src/lib/parsers/orderParser.ts"
         ]
       },
       {
-        "id": "REQ-44",
-        "summary": "Guarantee that orders are automatically assigned `genericName` and `karigarName` from the backend Master Designs mapping based on `designCode` during upload and during unmapped-order reprocessing. Do not rely on the frontend to pre-fill these fields for correctness.",
+        "id": "REQ-66",
+        "summary": "Update the ingestion preview/mapping flow so that PDF-derived karigar assignment is preserved and visible in the preview tables, while still supporting master-design mapping for `genericName` and unmapped design-code detection.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/lib/mapping/applyMasterDesignMapping.ts",
+          "frontend/src/components/orders/IngestionPreviewTable.tsx",
+          "frontend/src/pages/staff/IngestOrdersPage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/lib/mapping/applyMasterDesignMapping.ts",
+          "frontend/src/components/orders/IngestionPreviewTable.tsx",
+          "frontend/src/pages/staff/IngestOrdersPage.tsx"
+        ]
+      },
+      {
+        "id": "REQ-67",
+        "summary": "Update backend order upload mapping behavior so that when `uploadParsedOrders` receives an order with a non-empty `karigarName`, the backend does not overwrite that karigar assignment with the master-design `karigarName`; it should still use master designs to fill `genericName` when available and keep the order mapped/active behavior consistent.",
         "status": "unknown",
         "plannedFiles": [],
         "matchedFiles": []
@@ -74,16 +55,13 @@
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/App.tsx",
-    "frontend/src/components/masterDesigns/MasterDesignImportDialog.tsx",
-    "frontend/src/components/orders/OrdersFiltersBar.tsx",
-    "frontend/src/hooks/useCurrentUser.ts",
-    "frontend/src/hooks/useQueries.ts",
-    "frontend/src/hooks/useSafeActor.ts",
-    "frontend/src/lib/orders/deriveMetrics.ts",
-    "frontend/src/lib/parsers/masterDesignParser.ts",
+    "frontend/src/components/orders/IngestionPreviewTable.tsx",
+    "frontend/src/lib/mapping/applyMasterDesignMapping.ts",
+    "frontend/src/lib/parsers/orderParser.ts",
     "frontend/src/lib/parsers/pdf/extractText.ts",
     "frontend/src/lib/parsers/pdf/parseMasterDesignsFromPdfText.ts",
+    "frontend/src/lib/parsers/pdf/parseOrdersFromPdfText.ts",
+    "frontend/src/pages/staff/IngestOrdersPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

@@ -6,6 +6,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import type { Order } from '../../backend';
 import { format } from 'date-fns';
+import { formatKarigarName } from '../../lib/orders/formatKarigarName';
 
 interface OrdersTableProps {
   orders: Order[];
@@ -74,7 +75,7 @@ export function OrdersTable({ orders, showStatusUpdate = false }: OrdersTablePro
               </TableCell>
               <TableCell className="font-mono text-sm">{order.designCode}</TableCell>
               <TableCell>{order.genericName}</TableCell>
-              <TableCell>{order.karigarName}</TableCell>
+              <TableCell>{formatKarigarName(order.karigarName)}</TableCell>
               <TableCell className="text-right">{order.weight.toFixed(2)}g</TableCell>
               <TableCell className="text-right">{order.size.toFixed(2)}</TableCell>
               <TableCell className="text-right">{Number(order.qty)}</TableCell>

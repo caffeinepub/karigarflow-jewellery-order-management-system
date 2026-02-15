@@ -1,12 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
 import { useSafeActor } from './useSafeActor';
 import { classifyBootstrapError, getSafeErrorString } from '../utils/bootstrapErrorClassification';
+import type { HealthCheckResponse } from '../backend';
 
 export type BackendStatus = 'checking' | 'online' | 'offline';
 
 export interface BackendReachabilityState {
   status: BackendStatus;
   error: unknown | null;
+  healthData: HealthCheckResponse | null;
   refetch: () => void;
   isRefetching: boolean;
 }
@@ -14,6 +16,7 @@ export interface BackendReachabilityState {
 /**
  * Hook that periodically checks backend reachability via healthCheck.
  * Uses safe actor creation and classifies errors for stopped-canister detection.
+ * Exposes the latest successful healthCheck payload (including canisterId).
  */
 export function useBackendReachability(): BackendReachabilityState {
   const { actor } = useSafeActor();
@@ -58,6 +61,7 @@ export function useBackendReachability(): BackendReachabilityState {
   return {
     status,
     error: healthQuery.error || null,
+    healthData: healthQuery.data || null,
     refetch: healthQuery.refetch,
     isRefetching: healthQuery.isRefetching,
   };

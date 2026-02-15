@@ -2,57 +2,12 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-fix-the-ui-issue-where-after-the-user-clicks-any-top-navigation-tab-the-app-becomes-stuck-on-the-loading-profile-screen-ensure-that-route-navigation-does-not-trigger-a-bootstrap-loading-loop-and-that-the-app-reliably-transitions-either-to-the-requested-page-or-to-an-error-screen",
-      "featureTitle": "Fix the UI issue where, after the user clicks any top navigation tab, the app becomes stuck on the “Loading profile…” screen. Ensure that route navigation does not trigger a bootstrap/loading loop and that the app reliably transitions either to the requested page or to an error screen.",
+      "featureId": "feature-implement-pdf-order-parsing-for-daily-orders-so-that-orders-are-assigned-to-the-correct-karigar-based-on-the-pdf-s-layout-rule-when-a-karigar-factory-name-appears-in-the-pdf-all-subsequent-order-rows-belong-to-that-karigar-until-the-next-karigar-factory-name-appears",
+      "featureTitle": "Implement PDF order parsing for Daily Orders so that orders are assigned to the correct karigar based on the PDF’s layout rule: when a karigar/factory name appears in the PDF, all subsequent order rows belong to that karigar until the next karigar/factory name appears.",
       "files": [
-        "frontend/src/App.tsx",
-        "frontend/src/hooks/useCurrentUser.ts",
-        "frontend/src/hooks/useQueries.ts",
-        "frontend/src/hooks/useSafeActor.ts"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0",
-        "user-approval@3.0.0"
-      ],
-      "testIds": [
-        "REQ-41"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-ensure-karigar-wise-totals-and-order-metrics-never-show-mapped-orders-as-unassigned-when-a-matching-master-design-exists-if-an-order-s-karigarname-is-empty-missing-present-a-consistent-fallback-label-e-g-unassigned-only-when-there-is-truly-no-mapping",
-      "featureTitle": "Ensure karigar-wise totals and order metrics never show mapped orders as “Unassigned” when a matching master design exists. If an order’s `karigarName` is empty/missing, present a consistent fallback label (e.g., “Unassigned”) only when there is truly no mapping.",
-      "files": [
-        "frontend/src/components/orders/OrdersFiltersBar.tsx",
-        "frontend/src/lib/orders/deriveMetrics.ts"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0",
-        "user-approval@3.0.0"
-      ],
-      "testIds": [
-        "REQ-42"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-implement-master-design-pdf-parsing-so-the-admin-import-master-designs-flow-can-extract-design-code-genericname-karigarname-mappings-from-uploaded-pdf-files-rather-than-throwing-the-current-pdf-parsing-is-not-yet-implemented-error",
-      "featureTitle": "Implement Master Design PDF parsing so the Admin “Import Master Designs” flow can extract `(design_code -> { genericName, karigarName })` mappings from uploaded PDF files, rather than throwing the current “PDF parsing is not yet implemented…” error.",
-      "files": [
-        "frontend/src/components/masterDesigns/MasterDesignImportDialog.tsx",
-        "frontend/src/lib/parsers/masterDesignParser.ts",
+        "frontend/src/lib/parsers/orderParser.ts",
         "frontend/src/lib/parsers/pdf/extractText.ts",
-        "frontend/src/lib/parsers/pdf/parseMasterDesignsFromPdfText.ts"
+        "frontend/src/lib/parsers/pdf/parseOrdersFromPdfText.ts"
       ],
       "components": [
         "authorization@4.0.0",
@@ -64,7 +19,29 @@
         "user-approval@3.0.0"
       ],
       "testIds": [
-        "REQ-43"
+        "REQ-65"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-update-the-ingestion-preview-mapping-flow-so-that-pdf-derived-karigar-assignment-is-preserved-and-visible-in-the-preview-tables-while-still-supporting-master-design-mapping-for-genericname-and-unmapped-design-code-detection",
+      "featureTitle": "Update the ingestion preview/mapping flow so that PDF-derived karigar assignment is preserved and visible in the preview tables, while still supporting master-design mapping for `genericName` and unmapped design-code detection.",
+      "files": [
+        "frontend/src/components/orders/IngestionPreviewTable.tsx",
+        "frontend/src/lib/mapping/applyMasterDesignMapping.ts",
+        "frontend/src/pages/staff/IngestOrdersPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "user-approval@3.0.0"
+      ],
+      "testIds": [
+        "REQ-66"
       ],
       "confidence": "high"
     }

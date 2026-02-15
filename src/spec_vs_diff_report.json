@@ -1,55 +1,52 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-15T10:53:49.239Z",
-  "summary": "Frontend changes address the post-navigation bootstrap hang via safer actor/profile/admin bootstrap handling (timeouts, retries, diagnostic logs) and add PDF parsing for Master Design imports. UI-side normalization for empty karigar names is implemented in metrics derivation and filters. However, the backend requirement to *guarantee* automatic assignment/overwrite of `genericName`/`karigarName` from `masterDesignsMap` during order upload and unmapped-order reprocessing is not evidenced in the provided backend diff snippet (only types/state are visible due to truncation). Several additional UI features/components appear to have been changed/added beyond the requested scope (role gates, connectivity status, offline sync-related UI), based on the file summary evidence.",
+  "generatedAt": "2026-02-15T14:57:59.667Z",
+  "summary": "REQ-65 and REQ-66 appear implemented on the frontend via new PDF text extraction and PDF order parsing with karigar/factory section tracking, plus mapping logic that preserves non-empty PDF-derived karigarName through the ingestion preview. The backend change required by REQ-67 cannot be verified from the truncated backend diff. The diff summary also indicates many unrelated frontend/auth/connectivity/error-handling UI changes not requested in this BuildRequest.",
   "missing_requirements": [
     {
-      "id": "REQ-44",
-      "requirement": "Guarantee that orders are automatically assigned `genericName` and `karigarName` from the backend Master Designs mapping based on `designCode` during upload and during unmapped-order reprocessing (do not rely on frontend pre-fill).",
-      "reason": "The diff excerpt for `backend/main.mo` only shows imports, type/module definitions, and state maps. There is no visible implementation evidence for `uploadParsedOrders` overwriting `genericName`/`karigarName` from `masterDesignsMap`, nor evidence for `saveMasterDesigns` reprocessing previously-unmapped orders to move them into `ordersMap` with mapped names. Because the backend file content is truncated, this functionality cannot be confirmed from the provided diff summary.",
+      "id": "REQ-67",
+      "requirement": "Update backend order upload mapping behavior so that when uploadParsedOrders receives an order with a non-empty karigarName, the backend does not overwrite that karigar assignment with the master-design karigarName; it should still use master designs to fill genericName when available and keep the order mapped/active behavior consistent.",
+      "reason": "The only backend file shown (backend/main.mo) is truncated and does not include the uploadParsedOrders implementation or any evidence of the specified conditional overwrite behavior, design-code normalization for lookup during upload, or confirmation that authorization behavior is unchanged.",
       "evidence": [
-        "backend/main.mo (truncated excerpt shows only types/state; no `uploadParsedOrders`/`saveMasterDesigns` logic visible)"
+        "backend/main.mo (truncated in diff; uploadParsedOrders logic not visible)"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Connectivity/offline-sync style UI elements (connectivity status bar with pending sync queue, last sync time, manual sync trigger).",
-      "reason": "Not requested by REQ-41..REQ-44; BuildRequest non-goals also disallow adding external services, and offline sync is unrelated to the specified fixes.",
+      "description": "Added dynamic PDF.js loading from a CDN for PDF text extraction (pdfjs-dist via cdnjs).",
+      "reason": "REQ-65 asks to implement PDF parsing behavior, but does not request introducing a CDN-loaded third-party library/runtime dependency. This is an implementation addition beyond the stated requirements.",
       "evidence": [
-        "frontend-file-summaries.txt (mentions `frontend/src/components/status/ConnectivityStatusBar.tsx`: pending sync queue count, last sync time, manual sync trigger)"
+        "frontend/src/lib/parsers/pdf/extractText.ts"
       ]
     },
     {
-      "description": "Additional role-based access UI wrappers/screens beyond what is required to fix loading hang and karigar mapping (e.g., RoleGate, AccessDeniedScreen, expanded role enforcement).",
-      "reason": "BuildRequest non-goals: 'Changing application roles/permissions beyond what is required…'. These components indicate broader authorization UI work than the stated scope.",
+      "description": "Implemented parsing of master designs from PDF text (parseMasterDesignsFromPdfText).",
+      "reason": "BuildRequest focuses on Daily Orders PDF parsing and ingestion flow; it does not request adding/altering Master Design PDF parsing.",
       "evidence": [
-        "frontend-file-summaries.txt (mentions `frontend/src/components/auth/AccessDeniedScreen.tsx`, `frontend/src/components/auth/RoleGate.tsx`)"
+        "frontend/src/lib/parsers/pdf/parseMasterDesignsFromPdfText.ts"
       ]
     },
     {
-      "description": "Large UI/UX expansions (new/updated LoginPage branding, AppShell footer attribution/back-end status indicator, enhanced global AppErrorBoundary with copy action, collapsible details panels).",
-      "reason": "Not requested by REQ-41..REQ-44; these are broader UX enhancements rather than targeted fixes for bootstrap hang, PDF import parsing, or backend mapping guarantees.",
+      "description": "Large set of unrelated frontend changes: bootstrap error watchdog/retry logic, safe actor migration, profile setup modal changes, access denied screen, role gate, connectivity status bar, extensive error boundary enhancements, and multiple dashboard/page updates unrelated to PDF karigar-section assignment.",
+      "reason": "These changes are not requested by REQ-65/66/67 and constitute additional features/refactors outside the stated scope and non-goals (\"Do not redesign unrelated dashboards/exports beyond what is necessary\").",
       "evidence": [
-        "frontend-file-summaries.txt (mentions `frontend/src/pages/LoginPage.tsx` branding/background, `frontend/src/components/layout/AppShell.tsx` footer/indicator, `frontend/src/components/errors/AppErrorBoundary.tsx` advanced UI)"
+        "frontend-file-summaries.txt"
       ]
     }
   ],
-  "confidence": 0.62,
+  "confidence": 0.66,
   "changed_files": [
     "backend/main.mo",
     "frontend-file-summaries.txt",
-    "frontend/src/App.tsx",
-    "frontend/src/components/masterDesigns/MasterDesignImportDialog.tsx",
-    "frontend/src/components/orders/OrdersFiltersBar.tsx",
-    "frontend/src/hooks/useCurrentUser.ts",
-    "frontend/src/hooks/useQueries.ts",
-    "frontend/src/hooks/useSafeActor.ts",
-    "frontend/src/lib/orders/deriveMetrics.ts",
-    "frontend/src/lib/parsers/masterDesignParser.ts",
+    "frontend/src/components/orders/IngestionPreviewTable.tsx",
+    "frontend/src/lib/mapping/applyMasterDesignMapping.ts",
+    "frontend/src/lib/parsers/orderParser.ts",
     "frontend/src/lib/parsers/pdf/extractText.ts",
     "frontend/src/lib/parsers/pdf/parseMasterDesignsFromPdfText.ts",
+    "frontend/src/lib/parsers/pdf/parseOrdersFromPdfText.ts",
+    "frontend/src/pages/staff/IngestOrdersPage.tsx",
     "project_state.json"
   ]
 }

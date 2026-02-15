@@ -1,4 +1,5 @@
 import type { Order } from '../../backend';
+import { formatKarigarName } from './formatKarigarName';
 
 export interface OrderMetrics {
   totalOrders: number;
@@ -6,16 +7,6 @@ export interface OrderMetrics {
   totalQty: number;
   coOrders: number;
   karigarWise: Record<string, { qty: number; weight: number }>;
-}
-
-const UNASSIGNED_LABEL = 'Unassigned';
-
-/**
- * Normalize karigar name: treat empty/whitespace-only as "Unassigned"
- */
-function normalizeKarigarName(karigarName: string): string {
-  const trimmed = karigarName?.trim() || '';
-  return trimmed === '' ? UNASSIGNED_LABEL : trimmed;
 }
 
 export function deriveMetrics(orders: Order[]): OrderMetrics {
@@ -35,15 +26,15 @@ export function deriveMetrics(orders: Order[]): OrderMetrics {
       metrics.coOrders++;
     }
 
-    // Normalize karigar name to avoid empty string keys
-    const normalizedKarigar = normalizeKarigarName(order.karigarName);
+    // Use shared formatter to ensure consistent display
+    const displayKarigar = formatKarigarName(order.karigarName);
 
-    if (!metrics.karigarWise[normalizedKarigar]) {
-      metrics.karigarWise[normalizedKarigar] = { qty: 0, weight: 0 };
+    if (!metrics.karigarWise[displayKarigar]) {
+      metrics.karigarWise[displayKarigar] = { qty: 0, weight: 0 };
     }
     
-    metrics.karigarWise[normalizedKarigar].qty += Number(order.qty);
-    metrics.karigarWise[normalizedKarigar].weight += order.weight;
+    metrics.karigarWise[displayKarigar].qty += Number(order.qty);
+    metrics.karigarWise[displayKarigar].weight += order.weight;
   });
 
   return metrics;

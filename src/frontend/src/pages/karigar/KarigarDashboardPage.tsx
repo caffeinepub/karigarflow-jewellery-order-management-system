@@ -5,11 +5,13 @@ import { OrdersTable } from '../../components/orders/OrdersTable';
 import { InlineErrorState } from '../../components/errors/InlineErrorState';
 import { Package, Weight, Hash } from 'lucide-react';
 import { deriveMetrics } from '../../lib/orders/deriveMetrics';
+import { sortOrdersDesignWise } from '../../lib/orders/sortOrdersDesignWise';
 
 export function KarigarDashboardPage() {
   const { data: orders = [], isLoading, error, refetch } = useGetOrders();
 
-  const metrics = useMemo(() => deriveMetrics(orders), [orders]);
+  const sortedOrders = useMemo(() => sortOrdersDesignWise(orders), [orders]);
+  const metrics = useMemo(() => deriveMetrics(sortedOrders), [sortedOrders]);
 
   if (error) {
     return (
@@ -81,7 +83,7 @@ export function KarigarDashboardPage() {
               <CardTitle>Assigned Orders</CardTitle>
             </CardHeader>
             <CardContent>
-              <OrdersTable orders={orders} showStatusUpdate />
+              <OrdersTable orders={sortedOrders} showStatusUpdate />
             </CardContent>
           </Card>
         </>

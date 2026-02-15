@@ -42,7 +42,8 @@ export function useCurrentUser() {
       }
       return failureCount < 2;
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000, // 5 minutes - prevents refetch on navigation
+    gcTime: 10 * 60 * 1000, // 10 minutes - keep in cache longer
   });
 
   // If actor creation failed, surface that error

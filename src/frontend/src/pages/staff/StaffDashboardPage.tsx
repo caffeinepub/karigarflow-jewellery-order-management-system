@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useGetOrders } from '../../hooks/useQueries';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,6 +8,8 @@ import { OrdersFiltersBar } from '../../components/orders/OrdersFiltersBar';
 import { ExportActions } from '../../components/exports/ExportActions';
 import { InlineErrorState } from '../../components/errors/InlineErrorState';
 import { Upload } from 'lucide-react';
+import { formatKarigarName } from '../../lib/orders/formatKarigarName';
+import { sortOrdersDesignWise } from '../../lib/orders/sortOrdersDesignWise';
 
 export function StaffDashboardPage() {
   const navigate = useNavigate();
@@ -20,19 +22,28 @@ export function StaffDashboardPage() {
     status: '',
   });
 
-  const filteredOrders = orders.filter((order) => {
-    if (filters.karigar && order.karigarName !== filters.karigar) return false;
-    if (filters.coOnly && !order.isCustomerOrder) return false;
-    if (filters.status && order.status !== filters.status) return false;
-    
-    if (filters.dateFrom || filters.dateTo) {
-      const orderDate = new Date(Number(order.uploadDate) / 1000000);
-      if (filters.dateFrom && orderDate < filters.dateFrom) return false;
-      if (filters.dateTo && orderDate > filters.dateTo) return false;
-    }
-    
-    return true;
-  });
+  const filteredAndSortedOrders = useMemo(() => {
+    const filtered = orders.filter((order) => {
+      // Use formatted karigar name for comparison
+      if (filters.karigar) {
+        const orderKarigar = formatKarigarName(order.karigarName);
+        if (orderKarigar !== filters.karigar) return false;
+      }
+      
+      if (filters.coOnly && !order.isCustomerOrder) return false;
+      if (filters.status && order.status !== filters.status) return false;
+      
+      if (filters.dateFrom || filters.dateTo) {
+        const orderDate = new Date(Number(order.uploadDate) / 1000000);
+        if (filters.dateFrom && orderDate < filters.dateFrom) return false;
+        if (filters.dateTo && orderDate > filters.dateTo) return false;
+      }
+      
+      return true;
+    });
+
+    return sortOrdersDesignWise(filtered);
+  }, [orders, filters]);
 
   if (error) {
     return (
@@ -62,7 +73,7 @@ export function StaffDashboardPage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle>Orders</CardTitle>
-            <ExportActions orders={filteredOrders} />
+            <ExportActions orders={filteredAndSortedOrders} />
           </div>
           <OrdersFiltersBar
             orders={orders}
@@ -76,7 +87,7 @@ export function StaffDashboardPage() {
               <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto" />
             </div>
           ) : (
-            <OrdersTable orders={filteredOrders} />
+            <OrdersTable orders={filteredAndSortedOrders} />
           )}
         </CardContent>
       </Card>

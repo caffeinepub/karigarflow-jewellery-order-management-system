@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { CalendarIcon, X } from 'lucide-react';
 import { format } from 'date-fns';
 import type { Order } from '../../backend';
+import { formatKarigarName } from '../../lib/orders/formatKarigarName';
 
 interface OrdersFiltersBarProps {
   orders: Order[];
@@ -21,20 +22,11 @@ interface OrdersFiltersBarProps {
 }
 
 const ALL_KARIGARS_SENTINEL = '__all_karigars__';
-const UNASSIGNED_LABEL = 'Unassigned';
-
-/**
- * Normalize karigar name: treat empty/whitespace-only as "Unassigned"
- */
-function normalizeKarigarName(karigarName: string): string {
-  const trimmed = karigarName?.trim() || '';
-  return trimmed === '' ? UNASSIGNED_LABEL : trimmed;
-}
 
 export function OrdersFiltersBar({ orders, filters, onFiltersChange }: OrdersFiltersBarProps) {
-  // Normalize karigar names and get unique values
+  // Use shared formatter to get unique karigar names
   const uniqueKarigars = Array.from(
-    new Set(orders.map((o) => normalizeKarigarName(o.karigarName)))
+    new Set(orders.map((o) => formatKarigarName(o.karigarName)))
   ).sort();
 
   const hasActiveFilters = filters.karigar || filters.dateFrom || filters.dateTo || filters.coOnly || filters.status;

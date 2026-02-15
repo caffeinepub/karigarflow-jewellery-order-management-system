@@ -31,8 +31,12 @@ export function BootstrapErrorScreen({ error, onRetry }: BootstrapErrorScreenPro
         </div>
         <h1 className="mb-2 text-2xl font-bold">Unable to Load Profile</h1>
         
-        <p className="mb-6 text-muted-foreground">
+        <p className="mb-4 text-muted-foreground">
           {presentation?.friendlyMessage || 'We encountered an error while loading your profile. This could be a temporary issue or a permissions problem.'}
+        </p>
+
+        <p className="mb-6 text-sm text-muted-foreground">
+          Check the <span className="font-medium">Backend status</span> indicator in the header for more information about the connection.
         </p>
 
         {error && presentation && (

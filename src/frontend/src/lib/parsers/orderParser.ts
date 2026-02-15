@@ -24,7 +24,7 @@ async function parsePDFOrders(file: File, uploadDate: Date): Promise<Order[]> {
     console.error('PDF parsing error:', error);
     throw new Error(
       error.message || 
-      'Failed to parse PDF file. Please use an Excel file (.xlsx) for more reliable parsing.'
+      'Failed to parse PDF file. Please ensure the PDF contains order data in a readable format, or use an Excel file (.xlsx) for more reliable parsing.'
     );
   }
 }

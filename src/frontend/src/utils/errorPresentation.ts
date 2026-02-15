@@ -22,8 +22,10 @@ export function presentError(error: unknown): ErrorPresentation {
 
   if (classification.isStoppedCanister && classification.userMessage) {
     friendlyMessage = classification.userMessage;
+  } else if (classification.isNetworkError) {
+    friendlyMessage = 'Unable to reach the backend service. Please check your internet connection and try again.';
   } else {
-    // Generic fallback for non-stopped-canister errors
+    // Generic fallback for other errors
     friendlyMessage = 'An unexpected error occurred. Please try again or contact support if the problem persists.';
   }
 

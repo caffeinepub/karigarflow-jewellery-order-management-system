@@ -1,25 +1,36 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useActor } from './useActor';
 import { useSafeActor } from './useSafeActor';
 import type { Order, MasterDesignEntry, DesignCode, UnmappedOrderEntry, UserProfile } from '../backend';
 import { Principal } from '@dfinity/principal';
 import { classifyBootstrapError, getSafeErrorString } from '@/utils/bootstrapErrorClassification';
 
 export function useGetOrders() {
-  const { actor, isFetching } = useActor();
+  const { actor, isFetching, isError: actorError, error: actorErrorObj } = useSafeActor();
 
-  return useQuery<Order[]>({
+  const query = useQuery<Order[]>({
     queryKey: ['orders'],
     queryFn: async () => {
-      if (!actor) return [];
+      if (!actor) throw new Error('Actor not available');
       return actor.getOrders();
     },
-    enabled: !!actor && !isFetching,
+    enabled: !!actor && !isFetching && !actorError,
   });
+
+  // Surface actor errors
+  if (actorError) {
+    return {
+      ...query,
+      data: [],
+      isError: true,
+      error: actorErrorObj,
+    };
+  }
+
+  return query;
 }
 
 export function useUploadParsedOrders() {
-  const { actor } = useActor();
+  const { actor } = useSafeActor();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -35,20 +46,32 @@ export function useUploadParsedOrders() {
 }
 
 export function useGetMasterDesigns() {
-  const { actor, isFetching } = useActor();
+  const { actor, isFetching, isError: actorError, error: actorErrorObj } = useSafeActor();
 
-  return useQuery<[DesignCode, MasterDesignEntry][]>({
+  const query = useQuery<[DesignCode, MasterDesignEntry][]>({
     queryKey: ['masterDesigns'],
     queryFn: async () => {
-      if (!actor) return [];
+      if (!actor) throw new Error('Actor not available');
       return actor.getMasterDesigns();
     },
-    enabled: !!actor && !isFetching,
+    enabled: !!actor && !isFetching && !actorError,
   });
+
+  // Surface actor errors
+  if (actorError) {
+    return {
+      ...query,
+      data: [],
+      isError: true,
+      error: actorErrorObj,
+    };
+  }
+
+  return query;
 }
 
 export function useSaveMasterDesigns() {
-  const { actor } = useActor();
+  const { actor } = useSafeActor();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -65,7 +88,7 @@ export function useSaveMasterDesigns() {
 }
 
 export function useSetActiveFlagForMasterDesign() {
-  const { actor } = useActor();
+  const { actor } = useSafeActor();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -80,20 +103,32 @@ export function useSetActiveFlagForMasterDesign() {
 }
 
 export function useGetUnmappedDesignCodes() {
-  const { actor, isFetching } = useActor();
+  const { actor, isFetching, isError: actorError, error: actorErrorObj } = useSafeActor();
 
-  return useQuery<UnmappedOrderEntry[]>({
+  const query = useQuery<UnmappedOrderEntry[]>({
     queryKey: ['unmappedDesignCodes'],
     queryFn: async () => {
-      if (!actor) return [];
+      if (!actor) throw new Error('Actor not available');
       return actor.getUnmappedDesignCodes();
     },
-    enabled: !!actor && !isFetching,
+    enabled: !!actor && !isFetching && !actorError,
   });
+
+  // Surface actor errors
+  if (actorError) {
+    return {
+      ...query,
+      data: [],
+      isError: true,
+      error: actorErrorObj,
+    };
+  }
+
+  return query;
 }
 
 export function useDeleteOrder() {
-  const { actor } = useActor();
+  const { actor } = useSafeActor();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -146,7 +181,8 @@ export function useIsCallerAdmin() {
       }
       return failureCount < 2;
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000, // 5 minutes - prevents refetch on navigation
+    gcTime: 10 * 60 * 1000, // 10 minutes - keep in cache longer
   });
 
   // If actor creation failed, surface that error
@@ -165,7 +201,7 @@ export function useIsCallerAdmin() {
 }
 
 export function useCreateUserProfile() {
-  const { actor } = useActor();
+  const { actor } = useSafeActor();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -180,7 +216,7 @@ export function useCreateUserProfile() {
 }
 
 export function useGetUserProfile() {
-  const { actor } = useActor();
+  const { actor } = useSafeActor();
 
   return useMutation({
     mutationFn: async (user: Principal) => {

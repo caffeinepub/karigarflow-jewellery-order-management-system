@@ -2,6 +2,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { AlertCircle } from 'lucide-react';
 import type { Order } from '../../backend';
+import { normalizeDesignCode } from '../../lib/mapping/normalizeDesignCode';
 
 interface IngestionPreviewTableProps {
   orders: Order[];
@@ -9,6 +10,9 @@ interface IngestionPreviewTableProps {
 }
 
 export function IngestionPreviewTable({ orders, unmappedCodes }: IngestionPreviewTableProps) {
+  // Normalize unmapped codes for comparison
+  const normalizedUnmappedCodes = new Set(unmappedCodes.map(code => normalizeDesignCode(code)));
+
   return (
     <div className="rounded-md border overflow-x-auto">
       <Table>
@@ -27,7 +31,10 @@ export function IngestionPreviewTable({ orders, unmappedCodes }: IngestionPrevie
         </TableHeader>
         <TableBody>
           {orders.map((order, idx) => {
-            const isUnmapped = unmappedCodes.includes(order.designCode);
+            // Check if this order's design code is unmapped using normalized comparison
+            const normalizedOrderCode = normalizeDesignCode(order.designCode);
+            const isUnmapped = normalizedUnmappedCodes.has(normalizedOrderCode);
+            
             return (
               <TableRow
                 key={idx}
@@ -56,14 +63,8 @@ export function IngestionPreviewTable({ orders, unmappedCodes }: IngestionPrevie
                   )}
                 </TableCell>
                 <TableCell>
-                  {isUnmapped ? (
-                    <div className="flex items-center gap-1 text-orange-600">
-                      <AlertCircle className="h-3 w-3" />
-                      <span className="text-xs">Unmapped</span>
-                    </div>
-                  ) : (
-                    order.karigarName || '-'
-                  )}
+                  {/* Always show karigarName, even for unmapped orders */}
+                  {order.karigarName || '-'}
                 </TableCell>
                 <TableCell className="text-right">{order.weight.toFixed(2)}</TableCell>
                 <TableCell className="text-right">{order.size.toFixed(2)}</TableCell>

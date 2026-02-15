@@ -10,10 +10,13 @@ import { InlineErrorState } from '../../components/errors/InlineErrorState';
 import { CalendarIcon, Package, Weight, Hash, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { deriveMetrics } from '../../lib/orders/deriveMetrics';
+import { sortOrdersDesignWise } from '../../lib/orders/sortOrdersDesignWise';
 
 export function AdminDashboardPage() {
   const { data: orders = [], isLoading, error, refetch } = useGetOrders();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+
+  const sortedOrders = useMemo(() => sortOrdersDesignWise(orders), [orders]);
 
   const metrics = useMemo(() => {
     const todayStart = new Date(selectedDate);
@@ -21,13 +24,13 @@ export function AdminDashboardPage() {
     const todayEnd = new Date(selectedDate);
     todayEnd.setHours(23, 59, 59, 999);
 
-    const todayOrders = orders.filter((order) => {
+    const todayOrders = sortedOrders.filter((order) => {
       const uploadDate = new Date(Number(order.uploadDate) / 1000000);
       return uploadDate >= todayStart && uploadDate <= todayEnd;
     });
 
     return deriveMetrics(todayOrders);
-  }, [orders, selectedDate]);
+  }, [sortedOrders, selectedDate]);
 
   if (error) {
     return (
@@ -125,7 +128,7 @@ export function AdminDashboardPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Karigar-wise Summary</CardTitle>
-                <ExportActions orders={orders} />
+                <ExportActions orders={sortedOrders} />
               </div>
             </CardHeader>
             <CardContent>
@@ -151,7 +154,7 @@ export function AdminDashboardPage() {
               <CardTitle>All Orders</CardTitle>
             </CardHeader>
             <CardContent>
-              <OrdersTable orders={orders} />
+              <OrdersTable orders={sortedOrders} />
             </CardContent>
           </Card>
         </>

@@ -1,5 +1,6 @@
 // PDF text extraction using pdfjs-dist from CDN
 // This implementation loads the library dynamically and extracts text from all pages
+// with improved line-by-line structure preservation for tabular parsing
 
 declare global {
   interface Window {
@@ -47,10 +48,10 @@ async function loadPdfJsLib(): Promise<any> {
 }
 
 /**
- * Extract text from a PDF file
- * Returns an array of strings, one per page
+ * Extract text from a PDF file with improved line structure preservation
+ * Returns an array of page texts, where each page text is an array of lines
  */
-export async function extractTextFromPDF(file: File): Promise<string[]> {
+export async function extractTextFromPDF(file: File): Promise<string[][]> {
   try {
     // Load the library
     const pdfjsLib = await loadPdfJsLib();
@@ -63,19 +64,46 @@ export async function extractTextFromPDF(file: File): Promise<string[]> {
     const loadingTask = pdfjsLib.getDocument({ data: typedArray });
     const pdf = await loadingTask.promise;
     
-    const pageTexts: string[] = [];
+    const pageTexts: string[][] = [];
     
     // Extract text from each page
     for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
       const page = await pdf.getPage(pageNum);
       const textContent = await page.getTextContent();
       
-      // Concatenate all text items with spaces
-      const pageText = textContent.items
-        .map((item: any) => item.str)
-        .join(' ');
+      // Group text items by Y position to form lines
+      const lineMap = new Map<number, any[]>();
       
-      pageTexts.push(pageText);
+      textContent.items.forEach((item: any) => {
+        if (!item.str || item.str.trim() === '') return;
+        
+        // Round Y position to group items on the same line
+        const y = Math.round(item.transform[5]);
+        
+        if (!lineMap.has(y)) {
+          lineMap.set(y, []);
+        }
+        lineMap.get(y)!.push(item);
+      });
+      
+      // Sort lines by Y position (top to bottom)
+      const sortedYPositions = Array.from(lineMap.keys()).sort((a, b) => b - a);
+      
+      // Build lines by sorting items within each line by X position
+      const lines: string[] = [];
+      sortedYPositions.forEach(y => {
+        const items = lineMap.get(y)!;
+        // Sort items by X position (left to right)
+        items.sort((a, b) => a.transform[4] - b.transform[4]);
+        
+        // Join items with space
+        const lineText = items.map(item => item.str).join(' ').trim();
+        if (lineText) {
+          lines.push(lineText);
+        }
+      });
+      
+      pageTexts.push(lines);
     }
     
     return pageTexts;
