@@ -24,7 +24,7 @@ interface OrdersFiltersBarProps {
 const ALL_KARIGARS_SENTINEL = '__all_karigars__';
 
 export function OrdersFiltersBar({ orders, filters, onFiltersChange }: OrdersFiltersBarProps) {
-  // Use shared formatter to get unique karigar names
+  // Use shared formatter to get unique karigar names - this ensures dropdown values match filter comparison
   const uniqueKarigars = Array.from(
     new Set(orders.map((o) => formatKarigarName(o.karigarName)))
   ).sort();

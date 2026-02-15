@@ -9,8 +9,11 @@ export interface MappingResult {
 
 /**
  * Applies master design mapping to parsed orders.
- * Preserves PDF-derived karigarName when present (non-empty).
+ * Preserves PDF-derived karigarName when present (non-empty and non-whitespace).
  * Only fills karigarName from master design when incoming order has empty karigarName.
+ * 
+ * This function is idempotent and can be called multiple times with the same raw orders
+ * as master designs are loaded or updated.
  */
 export function applyMasterDesignMapping(
   rawOrders: Order[],
@@ -31,13 +34,16 @@ export function applyMasterDesignMapping(
     const normalizedOrderCode = normalizeDesignCode(order.designCode);
     const mapping = designMap.get(normalizedOrderCode);
     
+    // Check if PDF-derived karigarName is meaningful (not empty or whitespace-only)
+    const hasPdfKarigarName = order.karigarName && order.karigarName.trim() !== '';
+    
     if (mapping && mapping.isActive) {
       // Design code is mapped
       mappedOrders.push({
         ...order,
         genericName: mapping.genericName,
-        // Preserve PDF-derived karigarName if present, otherwise use master design karigarName
-        karigarName: order.karigarName ? order.karigarName : mapping.karigarName,
+        // Preserve PDF-derived karigarName if present and meaningful, otherwise use master design karigarName
+        karigarName: hasPdfKarigarName ? order.karigarName : mapping.karigarName,
       });
     } else {
       // Design code is not mapped or inactive

@@ -1,58 +1,53 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "PDF Daily Orders parsing with karigar-section assignment preserved in ingestion preview",
+  "title": "Fix ingestion remapping with late master-design load and make karigar filtering consistent",
   "requirements": [
     {
-      "id": "REQ-65",
-      "summary": "Implement PDF order parsing for Daily Orders with karigar/factory section tracking so each parsed order inherits the most recently encountered karigar/factory name until the next header appears.",
+      "id": "REQ-71",
+      "summary": "Prevent incorrect Unmapped/Unassigned preview when master designs are still loading by remapping parsed orders once master designs arrive, while preserving non-empty PDF-derived karigarName and filling genericName from master designs.",
       "acceptanceCriteria": [
-        "Uploading a PDF on the Staff/Admin “Ingest Orders” page no longer throws the current \"PDF parsing is not yet implemented\" error.",
-        "The PDF parser extracts orders and sets each parsed order’s `karigarName` to the most recently encountered karigar/factory name found earlier in the PDF text (until a new karigar/factory name is encountered).",
-        "If a PDF contains multiple karigar/factory sections, orders are correctly grouped/assigned per section (no leakage across sections).",
-        "If the parser cannot find any karigar/factory name in the PDF, it still parses orders but sets `karigarName` to an empty string (not \"Unassigned\") and the UI treats them as unmapped/unassigned in the existing unmapped workflow."
+        "On `Ingest Orders` (`frontend/src/pages/staff/IngestOrdersPage.tsx`), if the user selects a file before `masterDesigns` has finished loading, the UI shows an English warning or blocking state such as: \"Loading master designs… please wait before parsing.\" OR it allows parsing but automatically re-maps/re-classifies the preview as soon as `masterDesigns` arrives (without requiring the user to re-upload the file).",
+        "After master designs are available, any parsed order whose `designCode` exists in active master designs shows the correct `genericName` and the correct karigar assignment (from PDF-derived karigarName if present; otherwise from the master-design mapping).",
+        "The preview’s Mapped/Unmapped counts update correctly after re-mapping (no stale counts).",
+        "Uploading after the preview shows correct mapping results in the stored orders having the expected `karigarName` so that karigar-wise filtering in dashboards works."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/lib/parsers/pdf/extractText.ts",
+          "path": "frontend/src/pages/staff/IngestOrdersPage.tsx",
           "operation": "modify",
-          "description": "Improve PDF text extraction fidelity for tabular parsing by preserving reading order and line breaks (e.g., grouping text items into rows) so downstream PDF order parsing can reliably detect karigar/factory headers and order rows."
+          "description": "Track the last successfully parsed raw orders separately from the mapped/unmapped preview state, and add a reactive remapping step that re-runs `applyMasterDesignMapping` when `useGetMasterDesigns()` finishes loading/updates so the preview (mapped/unmapped lists, unmapped codes, and counts) automatically refreshes without requiring re-upload. Also add an English warning/notice when parsing occurs while master designs are still loading."
         },
-        {
-          "path": "frontend/src/lib/parsers/pdf/parseOrdersFromPdfText.ts",
-          "operation": "modify",
-          "description": "Replace the current stub with a real Daily Orders PDF parser that (1) scans the extracted per-page text row-by-row, (2) detects karigar/factory header lines and updates `currentKarigarName`, (3) parses subsequent order rows into `Order` objects inheriting `karigarName = currentKarigarName`, and (4) falls back to `karigarName: ''` when no header is ever detected. Ensure createdAt/uploadDate/status/isCustomerOrder are set consistently with the Excel parser."
-        },
-        {
-          "path": "frontend/src/lib/parsers/orderParser.ts",
-          "operation": "modify",
-          "description": "Keep the PDF parsing path intact but adjust error messaging/handling if needed so PDF uploads no longer fail with the previous \"not yet implemented\" error and instead surface actionable parse failures when the PDF format is unsupported."
-        }
-      ]
-    },
-    {
-      "id": "REQ-66",
-      "summary": "Update ingestion preview/mapping flow so PDF-derived `karigarName` is preserved and visible while still supporting master-design mapping for `genericName` and unmapped design-code detection.",
-      "acceptanceCriteria": [
-        "After selecting a PDF, the ingestion preview tables show the PDF-derived `karigarName` values for the parsed orders.",
-        "The existing master-design mapping step still fills `genericName` where a design-code mapping exists, and continues to classify unmapped design codes into the existing “Unmapped Orders” preview section.",
-        "The ingestion preview does not overwrite non-empty `karigarName` values produced by the PDF parser with a fallback label like \"Unassigned\"."
-      ],
-      "file_operations": [
         {
           "path": "frontend/src/lib/mapping/applyMasterDesignMapping.ts",
           "operation": "modify",
-          "description": "Preserve PDF-derived karigar assignment during master-design mapping: when a design-code match exists, always fill `genericName` from the master design, but only fill/overwrite `karigarName` from the master design when the incoming order’s `karigarName` is empty."
+          "description": "Ensure mapping logic supports re-application cleanly and continues to preserve a non-empty PDF-derived `karigarName` while still filling `genericName` from active master designs when available (do not overwrite non-empty `karigarName`)."
         },
         {
           "path": "frontend/src/components/orders/IngestionPreviewTable.tsx",
           "operation": "modify",
-          "description": "Adjust the preview table rendering so `karigarName` remains visible even when the design code is unmapped (do not replace the Karigar cell with an \"Unmapped\" label). Keep unmapped detection for design/generic columns and continue highlighting unmapped design codes."
+          "description": "Adjust the ingestion preview table presentation to reliably reflect post-remap results (e.g., column labeling and/or conditional display) so that after master designs load and remapping runs, the displayed karigar/generic values match the updated mapped/unmapped classification."
+        }
+      ]
+    },
+    {
+      "id": "REQ-72",
+      "summary": "Make karigar-wise filtering in Orders list predictable by using the same karigar formatting logic for both dropdown population and filtering comparisons, ensuring master-design-mapped orders no longer appear under Unassigned.",
+      "acceptanceCriteria": [
+        "On Staff Dashboard (`frontend/src/pages/staff/StaffDashboardPage.tsx`) and any other page using `OrdersFiltersBar`, selecting a karigar value filters orders correctly using the same formatted karigar name logic used to populate the dropdown.",
+        "If the backend returns orders with `karigarName` populated from master-design mapping, those orders appear under that karigar when filtered, not under \"Unassigned\".",
+        "The Karigar dropdown’s \"All Karigars\" option continues to work and does not cause runtime errors (must keep using the existing sentinel value approach in `frontend/src/components/orders/OrdersFiltersBar.tsx`)."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/orders/OrdersFiltersBar.tsx",
+          "operation": "modify",
+          "description": "Harden karigar dropdown behavior so the list of karigars is derived from the exact same formatting/normalization used for filtering (via `formatKarigarName`), keeping the existing sentinel value approach for \"All Karigars\" and ensuring the dropdown values match the filter comparison values."
         },
         {
-          "path": "frontend/src/pages/staff/IngestOrdersPage.tsx",
+          "path": "frontend/src/pages/staff/StaffDashboardPage.tsx",
           "operation": "modify",
-          "description": "Ensure the ingestion preview/mapping flow continues to pass through parsed `karigarName` values from PDF parsing into the preview tables and that no UI-level fallback overwrites non-empty `karigarName` during parse/mapping state updates."
+          "description": "Ensure the orders filtering comparison continues to use the same `formatKarigarName` logic as `OrdersFiltersBar` so selecting a karigar (including \"Unassigned\") shows all matching orders predictably."
         }
       ]
     }

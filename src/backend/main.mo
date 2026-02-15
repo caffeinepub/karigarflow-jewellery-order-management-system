@@ -223,7 +223,7 @@ actor {
     trimmed.replace(#text("  "), " ");
   };
 
-  // Upload parsed orders - hosted only, allow frontend pre-filled karigar if
+  // Upload parsed orders - hosted only, user_approval-packed backend
   public shared ({ caller }) func uploadParsedOrders(parsedOrders : [OrderModule.Order]) : async () {
     if (not isAdminOrStaff(caller)) {
       Runtime.trap("Unauthorized: Only Admin or Staff can upload orders");

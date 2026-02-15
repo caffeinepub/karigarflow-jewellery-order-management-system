@@ -24,7 +24,7 @@ export function StaffDashboardPage() {
 
   const filteredAndSortedOrders = useMemo(() => {
     const filtered = orders.filter((order) => {
-      // Use formatted karigar name for comparison
+      // Use formatted karigar name for comparison - must match the dropdown values exactly
       if (filters.karigar) {
         const orderKarigar = formatKarigarName(order.karigarName);
         if (orderKarigar !== filters.karigar) return false;

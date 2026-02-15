@@ -2,30 +2,8 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-implement-pdf-order-parsing-for-daily-orders-so-that-orders-are-assigned-to-the-correct-karigar-based-on-the-pdf-s-layout-rule-when-a-karigar-factory-name-appears-in-the-pdf-all-subsequent-order-rows-belong-to-that-karigar-until-the-next-karigar-factory-name-appears",
-      "featureTitle": "Implement PDF order parsing for Daily Orders so that orders are assigned to the correct karigar based on the PDF’s layout rule: when a karigar/factory name appears in the PDF, all subsequent order rows belong to that karigar until the next karigar/factory name appears.",
-      "files": [
-        "frontend/src/lib/parsers/orderParser.ts",
-        "frontend/src/lib/parsers/pdf/extractText.ts",
-        "frontend/src/lib/parsers/pdf/parseOrdersFromPdfText.ts"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0",
-        "user-approval@3.0.0"
-      ],
-      "testIds": [
-        "REQ-65"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-update-the-ingestion-preview-mapping-flow-so-that-pdf-derived-karigar-assignment-is-preserved-and-visible-in-the-preview-tables-while-still-supporting-master-design-mapping-for-genericname-and-unmapped-design-code-detection",
-      "featureTitle": "Update the ingestion preview/mapping flow so that PDF-derived karigar assignment is preserved and visible in the preview tables, while still supporting master-design mapping for `genericName` and unmapped design-code detection.",
+      "featureId": "feature-ensure-pdf-excel-ingestion-assigns-and-displays-orders-karigar-wise-based-on-design-code-mapping-even-when-master-designs-are-still-loading-at-the-moment-the-file-is-parsed-specifically-1-parsing-a-file-must-not-produce-a-preview-where-mapped-orders-incorrectly-appear-as-unmapped-unassigned-simply-because-usegetmasterdesigns-has-not-returned-yet-2-once-master-designs-load-the-ingestion-preview-must-re-apply-master-design-mapping-to-the-already-parsed-orders-so-the-expected-karigarname-appears-3-keep-the-existing-behavior-that-preserves-non-empty-karigarname-extracted-from-the-pdf-do-not-overwrite-it-with-master-design-karigarname-while-still-filling-genericname-from-master-designs-when-available",
+      "featureTitle": "Ensure PDF/Excel ingestion assigns and displays orders karigar-wise based on Design Code mapping, even when Master Designs are still loading at the moment the file is parsed. Specifically: (1) parsing a file must not produce a preview where mapped orders incorrectly appear as Unmapped/Unassigned simply because `useGetMasterDesigns()` has not returned yet; (2) once master designs load, the ingestion preview must re-apply master-design mapping to the already-parsed orders so the expected `karigarName` appears; (3) keep the existing behavior that preserves non-empty `karigarName` extracted from the PDF (do not overwrite it with master-design karigarName), while still filling `genericName` from master designs when available.",
       "files": [
         "frontend/src/components/orders/IngestionPreviewTable.tsx",
         "frontend/src/lib/mapping/applyMasterDesignMapping.ts",
@@ -41,7 +19,28 @@
         "user-approval@3.0.0"
       ],
       "testIds": [
-        "REQ-66"
+        "REQ-71"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-make-karigar-wise-filtering-in-the-orders-list-behave-predictably-for-admin-staff-the-karigar-filter-dropdown-must-reflect-the-same-karigar-names-that-will-be-used-for-filtering-and-selecting-a-karigar-must-show-all-orders-assigned-to-that-karigar-if-orders-are-mapped-to-a-karigar-via-master-designs-after-ingestion-they-must-no-longer-appear-under-unassigned-in-the-staff-admin-orders-filter-list-and-filtered-results",
+      "featureTitle": "Make karigar-wise filtering in the Orders list behave predictably for Admin/Staff: the Karigar filter dropdown must reflect the same karigar names that will be used for filtering, and selecting a karigar must show all orders assigned to that karigar. If orders are mapped to a karigar via master designs after ingestion, they must no longer appear under \"Unassigned\" in the Staff/Admin orders filter list and filtered results.",
+      "files": [
+        "frontend/src/components/orders/OrdersFiltersBar.tsx",
+        "frontend/src/pages/staff/StaffDashboardPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "user-approval@3.0.0"
+      ],
+      "testIds": [
+        "REQ-72"
       ],
       "confidence": "high"
     }

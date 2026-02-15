@@ -1,8 +1,9 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle } from 'lucide-react';
 import type { Order } from '../../backend';
 import { normalizeDesignCode } from '../../lib/mapping/normalizeDesignCode';
+import { formatKarigarName } from '../../lib/orders/formatKarigarName';
 
 interface IngestionPreviewTableProps {
   orders: Order[];
@@ -34,6 +35,7 @@ export function IngestionPreviewTable({ orders, unmappedCodes }: IngestionPrevie
             // Check if this order's design code is unmapped using normalized comparison
             const normalizedOrderCode = normalizeDesignCode(order.designCode);
             const isUnmapped = normalizedUnmappedCodes.has(normalizedOrderCode);
+            const hasKarigarName = order.karigarName && order.karigarName.trim() !== '';
             
             return (
               <TableRow
@@ -63,8 +65,18 @@ export function IngestionPreviewTable({ orders, unmappedCodes }: IngestionPrevie
                   )}
                 </TableCell>
                 <TableCell>
-                  {/* Always show karigarName, even for unmapped orders */}
-                  {order.karigarName || '-'}
+                  <div className="flex items-center gap-2">
+                    {hasKarigarName ? (
+                      <>
+                        <CheckCircle className="h-3 w-3 text-green-600 flex-shrink-0" />
+                        <span>{order.karigarName}</span>
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground italic">
+                        {formatKarigarName(order.karigarName)}
+                      </span>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell className="text-right">{order.weight.toFixed(2)}</TableCell>
                 <TableCell className="text-right">{order.size.toFixed(2)}</TableCell>

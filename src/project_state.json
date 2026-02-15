@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 37,
+  "projectStateVersion": 41,
   "summary": "Build “KarigarFlow – Jewellery Order Management System”, a production-ready cloud/PWA web app for jewellery wholesale order intake via daily Excel/PDF uploads, parsing and mapping design codes to master designs, karigar-wise dashboards, CO highlighting, exports, offline-first sync, and role-based access using React PWA + Supabase.",
   "architectural_notes": [
     "Frontend: React with PWA (offline-first, installable)",
@@ -12,7 +12,7 @@
     "Add a lightweight backend reachability/health check and surface it in the UI as an online/offline status indicator (should handle canister-stopped/unreachable states).",
     "Project backend is Supabase (Postgres + Auth); do not use Internet Computer canisters/IC actors or icp0.io endpoints in the production bootstrap flow.",
     "Orders must automatically derive/assign karigar/factory name from Master Design Excel mappings by matching design_code (and generic_name where applicable) during ingestion/reprocessing; do not require manual assignment.",
-    "Karigar assignment must follow the PDF’s demonstrated mapping rule (order-to-karigar sequencing/\"subsequent karigar\" behavior) when importing/parsing that PDF format, not just leave orders Unassigned."
+    "Karigar assignment during PDF order ingestion must match the user’s expected behavior shown in the provided PDF: orders should be assigned karigar based on design_code-to-karigar mapping (as represented in the PDF), and the UI must support viewing/filtering orders karigar-wise accordingly."
   ],
   "known_issues": [
     "Order parsing is still not active/working in the deployed app (ingestion/parsing flow not functioning)",
@@ -24,7 +24,7 @@
     "Profile load fails with IC replica rejection because backend canister is stopped (Reject code 5 / IC0508) when calling `getCallerUserProfile` on canister 6wepb-taaaa-aaaan-q2pcq-cai.",
     "After clicking any tab, app gets stuck on “Loading profile…” (navigation triggers bootstrap hang/loading loop).",
     "Orders/totals show karigar as “Unassigned” even when Master Design PDF mappings exist; automatic karigar assignment from design_code mapping is not being applied/displayed.",
-    "Version 12 regression: landing page loads, but clicking any button/navigation triggers “Loading profile…” infinite loading with no result."
+    "PDF order karigar assignment logic does not match the user’s expectation from the provided PDF (user expects karigar assignment per design_code mapping and karigar-wise filtered display); current assignment behavior is perceived as incorrect."
   ],
   "isFixRequest": true,
   "existing_features": [
@@ -459,6 +459,38 @@
         "REQ-66"
       ],
       "version": 1
+    },
+    {
+      "id": "feature-update-the-pdf-order-parsing-logic-so-that-karigar-assignment-matches-the-uploaded-pdf-s-structure-when-a-karigar-name-header-appears-in-the-pdf-all-subsequent-order-rows-must-be-assigned-to-that-karigar-until-the-next-karigar-name-header-appears-even-if-the-header-line-does-not-contain-explicit-keywords-like-karigar-or-factory",
+      "title": "Update the PDF order parsing logic so that karigar assignment matches the uploaded PDF’s structure: when a karigar name header appears in the PDF, all subsequent order rows must be assigned to that karigar until the next karigar name header appears (even if the header line does not contain explicit keywords like \"KARIGAR\" or \"FACTORY\").",
+      "reqIds": [
+        "REQ-68"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-ensure-the-ingestion-preview-clearly-reflects-the-pdf-derived-karigar-assignment-so-staff-admin-can-verify-that-karigarname-is-being-applied-from-the-pdf-before-uploading",
+      "title": "Ensure the ingestion preview clearly reflects the PDF-derived karigar assignment so Staff/Admin can verify that karigarName is being applied from the PDF before uploading.",
+      "reqIds": [
+        "REQ-69"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-ensure-pdf-excel-ingestion-assigns-and-displays-orders-karigar-wise-based-on-design-code-mapping-even-when-master-designs-are-still-loading-at-the-moment-the-file-is-parsed-specifically-1-parsing-a-file-must-not-produce-a-preview-where-mapped-orders-incorrectly-appear-as-unmapped-unassigned-simply-because-usegetmasterdesigns-has-not-returned-yet-2-once-master-designs-load-the-ingestion-preview-must-re-apply-master-design-mapping-to-the-already-parsed-orders-so-the-expected-karigarname-appears-3-keep-the-existing-behavior-that-preserves-non-empty-karigarname-extracted-from-the-pdf-do-not-overwrite-it-with-master-design-karigarname-while-still-filling-genericname-from-master-designs-when-available",
+      "title": "Ensure PDF/Excel ingestion assigns and displays orders karigar-wise based on Design Code mapping, even when Master Designs are still loading at the moment the file is parsed. Specifically: (1) parsing a file must not produce a preview where mapped orders incorrectly appear as Unmapped/Unassigned simply because `useGetMasterDesigns()` has not returned yet; (2) once master designs load, the ingestion preview must re-apply master-design mapping to the already-parsed orders so the expected `karigarName` appears; (3) keep the existing behavior that preserves non-empty `karigarName` extracted from the PDF (do not overwrite it with master-design karigarName), while still filling `genericName` from master designs when available.",
+      "reqIds": [
+        "REQ-71"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-make-karigar-wise-filtering-in-the-orders-list-behave-predictably-for-admin-staff-the-karigar-filter-dropdown-must-reflect-the-same-karigar-names-that-will-be-used-for-filtering-and-selecting-a-karigar-must-show-all-orders-assigned-to-that-karigar-if-orders-are-mapped-to-a-karigar-via-master-designs-after-ingestion-they-must-no-longer-appear-under-unassigned-in-the-staff-admin-orders-filter-list-and-filtered-results",
+      "title": "Make karigar-wise filtering in the Orders list behave predictably for Admin/Staff: the Karigar filter dropdown must reflect the same karigar names that will be used for filtering, and selecting a karigar must show all orders assigned to that karigar. If orders are mapped to a karigar via master designs after ingestion, they must no longer appear under \"Unassigned\" in the Staff/Admin orders filter list and filtered results.",
+      "reqIds": [
+        "REQ-72"
+      ],
+      "version": 1
     }
   ],
   "new_feature_requests": [
@@ -677,6 +709,14 @@
       "summary": "Update backend order upload mapping behavior so that when `uploadParsedOrders` receives an order with a non-empty `karigarName`, the backend does not overwrite that karigar assignment with the master-design `karigarName`; it should still use master designs to fill `genericName` when available and keep the order mapped/active behavior consistent.",
       "reqIds": [
         "REQ-67"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-44",
+      "summary": "Confirm backend upload behavior preserves non-empty karigarName provided by the PDF parse: when `uploadParsedOrders` receives an order with a non-empty `karigarName`, the backend must store that value and must not overwrite it during master-design mapping (it may still fill `genericName` from Master Designs when mapped/active).",
+      "reqIds": [
+        "REQ-70"
       ],
       "status": "pending"
     }

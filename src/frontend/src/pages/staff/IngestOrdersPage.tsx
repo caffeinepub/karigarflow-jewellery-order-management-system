@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useUploadParsedOrders, useGetMasterDesigns } from '../../hooks/useQueries';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,7 +13,7 @@ import { InlineErrorState } from '../../components/errors/InlineErrorState';
 import { parseOrderFile } from '../../lib/parsers/orderParser';
 import { applyMasterDesignMapping } from '../../lib/mapping/applyMasterDesignMapping';
 import { toast } from 'sonner';
-import { Upload, CalendarIcon, CheckCircle, AlertCircle, Info } from 'lucide-react';
+import { Upload, CalendarIcon, CheckCircle, AlertCircle, Info, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import type { Order } from '../../backend';
 import { useCopyToClipboard } from '@/hooks/useCopyToClipboard';
@@ -21,17 +21,30 @@ import { getStoppedCanisterMessage, presentError } from '@/utils/errorPresentati
 
 export function IngestOrdersPage() {
   const navigate = useNavigate();
-  const { data: masterDesigns = [] } = useGetMasterDesigns();
+  const { data: masterDesigns = [], isLoading: masterDesignsLoading, isFetched: masterDesignsFetched } = useGetMasterDesigns();
   const uploadMutation = useUploadParsedOrders();
   const { copyToClipboard, getButtonLabel } = useCopyToClipboard();
   
   const [uploadDate, setUploadDate] = useState<Date>(new Date());
   const [file, setFile] = useState<File | null>(null);
+  const [rawOrders, setRawOrders] = useState<Order[]>([]); // Store raw parsed orders
   const [mappedOrders, setMappedOrders] = useState<Order[]>([]);
   const [unmappedOrders, setUnmappedOrders] = useState<Order[]>([]);
   const [unmappedCodes, setUnmappedCodes] = useState<string[]>([]);
   const [parseError, setParseError] = useState<string | null>(null);
   const [isParsing, setIsParsing] = useState(false);
+
+  // Automatically remap when master designs finish loading or update
+  useEffect(() => {
+    if (rawOrders.length > 0 && masterDesignsFetched && !masterDesignsLoading) {
+      console.log('[IngestOrders] Remapping orders with updated master designs');
+      const { mappedOrders: mapped, unmappedOrders: unmapped, unmappedDesignCodes } = applyMasterDesignMapping(rawOrders, masterDesigns);
+      
+      setMappedOrders(mapped);
+      setUnmappedOrders(unmapped);
+      setUnmappedCodes(unmappedDesignCodes);
+    }
+  }, [rawOrders, masterDesigns, masterDesignsFetched, masterDesignsLoading]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -42,25 +55,43 @@ export function IngestOrdersPage() {
     setIsParsing(true);
 
     try {
-      const rawOrders = await parseOrderFile(selectedFile, uploadDate);
+      const parsedOrders = await parseOrderFile(selectedFile, uploadDate);
       
-      if (rawOrders.length === 0) {
+      if (parsedOrders.length === 0) {
         throw new Error('No orders found in the file. Please check the file format.');
       }
 
+      // Store raw orders for potential remapping
+      setRawOrders(parsedOrders);
+
       // Apply normalized mapping (preserves PDF-derived karigarName)
-      const { mappedOrders: mapped, unmappedOrders: unmapped, unmappedDesignCodes } = applyMasterDesignMapping(rawOrders, masterDesigns);
+      const { mappedOrders: mapped, unmappedOrders: unmapped, unmappedDesignCodes } = applyMasterDesignMapping(parsedOrders, masterDesigns);
       
       setMappedOrders(mapped);
       setUnmappedOrders(unmapped);
       setUnmappedCodes(unmappedDesignCodes);
       
+      // Count orders with PDF-derived karigar names
+      const ordersWithKarigar = [...mapped, ...unmapped].filter(o => o.karigarName && o.karigarName.trim() !== '').length;
+      
+      if (ordersWithKarigar > 0) {
+        toast.success(`Parsed ${parsedOrders.length} orders. ${ordersWithKarigar} have karigar assignments from PDF sections.`);
+      } else {
+        toast.success(`Parsed ${parsedOrders.length} orders.`);
+      }
+      
       if (unmappedDesignCodes.length > 0) {
         toast.info(`${unmappedDesignCodes.length} design code(s) not found in master designs. These will be available in the Unmapped Design Codes workflow.`);
+      }
+
+      // Warn if master designs are still loading
+      if (masterDesignsLoading) {
+        toast.info('Master designs are still loading. Mapping will update automatically when ready.');
       }
     } catch (error: any) {
       console.error('Parse error:', error);
       setParseError(error.message || 'Failed to parse file. Please check the format.');
+      setRawOrders([]);
       setMappedOrders([]);
       setUnmappedOrders([]);
       setUnmappedCodes([]);
@@ -109,6 +140,7 @@ export function IngestOrdersPage() {
 
   const totalOrders = mappedOrders.length + unmappedOrders.length;
   const hasOrders = totalOrders > 0;
+  const ordersWithKarigar = [...mappedOrders, ...unmappedOrders].filter(o => o.karigarName && o.karigarName.trim() !== '').length;
 
   return (
     <div className="space-y-6">
@@ -117,6 +149,16 @@ export function IngestOrdersPage() {
         <p className="text-muted-foreground">Upload daily order files (PDF or Excel)</p>
       </div>
 
+      {masterDesignsLoading && (
+        <Alert>
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <AlertTitle>Loading master designs...</AlertTitle>
+          <AlertDescription>
+            Please wait while master designs are being loaded. You can still upload a file, and the mapping will update automatically.
+          </AlertDescription>
+        </Alert>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle>Upload Configuration</CardTitle>
@@ -124,10 +166,13 @@ export function IngestOrdersPage() {
         <CardContent className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label>Upload Date</Label>
+              <Label htmlFor="upload-date">Upload Date</Label>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start">
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-left font-normal"
+                  >
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {format(uploadDate, 'PPP')}
                   </Button>
@@ -137,34 +182,38 @@ export function IngestOrdersPage() {
                     mode="single"
                     selected={uploadDate}
                     onSelect={(date) => date && setUploadDate(date)}
+                    initialFocus
                   />
                 </PopoverContent>
               </Popover>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="file">Order File (PDF or Excel)</Label>
+              <Label htmlFor="file-upload">Order File (PDF or Excel)</Label>
               <Input
-                id="file"
+                id="file-upload"
                 type="file"
                 accept=".pdf,.xlsx,.xls"
                 onChange={handleFileChange}
-                disabled={isParsing}
+                disabled={isParsing || uploadMutation.isPending}
               />
             </div>
           </div>
 
           {isParsing && (
-            <div className="text-center py-4">
-              <div className="h-6 w-6 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">Parsing file...</p>
-            </div>
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertTitle>Parsing file...</AlertTitle>
+              <AlertDescription>
+                Please wait while we extract and validate the order data.
+              </AlertDescription>
+            </Alert>
           )}
 
           {parseError && (
             <InlineErrorState
-              title="Parse Error"
               message={parseError}
+              error={new Error(parseError)}
               onRetry={() => {
                 setParseError(null);
                 setFile(null);
@@ -176,53 +225,67 @@ export function IngestOrdersPage() {
 
       {hasOrders && (
         <>
-          {unmappedOrders.length > 0 && (
-            <Alert>
-              <Info className="h-4 w-4" />
-              <AlertTitle>Unmapped Design Codes Detected</AlertTitle>
-              <AlertDescription>
-                {unmappedOrders.length} order(s) contain design codes that are not in the master designs list. 
-                These orders will be uploaded and available in the <strong>Unmapped Design Codes</strong> page, 
-                where you can add the missing mappings. Once mapped, they will automatically appear in the main orders list.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {mappedOrders.length > 0 && (
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Mapped Orders ({mappedOrders.length})</CardTitle>
+          <Card>
+            <CardHeader>
+              <CardTitle>Preview & Summary</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="rounded-lg border p-4">
+                  <div className="text-2xl font-bold">{totalOrders}</div>
+                  <div className="text-sm text-muted-foreground">Total Orders</div>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <IngestionPreviewTable orders={mappedOrders} unmappedCodes={[]} />
-              </CardContent>
-            </Card>
-          )}
-
-          {unmappedOrders.length > 0 && (
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Unmapped Orders ({unmappedOrders.length})</CardTitle>
+                <div className="rounded-lg border p-4">
+                  <div className="text-2xl font-bold text-green-600">{mappedOrders.length}</div>
+                  <div className="text-sm text-muted-foreground">Mapped</div>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <IngestionPreviewTable orders={unmappedOrders} unmappedCodes={unmappedCodes} />
-              </CardContent>
-            </Card>
-          )}
+                <div className="rounded-lg border p-4">
+                  <div className="text-2xl font-bold text-orange-600">{unmappedOrders.length}</div>
+                  <div className="text-sm text-muted-foreground">Unmapped</div>
+                </div>
+              </div>
+
+              {ordersWithKarigar > 0 && (
+                <Alert>
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <AlertTitle>Karigar Assignment from PDF</AlertTitle>
+                  <AlertDescription>
+                    {ordersWithKarigar} order(s) have karigar assignments detected from PDF section headers. 
+                    These assignments will be preserved and not overwritten by master design mappings.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {unmappedOrders.length > 0 && (
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Unmapped Design Codes</AlertTitle>
+                  <AlertDescription>
+                    {unmappedOrders.length} order(s) have design codes not found in master designs. 
+                    You can map them later from the Unmapped Design Codes page.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Order Preview</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <IngestionPreviewTable
+                orders={[...mappedOrders, ...unmappedOrders]}
+                unmappedCodes={unmappedCodes}
+              />
+            </CardContent>
+          </Card>
 
           <div className="flex justify-end gap-4">
             <Button
               variant="outline"
-              onClick={() => {
-                setFile(null);
-                setMappedOrders([]);
-                setUnmappedOrders([]);
-                setUnmappedCodes([]);
-              }}
+              onClick={() => navigate({ to: '/staff' })}
+              disabled={uploadMutation.isPending}
             >
               Cancel
             </Button>
@@ -232,7 +295,7 @@ export function IngestOrdersPage() {
             >
               {uploadMutation.isPending ? (
                 <>
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent mr-2" />
+                  <Upload className="mr-2 h-4 w-4 animate-spin" />
                   Uploading...
                 </>
               ) : (

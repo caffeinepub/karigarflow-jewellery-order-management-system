@@ -1,67 +1,55 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-15T14:57:59.671Z",
+  "generatedAt": "2026-02-15T15:51:31.496Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 3,
+    "total": 2,
     "implemented": 2,
     "items": [
       {
-        "id": "REQ-65",
-        "summary": "Implement PDF order parsing for Daily Orders so that orders are assigned to the correct karigar based on the PDF’s layout rule: when a karigar/factory name appears in the PDF, all subsequent order rows belong to that karigar until the next karigar/factory name appears.",
+        "id": "REQ-71",
+        "summary": "Ensure PDF/Excel ingestion assigns and displays orders karigar-wise based on Design Code mapping, even when Master Designs are still loading at the moment the file is parsed. Specifically: (1) parsing a file must not produce a preview where mapped orders incorrectly appear as Unmapped/Unassigned simply because `useGetMasterDesigns()` has not returned yet; (2) once master designs load, the ingestion preview must re-apply master-design mapping to the already-parsed orders so the expected `karigarName` appears; (3) keep the existing behavior that preserves non-empty `karigarName` extracted from the PDF (do not overwrite it with master-design karigarName), while still filling `genericName` from master designs when available.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/lib/parsers/pdf/extractText.ts",
-          "frontend/src/lib/parsers/pdf/parseOrdersFromPdfText.ts",
-          "frontend/src/lib/parsers/orderParser.ts"
+          "frontend/src/pages/staff/IngestOrdersPage.tsx",
+          "frontend/src/lib/mapping/applyMasterDesignMapping.ts",
+          "frontend/src/components/orders/IngestionPreviewTable.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/lib/parsers/pdf/extractText.ts",
-          "frontend/src/lib/parsers/pdf/parseOrdersFromPdfText.ts",
-          "frontend/src/lib/parsers/orderParser.ts"
+          "frontend/src/pages/staff/IngestOrdersPage.tsx",
+          "frontend/src/lib/mapping/applyMasterDesignMapping.ts",
+          "frontend/src/components/orders/IngestionPreviewTable.tsx"
         ]
       },
       {
-        "id": "REQ-66",
-        "summary": "Update the ingestion preview/mapping flow so that PDF-derived karigar assignment is preserved and visible in the preview tables, while still supporting master-design mapping for `genericName` and unmapped design-code detection.",
+        "id": "REQ-72",
+        "summary": "Make karigar-wise filtering in the Orders list behave predictably for Admin/Staff: the Karigar filter dropdown must reflect the same karigar names that will be used for filtering, and selecting a karigar must show all orders assigned to that karigar. If orders are mapped to a karigar via master designs after ingestion, they must no longer appear under \"Unassigned\" in the Staff/Admin orders filter list and filtered results.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/lib/mapping/applyMasterDesignMapping.ts",
-          "frontend/src/components/orders/IngestionPreviewTable.tsx",
-          "frontend/src/pages/staff/IngestOrdersPage.tsx"
+          "frontend/src/components/orders/OrdersFiltersBar.tsx",
+          "frontend/src/pages/staff/StaffDashboardPage.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/lib/mapping/applyMasterDesignMapping.ts",
-          "frontend/src/components/orders/IngestionPreviewTable.tsx",
-          "frontend/src/pages/staff/IngestOrdersPage.tsx"
+          "frontend/src/components/orders/OrdersFiltersBar.tsx",
+          "frontend/src/pages/staff/StaffDashboardPage.tsx"
         ]
-      },
-      {
-        "id": "REQ-67",
-        "summary": "Update backend order upload mapping behavior so that when `uploadParsedOrders` receives an order with a non-empty `karigarName`, the backend does not overwrite that karigar assignment with the master-design `karigarName`; it should still use master designs to fill `genericName` when available and keep the order mapped/active behavior consistent.",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
       }
     ]
   },
   "changedFiles": [
-    "backend/main.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
     "frontend/src/components/orders/IngestionPreviewTable.tsx",
+    "frontend/src/components/orders/OrdersFiltersBar.tsx",
     "frontend/src/lib/mapping/applyMasterDesignMapping.ts",
-    "frontend/src/lib/parsers/orderParser.ts",
-    "frontend/src/lib/parsers/pdf/extractText.ts",
-    "frontend/src/lib/parsers/pdf/parseMasterDesignsFromPdfText.ts",
-    "frontend/src/lib/parsers/pdf/parseOrdersFromPdfText.ts",
     "frontend/src/pages/staff/IngestOrdersPage.tsx",
+    "frontend/src/pages/staff/StaffDashboardPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

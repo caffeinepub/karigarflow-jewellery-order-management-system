@@ -16,14 +16,18 @@ export function parseOrdersFromPdfText(pageTexts: string[][], uploadDate: Date):
   
   let currentKarigarName = ''; // Track the current karigar/factory section
   
-  // Process all pages
+  // Process all pages - karigar name persists across pages
   for (const lines of pageTexts) {
     for (const line of lines) {
       const trimmedLine = line.trim();
       if (!trimmedLine) continue;
       
+      // Skip common table headers
+      if (isTableHeader(trimmedLine)) {
+        continue;
+      }
+      
       // Check if this line is a karigar/factory header
-      // Common patterns: "KARIGAR NAME:", "Factory: NAME", "KARIGAR - NAME", etc.
       const karigarMatch = detectKarigarHeader(trimmedLine);
       if (karigarMatch) {
         currentKarigarName = karigarMatch;
@@ -49,13 +53,37 @@ export function parseOrdersFromPdfText(pageTexts: string[][], uploadDate: Date):
 }
 
 /**
+ * Checks if a line is a table header row
+ */
+function isTableHeader(line: string): boolean {
+  const upperLine = line.toUpperCase();
+  
+  // Common header patterns
+  const headerKeywords = [
+    'ORDER NO',
+    'ORDER TYPE',
+    'DESIGN CODE',
+    'WEIGHT',
+    'SIZE',
+    'QTY',
+    'QUANTITY',
+    'REMARKS',
+    'STATUS'
+  ];
+  
+  // If line contains multiple header keywords, it's likely a header row
+  const keywordCount = headerKeywords.filter(keyword => upperLine.includes(keyword)).length;
+  return keywordCount >= 3;
+}
+
+/**
  * Detects if a line is a karigar/factory header and extracts the name.
  * Returns the karigar name if detected, null otherwise.
  */
 function detectKarigarHeader(line: string): string | null {
   const upperLine = line.toUpperCase();
   
-  // Pattern 1: "KARIGAR:" or "KARIGAR NAME:" followed by name
+  // Pattern 1: Explicit keywords - "KARIGAR:" or "KARIGAR NAME:" followed by name
   const pattern1 = /^(?:KARIGAR|FACTORY|MANUFACTURER|VENDOR)(?:\s+NAME)?[\s:]+(.+)$/i;
   const match1 = line.match(pattern1);
   if (match1) {
@@ -69,8 +97,7 @@ function detectKarigarHeader(line: string): string | null {
     return match2[1].trim();
   }
   
-  // Pattern 3: Line contains only "KARIGAR" keyword and a name (no other data)
-  // This catches standalone headers like "KARIGAR ABC JEWELLERS"
+  // Pattern 3: Line contains keyword and a name (no other data)
   if (
     (upperLine.includes('KARIGAR') || 
      upperLine.includes('FACTORY') || 
@@ -84,7 +111,69 @@ function detectKarigarHeader(line: string): string | null {
     }
   }
   
+  // Pattern 4: Heuristic detection for standalone karigar names
+  // A line is likely a karigar header if:
+  // - It's relatively short (not a long sentence)
+  // - Contains very few or no numbers
+  // - Doesn't look like order data
+  // - Contains name-like text (words, possibly with spaces)
+  if (looksLikeKarigarName(line)) {
+    return line.trim();
+  }
+  
   return null;
+}
+
+/**
+ * Heuristic to detect if a line looks like a karigar name header
+ */
+function looksLikeKarigarName(line: string): boolean {
+  const trimmed = line.trim();
+  
+  // Too short or too long
+  if (trimmed.length < 3 || trimmed.length > 80) {
+    return false;
+  }
+  
+  // Contains order data patterns - definitely not a header
+  if (containsOrderData(trimmed)) {
+    return false;
+  }
+  
+  // Count numeric characters
+  const numericChars = (trimmed.match(/\d/g) || []).length;
+  const totalChars = trimmed.length;
+  const numericRatio = numericChars / totalChars;
+  
+  // If more than 20% numeric, probably not a name
+  if (numericRatio > 0.2) {
+    return false;
+  }
+  
+  // Count words (sequences of letters)
+  const words = trimmed.match(/[a-zA-Z]+/g) || [];
+  
+  // Should have at least one word
+  if (words.length === 0) {
+    return false;
+  }
+  
+  // Check if it looks like a name (mostly letters, possibly with spaces, dots, &, etc.)
+  const namePattern = /^[A-Z][A-Za-z\s.&'-]+$/;
+  if (namePattern.test(trimmed)) {
+    return true;
+  }
+  
+  // If line has 1-4 words and low numeric content, likely a name
+  if (words.length >= 1 && words.length <= 4 && numericRatio < 0.1) {
+    // Additional check: total word length should be significant portion of line
+    const wordChars = words.join('').length;
+    if (wordChars / totalChars > 0.6) {
+      return true;
+    }
+  }
+  
+  return false;
 }
 
 /**
@@ -96,7 +185,29 @@ function containsOrderData(line: string): boolean {
   // - Multiple numbers (weight, size, qty)
   // - Design code patterns (alphanumeric codes)
   const numberCount = (line.match(/\d+(?:\.\d+)?/g) || []).length;
-  return numberCount >= 2; // At least 2 numbers suggests it's a data row
+  
+  // If line has 3+ numbers, it's likely order data
+  if (numberCount >= 3) {
+    return true;
+  }
+  
+  // Check for typical order data structure (multiple tab-separated or space-separated fields)
+  const parts = line.split(/\s+/).filter(p => p.trim());
+  if (parts.length >= 6) {
+    // Check if we have numeric values in expected positions
+    let numericFields = 0;
+    for (const part of parts) {
+      if (/^\d+(\.\d+)?$/.test(part)) {
+        numericFields++;
+      }
+    }
+    // If we have 2+ numeric fields in a multi-field line, likely order data
+    if (numericFields >= 2) {
+      return true;
+    }
+  }
+  
+  return false;
 }
 
 /**
