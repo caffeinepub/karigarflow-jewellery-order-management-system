@@ -1,18 +1,23 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-15T15:51:31.492Z",
-  "summary": "The diff implements automatic re-mapping of already-parsed ingestion orders once master designs finish loading (preserving non-empty PDF-derived karigarName) and aligns karigar dropdown values + filter comparisons by using a shared karigar-name formatter in both OrdersFiltersBar and StaffDashboardPage.",
+  "generatedAt": "2026-02-16T05:55:45.036Z",
+  "summary": "The Excel import parser was updated to normalize headers (including slashes, hyphens, and spaces) and to treat normalized variants like \"karigar_factory_name\" as a valid alias for the karigar/factory column, which should allow headers like \"Karigar/Factory Name\" to map to `karigarName`. No other requested UI/preview changes are evidenced in the provided diff, and the core row-mapping section is truncated so end-to-end behavior (e.g., defaulting to \"Unassigned\") cannot be fully verified from the excerpt.",
   "missing_requirements": [],
-  "hallucinated_features": [],
+  "hallucinated_features": [
+    {
+      "description": "Non-requested project metadata/documentation updates (project state and frontend file summaries).",
+      "reason": "BuildRequest only asks to update the Master Designs Excel import parser header recognition; changes to project tracking/summary files were not requested.",
+      "evidence": [
+        "project_state.json",
+        "frontend-file-summaries.txt"
+      ]
+    }
+  ],
   "confidence": 0.72,
   "changed_files": [
     "frontend-file-summaries.txt",
-    "frontend/src/components/orders/IngestionPreviewTable.tsx",
-    "frontend/src/components/orders/OrdersFiltersBar.tsx",
-    "frontend/src/lib/mapping/applyMasterDesignMapping.ts",
-    "frontend/src/pages/staff/IngestOrdersPage.tsx",
-    "frontend/src/pages/staff/StaffDashboardPage.tsx",
+    "frontend/src/lib/parsers/excel/parseMasterDesignsFromWorkbook.ts",
     "project_state.json"
   ]
 }

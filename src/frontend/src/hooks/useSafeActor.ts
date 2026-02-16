@@ -13,7 +13,7 @@ export function useSafeActor() {
   const actorQuery = useQuery<backendInterface>({
     queryKey: [SAFE_ACTOR_QUERY_KEY, identity?.getPrincipal().toString()],
     queryFn: async () => {
-      console.log('[safeActor/create] Starting actor creation...');
+      console.log('[safeActor] Starting actor creation...');
       
       // Wrap the entire actor creation in a 15-second timeout
       return withTimeout(
@@ -21,7 +21,7 @@ export function useSafeActor() {
           const isAuthenticated = !!identity;
 
           if (!isAuthenticated) {
-            console.log('[safeActor/create] Creating anonymous actor');
+            console.log('[safeActor] Creating anonymous actor');
             return await createActorWithConfig();
           }
 
@@ -31,28 +31,25 @@ export function useSafeActor() {
             }
           };
 
-          console.log('[safeActor/create] Creating authenticated actor');
+          console.log('[safeActor] Creating authenticated actor');
           const actor = await createActorWithConfig(actorOptions);
 
           // Safe initialization: non-blocking access control setup
           const adminToken = getSessionParameter('caffeineAdminToken');
           
           if (!adminToken || adminToken.trim() === '') {
-            console.log('[safeActor/accessControl] No token present, skipping initialization');
+            console.log('[safeActor] No token present, skipping initialization');
           } else {
-            console.log('[safeActor/accessControl] Token present, attempting initialization');
+            console.log('[safeActor] Token present, attempting initialization');
             try {
               await actor._initializeAccessControlWithSecret(adminToken);
-              console.log('[safeActor/accessControl] Initialization succeeded');
+              console.log('[safeActor] Initialization succeeded');
             } catch (error) {
-              // Log error without leaking token
-              console.error('[safeActor/accessControl] Initialization failed:', error instanceof Error ? error.message : 'Unknown error');
-              // Still return the actor so downstream queries can run
-              // They will fail with proper authorization errors if needed
+              console.error('[safeActor] Initialization failed:', error instanceof Error ? error.message : 'Unknown error');
             }
           }
 
-          console.log('[safeActor/create] Actor creation completed successfully');
+          console.log('[safeActor] Actor creation completed successfully');
           return actor;
         })(),
         15000,
@@ -60,16 +57,14 @@ export function useSafeActor() {
       );
     },
     staleTime: Infinity,
-    gcTime: Infinity, // Keep actor in cache
+    gcTime: Infinity,
     enabled: true,
     retry: (failureCount, error) => {
-      // Don't retry on auth errors or timeouts
       const errorMsg = error instanceof Error ? error.message : String(error);
       if (errorMsg.includes('Unauthorized') || errorMsg.includes('permission') || errorMsg.includes('timed out')) {
-        console.log('[safeActor/create] Non-retryable error detected:', errorMsg);
+        console.log('[safeActor] Non-retryable error detected:', errorMsg);
         return false;
       }
-      // Retry up to 2 times for other errors
       return failureCount < 2;
     },
   });

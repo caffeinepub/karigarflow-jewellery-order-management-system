@@ -2,12 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-ensure-pdf-excel-ingestion-assigns-and-displays-orders-karigar-wise-based-on-design-code-mapping-even-when-master-designs-are-still-loading-at-the-moment-the-file-is-parsed-specifically-1-parsing-a-file-must-not-produce-a-preview-where-mapped-orders-incorrectly-appear-as-unmapped-unassigned-simply-because-usegetmasterdesigns-has-not-returned-yet-2-once-master-designs-load-the-ingestion-preview-must-re-apply-master-design-mapping-to-the-already-parsed-orders-so-the-expected-karigarname-appears-3-keep-the-existing-behavior-that-preserves-non-empty-karigarname-extracted-from-the-pdf-do-not-overwrite-it-with-master-design-karigarname-while-still-filling-genericname-from-master-designs-when-available",
-      "featureTitle": "Ensure PDF/Excel ingestion assigns and displays orders karigar-wise based on Design Code mapping, even when Master Designs are still loading at the moment the file is parsed. Specifically: (1) parsing a file must not produce a preview where mapped orders incorrectly appear as Unmapped/Unassigned simply because `useGetMasterDesigns()` has not returned yet; (2) once master designs load, the ingestion preview must re-apply master-design mapping to the already-parsed orders so the expected `karigarName` appears; (3) keep the existing behavior that preserves non-empty `karigarName` extracted from the PDF (do not overwrite it with master-design karigarName), while still filling `genericName` from master designs when available.",
+      "featureId": "feature-update-the-master-designs-excel-import-parser-to-recognize-the-column-header-karigar-factory-name-and-common-punctuation-spacing-variants-that-normalize-to-the-same-key-as-the-karigar-factory-name-column-so-imported-master-design-mappings-populate-karigarname-instead-of-defaulting-to-unassigned",
+      "featureTitle": "Update the Master Designs Excel import parser to recognize the column header \"Karigar/Factory Name\" (and common punctuation/spacing variants that normalize to the same key) as the karigar/factory name column, so imported master design mappings populate `karigarName` instead of defaulting to \"Unassigned\".",
       "files": [
-        "frontend/src/components/orders/IngestionPreviewTable.tsx",
-        "frontend/src/lib/mapping/applyMasterDesignMapping.ts",
-        "frontend/src/pages/staff/IngestOrdersPage.tsx"
+        "frontend/src/lib/parsers/excel/parseMasterDesignsFromWorkbook.ts"
       ],
       "components": [
         "authorization@4.0.0",
@@ -19,28 +17,7 @@
         "user-approval@3.0.0"
       ],
       "testIds": [
-        "REQ-71"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-make-karigar-wise-filtering-in-the-orders-list-behave-predictably-for-admin-staff-the-karigar-filter-dropdown-must-reflect-the-same-karigar-names-that-will-be-used-for-filtering-and-selecting-a-karigar-must-show-all-orders-assigned-to-that-karigar-if-orders-are-mapped-to-a-karigar-via-master-designs-after-ingestion-they-must-no-longer-appear-under-unassigned-in-the-staff-admin-orders-filter-list-and-filtered-results",
-      "featureTitle": "Make karigar-wise filtering in the Orders list behave predictably for Admin/Staff: the Karigar filter dropdown must reflect the same karigar names that will be used for filtering, and selecting a karigar must show all orders assigned to that karigar. If orders are mapped to a karigar via master designs after ingestion, they must no longer appear under \"Unassigned\" in the Staff/Admin orders filter list and filtered results.",
-      "files": [
-        "frontend/src/components/orders/OrdersFiltersBar.tsx",
-        "frontend/src/pages/staff/StaffDashboardPage.tsx"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0",
-        "user-approval@3.0.0"
-      ],
-      "testIds": [
-        "REQ-72"
+        "REQ-1"
       ],
       "confidence": "high"
     }

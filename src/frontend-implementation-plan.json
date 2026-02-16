@@ -1,53 +1,22 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Fix ingestion remapping with late master-design load and make karigar filtering consistent",
+  "title": "Accept 'Karigar/Factory Name' header variants in Master Designs Excel import",
   "requirements": [
     {
-      "id": "REQ-71",
-      "summary": "Prevent incorrect Unmapped/Unassigned preview when master designs are still loading by remapping parsed orders once master designs arrive, while preserving non-empty PDF-derived karigarName and filling genericName from master designs.",
+      "id": "REQ-1",
+      "summary": "Extend Master Designs Excel header aliasing so \"Karigar/Factory Name\" (and normalized variants) maps to `karigarName`, preserving existing supported headers and showing correct values in the import preview.",
       "acceptanceCriteria": [
-        "On `Ingest Orders` (`frontend/src/pages/staff/IngestOrdersPage.tsx`), if the user selects a file before `masterDesigns` has finished loading, the UI shows an English warning or blocking state such as: \"Loading master designs… please wait before parsing.\" OR it allows parsing but automatically re-maps/re-classifies the preview as soon as `masterDesigns` arrives (without requiring the user to re-upload the file).",
-        "After master designs are available, any parsed order whose `designCode` exists in active master designs shows the correct `genericName` and the correct karigar assignment (from PDF-derived karigarName if present; otherwise from the master-design mapping).",
-        "The preview’s Mapped/Unmapped counts update correctly after re-mapping (no stale counts).",
-        "Uploading after the preview shows correct mapping results in the stored orders having the expected `karigarName` so that karigar-wise filtering in dashboards works."
+        "Given an Excel file where the karigar column header is exactly \"Karigar/Factory Name\", importing via the Master Designs import dialog parses rows with `entry.karigarName` set to the cell values (not \"Unassigned\" unless the cell is empty).",
+        "Given an Excel file where the karigar column header is a common variant such as \"Karigar / Factory Name\" or \"Karigar-Factory Name\" (i.e., variants that normalize to the same normalized key), the parser still maps it to `karigarName`.",
+        "No regression: existing supported headers such as \"Karigar Name\", \"Factory\", and \"Factory Name\" continue to be recognized.",
+        "When the parsed preview is shown in the import dialog, the \"Karigar Name\" column displays the parsed values for affected files."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/pages/staff/IngestOrdersPage.tsx",
+          "path": "frontend/src/lib/parsers/excel/parseMasterDesignsFromWorkbook.ts",
           "operation": "modify",
-          "description": "Track the last successfully parsed raw orders separately from the mapped/unmapped preview state, and add a reactive remapping step that re-runs `applyMasterDesignMapping` when `useGetMasterDesigns()` finishes loading/updates so the preview (mapped/unmapped lists, unmapped codes, and counts) automatically refreshes without requiring re-upload. Also add an English warning/notice when parsing occurs while master designs are still loading."
-        },
-        {
-          "path": "frontend/src/lib/mapping/applyMasterDesignMapping.ts",
-          "operation": "modify",
-          "description": "Ensure mapping logic supports re-application cleanly and continues to preserve a non-empty PDF-derived `karigarName` while still filling `genericName` from active master designs when available (do not overwrite non-empty `karigarName`)."
-        },
-        {
-          "path": "frontend/src/components/orders/IngestionPreviewTable.tsx",
-          "operation": "modify",
-          "description": "Adjust the ingestion preview table presentation to reliably reflect post-remap results (e.g., column labeling and/or conditional display) so that after master designs load and remapping runs, the displayed karigar/generic values match the updated mapped/unmapped classification."
-        }
-      ]
-    },
-    {
-      "id": "REQ-72",
-      "summary": "Make karigar-wise filtering in Orders list predictable by using the same karigar formatting logic for both dropdown population and filtering comparisons, ensuring master-design-mapped orders no longer appear under Unassigned.",
-      "acceptanceCriteria": [
-        "On Staff Dashboard (`frontend/src/pages/staff/StaffDashboardPage.tsx`) and any other page using `OrdersFiltersBar`, selecting a karigar value filters orders correctly using the same formatted karigar name logic used to populate the dropdown.",
-        "If the backend returns orders with `karigarName` populated from master-design mapping, those orders appear under that karigar when filtered, not under \"Unassigned\".",
-        "The Karigar dropdown’s \"All Karigars\" option continues to work and does not cause runtime errors (must keep using the existing sentinel value approach in `frontend/src/components/orders/OrdersFiltersBar.tsx`)."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/components/orders/OrdersFiltersBar.tsx",
-          "operation": "modify",
-          "description": "Harden karigar dropdown behavior so the list of karigars is derived from the exact same formatting/normalization used for filtering (via `formatKarigarName`), keeping the existing sentinel value approach for \"All Karigars\" and ensuring the dropdown values match the filter comparison values."
-        },
-        {
-          "path": "frontend/src/pages/staff/StaffDashboardPage.tsx",
-          "operation": "modify",
-          "description": "Ensure the orders filtering comparison continues to use the same `formatKarigarName` logic as `OrdersFiltersBar` so selecting a karigar (including \"Unassigned\") shows all matching orders predictably."
+          "description": "Add the normalized header alias for \"Karigar/Factory Name\" (e.g., `karigar_factory_name`) to the `karigarName` column aliases so that headers like \"Karigar/Factory Name\", \"Karigar / Factory Name\", and \"Karigar-Factory Name\" are recognized and populate `entry.karigarName` (falling back to \"Unassigned\" only when the cell value is empty)."
         }
       ]
     }

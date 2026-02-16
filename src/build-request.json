@@ -1,55 +1,35 @@
 {
   "kind": "build_request",
-  "title": "Fix PDF order karigar assignment and ensure karigar-wise filtering works reliably",
+  "title": "Accept 'Karigar/Factory Name' column in Master Designs Excel import parser",
   "priority": "normal",
   "requirements": [
     {
-      "id": "REQ-71",
-      "text": "Ensure PDF/Excel ingestion assigns and displays orders karigar-wise based on Design Code mapping, even when Master Designs are still loading at the moment the file is parsed. Specifically: (1) parsing a file must not produce a preview where mapped orders incorrectly appear as Unmapped/Unassigned simply because `useGetMasterDesigns()` has not returned yet; (2) once master designs load, the ingestion preview must re-apply master-design mapping to the already-parsed orders so the expected `karigarName` appears; (3) keep the existing behavior that preserves non-empty `karigarName` extracted from the PDF (do not overwrite it with master-design karigarName), while still filling `genericName` from master designs when available.",
+      "id": "REQ-1",
+      "text": "Update the Master Designs Excel import parser to recognize the column header \"Karigar/Factory Name\" (and common punctuation/spacing variants that normalize to the same key) as the karigar/factory name column, so imported master design mappings populate `karigarName` instead of defaulting to \"Unassigned\".",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-1"
         ],
         "quotes": [
-          "The pdf I’ve shared has order assigned to karigar name as per the design code, I expect you to do the same way and display the orders as per karigar wise filtered. I don’t understand why you’re not able to do it?"
+          "Update your apps parser so it accepts the names"
         ]
       },
       "acceptanceCriteria": [
-        "On `Ingest Orders` (`frontend/src/pages/staff/IngestOrdersPage.tsx`), if the user selects a file before `masterDesigns` has finished loading, the UI shows an English warning or blocking state such as: \"Loading master designs… please wait before parsing.\" OR it allows parsing but automatically re-maps/re-classifies the preview as soon as `masterDesigns` arrives (without requiring the user to re-upload the file).",
-        "After master designs are available, any parsed order whose `designCode` exists in active master designs shows the correct `genericName` and the correct karigar assignment (from PDF-derived karigarName if present; otherwise from the master-design mapping).",
-        "The preview’s Mapped/Unmapped counts update correctly after re-mapping (no stale counts).",
-        "Uploading after the preview shows correct mapping results in the stored orders having the expected `karigarName` so that karigar-wise filtering in dashboards works."
-      ]
-    },
-    {
-      "id": "REQ-72",
-      "text": "Make karigar-wise filtering in the Orders list behave predictably for Admin/Staff: the Karigar filter dropdown must reflect the same karigar names that will be used for filtering, and selecting a karigar must show all orders assigned to that karigar. If orders are mapped to a karigar via master designs after ingestion, they must no longer appear under \"Unassigned\" in the Staff/Admin orders filter list and filtered results.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-1"
-        ],
-        "quotes": [
-          "display the orders as per karigar wise filtered"
-        ]
-      },
-      "acceptanceCriteria": [
-        "On Staff Dashboard (`frontend/src/pages/staff/StaffDashboardPage.tsx`) and any other page using `OrdersFiltersBar`, selecting a karigar value filters orders correctly using the same formatted karigar name logic used to populate the dropdown.",
-        "If the backend returns orders with `karigarName` populated from master-design mapping, those orders appear under that karigar when filtered, not under \"Unassigned\".",
-        "The Karigar dropdown’s \"All Karigars\" option continues to work and does not cause runtime errors (must keep using the existing sentinel value approach in `frontend/src/components/orders/OrdersFiltersBar.tsx`)."
+        "Given an Excel file where the karigar column header is exactly \"Karigar/Factory Name\", importing via the Master Designs import dialog parses rows with `entry.karigarName` set to the cell values (not \"Unassigned\" unless the cell is empty).",
+        "Given an Excel file where the karigar column header is a common variant such as \"Karigar / Factory Name\" or \"Karigar-Factory Name\" (i.e., variants that normalize to the same normalized key), the parser still maps it to `karigarName`.",
+        "No regression: existing supported headers such as \"Karigar Name\", \"Factory\", and \"Factory Name\" continue to be recognized.",
+        "When the parsed preview is shown in the import dialog, the \"Karigar Name\" column displays the parsed values for affected files."
       ]
     }
   ],
   "constraints": [
-    "Do not edit files under `frontend/src/components/ui` or the immutable Internet Identity/actor bootstrap hook paths listed in SYSTEM_CONTEXT.",
-    "Use English for any new user-facing text.",
-    "Keep the existing behavior that preserves a non-empty PDF-derived `karigarName` during mapping and upload (do not overwrite it on the frontend)."
+    "Do not modify any files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useInternetIdentity.tsx, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui (these paths are immutable)."
   ],
   "nonGoals": [
-    "Changing the backend authorization model or user roles.",
-    "Implementing new PDF parsing strategies beyond fixing mapping/display behavior once orders are parsed.",
-    "Adding new export formats or changing export columns."
+    "Changing backend canister deployment behavior or reliability as part of this request.",
+    "Adding new database/storage structures for karigar names.",
+    "Redesigning the Master Designs page beyond what is necessary to reflect the corrected parsed values."
   ],
   "imageRequirements": {
     "required": [],

@@ -1,22 +1,26 @@
 import type { Order } from '../../../backend';
 import { isCustomerOrder } from '../../orders/isCustomerOrder';
+import { parseOrdersTableRowWithKarigar } from './parseOrdersTableRowWithKarigar';
 
 /**
- * Parses orders from extracted PDF text with karigar/factory section tracking.
- * Each order inherits the most recently encountered karigar/factory name.
+ * Parses orders from extracted PDF text with support for two formats:
+ * 1. Table-row format: Each row contains karigar name as a column (e.g., page-1 table with explicit Karigar column)
+ * 2. Section-header format: Karigar name appears as a section header, followed by order rows
  * 
  * @param pageTexts - Array of pages, each page is an array of lines
  * @param uploadDate - The upload date to assign to all orders
- * @returns Array of parsed Order objects with karigarName set from PDF sections
+ * @returns Array of parsed Order objects with karigarName set from PDF
  */
 export function parseOrdersFromPdfText(pageTexts: string[][], uploadDate: Date): Order[] {
   const orders: Order[] = [];
   const uploadTimestamp = BigInt(uploadDate.getTime());
   const createdTimestamp = BigInt(Date.now());
   
-  let currentKarigarName = ''; // Track the current karigar/factory section
+  let currentKarigarName = ''; // Track the current karigar/factory section (for fallback mode)
+  let tableRowFormatDetected = false;
+  let sectionHeaderFormatDetected = false;
   
-  // Process all pages - karigar name persists across pages
+  // Process all pages
   for (const lines of pageTexts) {
     for (const line of lines) {
       const trimmedLine = line.trim();
@@ -27,17 +31,28 @@ export function parseOrdersFromPdfText(pageTexts: string[][], uploadDate: Date):
         continue;
       }
       
+      // Try table-row format first (with explicit Karigar column)
+      const tableRowOrder = parseOrdersTableRowWithKarigar(trimmedLine, uploadTimestamp, createdTimestamp);
+      if (tableRowOrder) {
+        orders.push(tableRowOrder);
+        tableRowFormatDetected = true;
+        continue;
+      }
+      
+      // Fallback: Try section-header format
       // Check if this line is a karigar/factory header
       const karigarMatch = detectKarigarHeader(trimmedLine);
       if (karigarMatch) {
         currentKarigarName = karigarMatch;
+        sectionHeaderFormatDetected = true;
         continue;
       }
       
-      // Try to parse this line as an order row
-      const order = parseOrderLine(trimmedLine, currentKarigarName, uploadTimestamp, createdTimestamp);
-      if (order) {
-        orders.push(order);
+      // Try to parse this line as an order row (section-header format)
+      const sectionOrder = parseOrderLine(trimmedLine, currentKarigarName, uploadTimestamp, createdTimestamp);
+      if (sectionOrder) {
+        orders.push(sectionOrder);
+        sectionHeaderFormatDetected = true;
       }
     }
   }
@@ -47,6 +62,14 @@ export function parseOrdersFromPdfText(pageTexts: string[][], uploadDate: Date):
       'No orders found in the PDF. Please ensure the PDF contains order data in a tabular format, ' +
       'or use an Excel file (.xlsx) for more reliable parsing.'
     );
+  }
+  
+  // Log which format was detected for diagnostics
+  if (tableRowFormatDetected) {
+    console.log('[PDF Parser] Detected table-row format with explicit Karigar column');
+  }
+  if (sectionHeaderFormatDetected) {
+    console.log('[PDF Parser] Detected section-header format with karigar sections');
   }
   
   return orders;
@@ -63,10 +86,15 @@ function isTableHeader(line: string): boolean {
     'ORDER NO',
     'ORDER TYPE',
     'DESIGN CODE',
+    'DESIGN',
     'WEIGHT',
     'SIZE',
     'QTY',
     'QUANTITY',
+    'GENERIC NAME',
+    'GENERIC',
+    'KARIGAR',
+    'FACTORY',
     'REMARKS',
     'STATUS'
   ];
@@ -211,7 +239,7 @@ function containsOrderData(line: string): boolean {
 }
 
 /**
- * Attempts to parse a line as an order row.
+ * Attempts to parse a line as an order row (section-header format).
  * Returns an Order object if successful, null otherwise.
  */
 function parseOrderLine(

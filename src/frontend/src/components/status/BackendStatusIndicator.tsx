@@ -10,9 +10,8 @@ import { useCopyToClipboard } from '@/hooks/useCopyToClipboard';
 import { toast } from 'sonner';
 
 /**
- * Compact backend status indicator for the app header.
- * Shows online/offline/checking states with canister ID display when online,
- * and friendly offline explanation with collapsible technical details.
+ * Compact backend status indicator for the app header showing online/offline/checking states
+ * with canister ID display when online and friendly offline explanation with collapsible technical details.
  */
 export function BackendStatusIndicator() {
   const { status, error, healthData, refetch, isRefetching } = useBackendReachability();
@@ -23,9 +22,13 @@ export function BackendStatusIndicator() {
     refetch();
   };
 
+  // Get canister ID from health check response
+  const canisterId = healthData?.canisterId;
+  const hasValidCanisterId = canisterId && canisterId !== 'unknown';
+
   const handleCopyCanisterId = () => {
-    if (healthData?.canisterId) {
-      copyToClipboard(healthData.canisterId);
+    if (canisterId) {
+      copyToClipboard(canisterId);
       toast.success('Canister ID copied to clipboard');
     }
   };
@@ -62,7 +65,7 @@ export function BackendStatusIndicator() {
               <RefreshCw className={`h-3.5 w-3.5 ${isRefetching ? 'animate-spin' : ''}`} />
             </Button>
 
-            {healthData?.canisterId && healthData.canisterId !== 'unknown' && (
+            {hasValidCanisterId && (
               <CollapsibleTrigger asChild>
                 <Button
                   variant="ghost"
@@ -80,7 +83,7 @@ export function BackendStatusIndicator() {
             )}
           </div>
 
-          {healthData?.canisterId && healthData.canisterId !== 'unknown' && (
+          {hasValidCanisterId && (
             <CollapsibleContent>
               <div className="absolute right-4 top-16 z-50 w-80 max-w-[calc(100vw-2rem)] bg-card border rounded-lg shadow-lg p-4">
                 <div className="space-y-3">
@@ -88,7 +91,7 @@ export function BackendStatusIndicator() {
                     <p className="text-sm font-medium mb-2">Backend Canister ID</p>
                     <div className="flex items-center gap-2">
                       <code className="flex-1 text-xs bg-muted px-2 py-1.5 rounded font-mono break-all">
-                        {healthData.canisterId}
+                        {canisterId}
                       </code>
                       <Button
                         variant="outline"
@@ -101,6 +104,9 @@ export function BackendStatusIndicator() {
                       </Button>
                     </div>
                   </div>
+                  <p className="text-xs text-muted-foreground">
+                    This is the canister ID of the currently connected backend.
+                  </p>
                 </div>
               </div>
             </CollapsibleContent>
