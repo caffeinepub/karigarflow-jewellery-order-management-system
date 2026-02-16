@@ -16,7 +16,6 @@ export type AppRole = { 'Staff' : null } |
 export type ApprovalStatus = { 'pending' : null } |
   { 'approved' : null } |
   { 'rejected' : null };
-export type DesignCode = string;
 export interface HealthCheckResponse {
   'status' : string,
   'canisterId' : string,
@@ -70,10 +69,9 @@ export interface _SERVICE {
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'createUserProfile' : ActorMethod<[Principal, UserProfile], undefined>,
-  'deleteOrder' : ActorMethod<[string], undefined>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
-  'getMasterDesigns' : ActorMethod<[], Array<[DesignCode, MasterDesignEntry]>>,
+  'getMasterDesigns' : ActorMethod<[], Array<[string, MasterDesignEntry]>>,
   'getOrders' : ActorMethod<[], Array<Order>>,
   'getUnmappedDesignCodes' : ActorMethod<[], Array<UnmappedOrderEntry>>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
@@ -82,14 +80,12 @@ export interface _SERVICE {
   'isCallerApproved' : ActorMethod<[], boolean>,
   'listApprovals' : ActorMethod<[], Array<UserApprovalInfo>>,
   'requestApproval' : ActorMethod<[], undefined>,
+  'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'saveMasterDesigns' : ActorMethod<
-    [Array<[DesignCode, MasterDesignEntry]>],
+    [Array<[string, MasterDesignEntry]>],
     undefined
   >,
-  'setActiveFlagForMasterDesign' : ActorMethod<
-    [DesignCode, boolean],
-    undefined
-  >,
+  'setActiveFlagForMasterDesign' : ActorMethod<[string, boolean], undefined>,
   'setApproval' : ActorMethod<[Principal, ApprovalStatus], undefined>,
   'uploadParsedOrders' : ActorMethod<[Array<Order>], undefined>,
 }

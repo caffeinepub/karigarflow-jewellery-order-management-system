@@ -2,10 +2,11 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-update-the-master-designs-excel-import-parser-to-recognize-the-column-header-karigar-factory-name-and-common-punctuation-spacing-variants-that-normalize-to-the-same-key-as-the-karigar-factory-name-column-so-imported-master-design-mappings-populate-karigarname-instead-of-defaulting-to-unassigned",
-      "featureTitle": "Update the Master Designs Excel import parser to recognize the column header \"Karigar/Factory Name\" (and common punctuation/spacing variants that normalize to the same key) as the karigar/factory name column, so imported master design mappings populate `karigarName` instead of defaulting to \"Unassigned\".",
+      "featureId": "feature-fix-the-bootstrap-flow-so-authenticated-users-are-not-stuck-on-an-infinite-loading-screen-specifically-ensure-the-admin-check-query-resolves-isfetched-becomes-true-even-when-access-control-initialization-is-skipped-or-fails-so-routing-can-proceed-past-the-loading-state",
+      "featureTitle": "Fix the bootstrap flow so authenticated users are not stuck on an infinite loading screen. Specifically, ensure the admin-check query resolves (isFetched becomes true) even when access-control initialization is skipped or fails, so routing can proceed past the loading state.",
       "files": [
-        "frontend/src/lib/parsers/excel/parseMasterDesignsFromWorkbook.ts"
+        "frontend/src/App.tsx",
+        "frontend/src/hooks/useEffectiveAppRole.ts"
       ],
       "components": [
         "authorization@4.0.0",
@@ -18,6 +19,70 @@
       ],
       "testIds": [
         "REQ-1"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-update-frontend-admin-check-and-related-bootstrap-queries-to-use-the-non-blocking-actor-creation-path-usesafeactor-rather-than-the-initialization-blocking-actor-hook-so-that-missing-empty-admin-token-does-not-prevent-app-load-this-includes-updating-useiscalleradmin-and-any-bootstrap-critical-queries-it-depends-on-to-be-enabled-and-fetchable-when-an-authenticated-safe-actor-is-available",
+      "featureTitle": "Update frontend admin-check and related bootstrap queries to use the non-blocking actor creation path (useSafeActor) rather than the initialization-blocking actor hook, so that missing/empty admin token does not prevent app load. This includes updating useIsCallerAdmin (and any bootstrap-critical queries it depends on) to be enabled and fetchable when an authenticated safe actor is available.",
+      "files": [
+        "frontend/src/App.tsx",
+        "frontend/src/hooks/useQueries.ts"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "user-approval@3.0.0"
+      ],
+      "testIds": [
+        "REQ-2"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-harden-the-loading-state-guards-in-the-router-layout-and-role-gate-so-disabled-queries-e-g-admin-check-not-enabled-due-to-missing-actor-cannot-keep-the-app-in-a-perpetual-loading-state-ensure-loading-screens-are-only-shown-when-at-least-one-in-flight-request-exists-and-otherwise-fall-back-to-a-controlled-error-or-safe-default-path",
+      "featureTitle": "Harden the loading-state guards in the router layout and role gate so disabled queries (e.g., admin-check not enabled due to missing actor) cannot keep the app in a perpetual loading state. Ensure loading screens are only shown when at least one in-flight request exists, and otherwise fall back to a controlled error or safe default path.",
+      "files": [
+        "frontend/src/App.tsx",
+        "frontend/src/components/auth/RoleGate.tsx",
+        "frontend/src/hooks/useEffectiveAppRole.ts"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "user-approval@3.0.0"
+      ],
+      "testIds": [
+        "REQ-3"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-mitigate-potential-stale-cache-service-worker-causes-of-stuck-loading-by-updating-the-service-worker-behavior-for-navigation-requests-index-html-app-shell-to-prefer-the-network-and-fall-back-to-cache-only-when-offline-and-by-bumping-the-cache-version-so-production-clients-receive-the-updated-bundle",
+      "featureTitle": "Mitigate potential stale-cache/service-worker causes of \"stuck loading\" by updating the service worker behavior for navigation requests (index.html/app shell) to prefer the network and fall back to cache only when offline, and by bumping the cache version so production clients receive the updated bundle.",
+      "files": [
+        "frontend/public/service-worker.js",
+        "frontend/src/pwa/registerServiceWorker.ts"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "user-approval@3.0.0"
+      ],
+      "testIds": [
+        "REQ-4"
       ],
       "confidence": "high"
     }

@@ -11,7 +11,6 @@ export interface UserApprovalInfo {
     status: ApprovalStatus;
     principal: Principal;
 }
-export type DesignCode = string;
 export type Time = bigint;
 export interface HealthCheckResponse {
     status: string;
@@ -72,10 +71,9 @@ export enum UserRole {
 export interface backendInterface {
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     createUserProfile(user: Principal, profile: UserProfile): Promise<void>;
-    deleteOrder(orderNo: string): Promise<void>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
-    getMasterDesigns(): Promise<Array<[DesignCode, MasterDesignEntry]>>;
+    getMasterDesigns(): Promise<Array<[string, MasterDesignEntry]>>;
     getOrders(): Promise<Array<Order>>;
     getUnmappedDesignCodes(): Promise<Array<UnmappedOrderEntry>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
@@ -84,8 +82,9 @@ export interface backendInterface {
     isCallerApproved(): Promise<boolean>;
     listApprovals(): Promise<Array<UserApprovalInfo>>;
     requestApproval(): Promise<void>;
-    saveMasterDesigns(masterDesigns: Array<[DesignCode, MasterDesignEntry]>): Promise<void>;
-    setActiveFlagForMasterDesign(designCode: DesignCode, isActive: boolean): Promise<void>;
+    saveCallerUserProfile(profile: UserProfile): Promise<void>;
+    saveMasterDesigns(masterDesigns: Array<[string, MasterDesignEntry]>): Promise<void>;
+    setActiveFlagForMasterDesign(designCode: string, isActive: boolean): Promise<void>;
     setApproval(user: Principal, status: ApprovalStatus): Promise<void>;
     uploadParsedOrders(parsedOrders: Array<Order>): Promise<void>;
 }

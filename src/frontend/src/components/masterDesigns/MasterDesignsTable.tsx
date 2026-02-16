@@ -4,17 +4,17 @@ import { Badge } from '@/components/ui/badge';
 import { useSetActiveFlagForMasterDesign } from '../../hooks/useQueries';
 import { Edit, Power } from 'lucide-react';
 import { toast } from 'sonner';
-import type { DesignCode, MasterDesignEntry } from '../../backend';
+import type { MasterDesignEntry } from '../../backend';
 
 interface MasterDesignsTableProps {
-  designs: [DesignCode, MasterDesignEntry][];
-  onEdit: (code: DesignCode, entry: MasterDesignEntry) => void;
+  designs: [string, MasterDesignEntry][];
+  onEdit: (code: string, entry: MasterDesignEntry) => void;
 }
 
 export function MasterDesignsTable({ designs, onEdit }: MasterDesignsTableProps) {
   const setActiveMutation = useSetActiveFlagForMasterDesign();
 
-  const handleToggleActive = async (designCode: DesignCode, currentActive: boolean) => {
+  const handleToggleActive = async (designCode: string, currentActive: boolean) => {
     try {
       await setActiveMutation.mutateAsync({ designCode, isActive: !currentActive });
       toast.success(`Design ${currentActive ? 'deactivated' : 'activated'}`);

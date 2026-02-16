@@ -1,5 +1,5 @@
 import { type ReactNode } from 'react';
-import { useCurrentUser } from '../../hooks/useCurrentUser';
+import { useEffectiveAppRole } from '../../hooks/useEffectiveAppRole';
 import { AccessDeniedScreen } from './AccessDeniedScreen';
 import { AppRole } from '../../backend';
 
@@ -9,9 +9,10 @@ interface RoleGateProps {
 }
 
 export function RoleGate({ allowedRoles, children }: RoleGateProps) {
-  const { userProfile, isLoading } = useCurrentUser();
+  const { effectiveRole, isLoading, isResolved } = useEffectiveAppRole();
 
-  if (isLoading) {
+  // Only show loading when actively loading and not yet resolved
+  if (isLoading && !isResolved) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
@@ -19,7 +20,13 @@ export function RoleGate({ allowedRoles, children }: RoleGateProps) {
     );
   }
 
-  if (!userProfile || !allowedRoles.includes(userProfile.appRole)) {
+  // If resolved but no role, show access denied
+  if (isResolved && !effectiveRole) {
+    return <AccessDeniedScreen />;
+  }
+
+  // Check role permission
+  if (effectiveRole && !allowedRoles.includes(effectiveRole)) {
     return <AccessDeniedScreen />;
   }
 

@@ -1,4 +1,4 @@
-import type { Order, DesignCode, MasterDesignEntry } from '../../backend';
+import type { Order, MasterDesignEntry } from '../../backend';
 import { normalizeDesignCode } from './normalizeDesignCode';
 
 export interface MappingResult {
@@ -17,7 +17,7 @@ export interface MappingResult {
  */
 export function applyMasterDesignMapping(
   rawOrders: Order[],
-  masterDesigns: [DesignCode, MasterDesignEntry][]
+  masterDesigns: [string, MasterDesignEntry][]
 ): MappingResult {
   // Build a normalized design map
   const designMap = new Map<string, MasterDesignEntry>();

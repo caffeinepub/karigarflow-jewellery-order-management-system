@@ -5,12 +5,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useSaveMasterDesigns } from '../../hooks/useQueries';
 import { toast } from 'sonner';
-import type { DesignCode, MasterDesignEntry } from '../../backend';
+import type { MasterDesignEntry } from '../../backend';
 
 interface MasterDesignFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  editingDesign?: { code: DesignCode; entry: MasterDesignEntry | null } | null;
+  editingDesign?: { code: string; entry: MasterDesignEntry | null } | null;
 }
 
 export function MasterDesignFormDialog({ open, onOpenChange, editingDesign }: MasterDesignFormDialogProps) {

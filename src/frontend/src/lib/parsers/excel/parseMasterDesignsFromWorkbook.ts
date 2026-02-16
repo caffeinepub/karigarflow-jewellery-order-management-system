@@ -1,4 +1,4 @@
-import type { DesignCode, MasterDesignEntry } from '../../../backend';
+import type { MasterDesignEntry } from '../../../backend';
 
 /**
  * Gets the XLSX library from the global window object.
@@ -15,9 +15,9 @@ function getXLSX(): any {
  * Parses master design mappings from a SheetJS workbook object.
  * Expected columns: Design Code, Generic Name, Karigar Name (or Factory)
  * @param workbook - SheetJS workbook object
- * @returns Array of tuples [DesignCode, MasterDesignEntry]
+ * @returns Array of tuples [designCode, MasterDesignEntry]
  */
-export function parseMasterDesignsFromWorkbook(workbook: any): [DesignCode, MasterDesignEntry][] {
+export function parseMasterDesignsFromWorkbook(workbook: any): [string, MasterDesignEntry][] {
   const XLSX = getXLSX();
 
   // Get the first sheet
@@ -106,7 +106,7 @@ export function parseMasterDesignsFromWorkbook(workbook: any): [DesignCode, Mast
   ) || null;
   
   // Parse rows into master design entries
-  const entries: [DesignCode, MasterDesignEntry][] = [];
+  const entries: [string, MasterDesignEntry][] = [];
   
   for (let i = 0; i < rawData.length; i++) {
     const row = rawData[i];

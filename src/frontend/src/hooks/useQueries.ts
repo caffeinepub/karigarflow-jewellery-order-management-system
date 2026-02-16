@@ -1,81 +1,136 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useActor } from './useActor';
 import { useSafeActor } from './useSafeActor';
-import type { Order, MasterDesignEntry, DesignCode, UnmappedOrderEntry, UserProfile } from '../backend';
 import { Principal } from '@dfinity/principal';
-import { classifyBootstrapError, getSafeErrorString } from '@/utils/bootstrapErrorClassification';
+import type { Order, MasterDesignEntry, UnmappedOrderEntry, UserProfile, UserApprovalInfo, ApprovalStatus, UserRole } from '../backend';
+import { chunkOrders } from '../lib/orders/chunkOrders';
 
-export function useGetOrders() {
-  const { actor, isFetching, isError: actorError, error: actorErrorObj } = useSafeActor();
+const BATCH_SIZE = 50;
 
-  const query = useQuery<Order[]>({
-    queryKey: ['orders'],
-    queryFn: async () => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.getOrders();
-    },
-    enabled: !!actor && !isFetching && !actorError,
-  });
-
-  // Surface actor errors
-  if (actorError) {
-    return {
-      ...query,
-      data: [],
-      isError: true,
-      error: actorErrorObj,
-    };
-  }
-
-  return query;
+export interface BatchUploadProgress {
+  currentBatch: number;
+  totalBatches: number;
+  uploadedOrders: number;
+  totalOrders: number;
 }
 
-export function useUploadParsedOrders() {
-  const { actor } = useSafeActor();
-  const queryClient = useQueryClient();
+export function useGetOrders() {
+  const { actor, isFetching } = useActor();
 
-  return useMutation({
-    mutationFn: async (parsedOrders: Order[]) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.uploadParsedOrders(parsedOrders);
+  return useQuery<Order[]>({
+    queryKey: ['orders'],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getOrders();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['orders'] });
-      queryClient.invalidateQueries({ queryKey: ['unmappedDesignCodes'] });
-    },
+    enabled: !!actor && !isFetching,
   });
 }
 
 export function useGetMasterDesigns() {
-  const { actor, isFetching, isError: actorError, error: actorErrorObj } = useSafeActor();
+  const { actor, isFetching } = useActor();
 
-  const query = useQuery<[DesignCode, MasterDesignEntry][]>({
+  return useQuery<Array<[string, MasterDesignEntry]>>({
     queryKey: ['masterDesigns'],
     queryFn: async () => {
-      if (!actor) throw new Error('Actor not available');
+      if (!actor) return [];
       return actor.getMasterDesigns();
     },
-    enabled: !!actor && !isFetching && !actorError,
+    enabled: !!actor && !isFetching,
   });
+}
 
-  // Surface actor errors
-  if (actorError) {
-    return {
-      ...query,
-      data: [],
-      isError: true,
-      error: actorErrorObj,
-    };
-  }
+export function useGetUnmappedDesignCodes() {
+  const { actor, isFetching } = useActor();
 
-  return query;
+  return useQuery<UnmappedOrderEntry[]>({
+    queryKey: ['unmappedDesignCodes'],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getUnmappedDesignCodes();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useUploadParsedOrdersBatched() {
+  const queryClient = useQueryClient();
+  const { actor } = useActor();
+
+  return useMutation<
+    void,
+    Error,
+    { orders: Order[]; onProgress?: (progress: BatchUploadProgress) => void }
+  >({
+    mutationFn: async ({ orders, onProgress }) => {
+      if (!actor) throw new Error('Actor not available');
+
+      const batches = chunkOrders(orders, BATCH_SIZE);
+      const totalBatches = batches.length;
+      let uploadedOrders = 0;
+      const failedBatches: Array<{ batchIndex: number; orders: Order[]; error: string }> = [];
+
+      for (let i = 0; i < batches.length; i++) {
+        const batch = batches[i];
+        
+        // Report progress
+        if (onProgress) {
+          onProgress({
+            currentBatch: i + 1,
+            totalBatches,
+            uploadedOrders,
+            totalOrders: orders.length,
+          });
+        }
+
+        try {
+          await actor.uploadParsedOrders(batch);
+          uploadedOrders += batch.length;
+        } catch (error) {
+          console.error(`Batch ${i + 1} failed:`, error);
+          failedBatches.push({
+            batchIndex: i,
+            orders: batch,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+        }
+      }
+
+      // Report final progress
+      if (onProgress) {
+        onProgress({
+          currentBatch: totalBatches,
+          totalBatches,
+          uploadedOrders,
+          totalOrders: orders.length,
+        });
+      }
+
+      // If any batches failed, throw error with details
+      if (failedBatches.length > 0) {
+        const error: any = new Error(
+          `${failedBatches.length} of ${totalBatches} batches failed to upload`
+        );
+        error.failedBatches = failedBatches;
+        throw error;
+      }
+    },
+    onSuccess: async () => {
+      // Refetch (not just invalidate) to ensure dashboards show new data immediately
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['orders'] }),
+        queryClient.refetchQueries({ queryKey: ['unmappedDesignCodes'] }),
+      ]);
+    },
+  });
 }
 
 export function useSaveMasterDesigns() {
-  const { actor } = useSafeActor();
   const queryClient = useQueryClient();
+  const { actor } = useActor();
 
-  return useMutation({
-    mutationFn: async (masterDesigns: [DesignCode, MasterDesignEntry][]) => {
+  return useMutation<void, Error, Array<[string, MasterDesignEntry]>>({
+    mutationFn: async (masterDesigns) => {
       if (!actor) throw new Error('Actor not available');
       return actor.saveMasterDesigns(masterDesigns);
     },
@@ -88,11 +143,11 @@ export function useSaveMasterDesigns() {
 }
 
 export function useSetActiveFlagForMasterDesign() {
-  const { actor } = useSafeActor();
   const queryClient = useQueryClient();
+  const { actor } = useActor();
 
-  return useMutation({
-    mutationFn: async ({ designCode, isActive }: { designCode: DesignCode; isActive: boolean }) => {
+  return useMutation<void, Error, { designCode: string; isActive: boolean }>({
+    mutationFn: async ({ designCode, isActive }) => {
       if (!actor) throw new Error('Actor not available');
       return actor.setActiveFlagForMasterDesign(designCode, isActive);
     },
@@ -102,126 +157,121 @@ export function useSetActiveFlagForMasterDesign() {
   });
 }
 
-export function useGetUnmappedDesignCodes() {
-  const { actor, isFetching, isError: actorError, error: actorErrorObj } = useSafeActor();
-
-  const query = useQuery<UnmappedOrderEntry[]>({
-    queryKey: ['unmappedDesignCodes'],
-    queryFn: async () => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.getUnmappedDesignCodes();
-    },
-    enabled: !!actor && !isFetching && !actorError,
-  });
-
-  // Surface actor errors
-  if (actorError) {
-    return {
-      ...query,
-      data: [],
-      isError: true,
-      error: actorErrorObj,
-    };
-  }
-
-  return query;
-}
-
-export function useDeleteOrder() {
-  const { actor } = useSafeActor();
+export function useSaveCallerUserProfile() {
   const queryClient = useQueryClient();
+  const { actor } = useActor();
 
-  return useMutation({
-    mutationFn: async (orderNo: string) => {
+  return useMutation<void, Error, UserProfile>({
+    mutationFn: async (profile) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.deleteOrder(orderNo);
+      return actor.saveCallerUserProfile(profile);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['currentUserProfile'] });
     },
   });
-}
-
-export function useIsCallerAdmin() {
-  const { actor, isFetching, isError: actorError, error: actorErrorObj } = useSafeActor();
-
-  const query = useQuery<boolean>({
-    queryKey: ['isCallerAdmin'],
-    queryFn: async () => {
-      if (!actor) return false;
-      console.log('[admin/check] Checking admin status...');
-      try {
-        const isAdmin = await actor.isCallerAdmin();
-        console.log('[admin/check] Admin check succeeded:', isAdmin);
-        return isAdmin;
-      } catch (error) {
-        const errorMsg = getSafeErrorString(error);
-        const classification = classifyBootstrapError(error);
-        
-        // Log with classification tag if available
-        if (classification.diagnosticTag) {
-          console.error(classification.diagnosticTag, errorMsg);
-        } else {
-          console.error('[admin/check] Admin check failed:', errorMsg);
-        }
-        
-        // Check if it's an authorization error
-        if (errorMsg.includes('Unauthorized') || errorMsg.includes('permission')) {
-          console.error('[admin/check] Authorization/permission failure detected');
-        }
-        throw error;
-      }
-    },
-    enabled: !!actor && !isFetching && !actorError,
-    retry: (failureCount, error) => {
-      // Don't retry on auth errors during bootstrap
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      if (errorMsg.includes('Unauthorized') || errorMsg.includes('permission')) {
-        return false;
-      }
-      return failureCount < 2;
-    },
-    staleTime: 5 * 60 * 1000, // 5 minutes - prevents refetch on navigation
-    gcTime: 10 * 60 * 1000, // 10 minutes - keep in cache longer
-  });
-
-  // If actor creation failed, surface that error
-  if (actorError) {
-    return {
-      ...query,
-      data: false,
-      isLoading: false,
-      isError: true,
-      error: actorErrorObj,
-      refetch: query.refetch,
-    };
-  }
-
-  return query;
 }
 
 export function useCreateUserProfile() {
-  const { actor } = useSafeActor();
   const queryClient = useQueryClient();
+  const { actor } = useActor();
 
-  return useMutation({
-    mutationFn: async ({ user, profile }: { user: Principal; profile: UserProfile }) => {
+  return useMutation<void, Error, { user: Principal; profile: UserProfile }>({
+    mutationFn: async ({ user, profile }) => {
       if (!actor) throw new Error('Actor not available');
       return actor.createUserProfile(user, profile);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userProfiles'] });
+      queryClient.invalidateQueries({ queryKey: ['approvals'] });
     },
   });
 }
 
-export function useGetUserProfile() {
-  const { actor } = useSafeActor();
+/**
+ * Bootstrap-safe admin check using useSafeActor.
+ * Returns false when actor is unavailable instead of blocking indefinitely.
+ */
+export function useIsCallerAdmin() {
+  const { actor, isFetching: actorFetching, isError: actorError } = useSafeActor();
 
-  return useMutation({
-    mutationFn: async (user: Principal) => {
+  return useQuery<boolean>({
+    queryKey: ['isCallerAdmin'],
+    queryFn: async () => {
+      if (!actor) {
+        console.log('[admin-check] Actor not available, returning false');
+        return false;
+      }
+      console.log('[admin-check] Checking admin status...');
+      try {
+        const result = await actor.isCallerAdmin();
+        console.log('[admin-check] Admin check result:', result);
+        return result;
+      } catch (error) {
+        console.error('[admin-check] Admin check failed:', error);
+        // On error, assume not admin
+        return false;
+      }
+    },
+    enabled: !!actor && !actorFetching,
+    retry: false, // Don't retry admin checks
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    // Ensure query reaches isFetched even when disabled
+    placeholderData: false,
+  });
+}
+
+export function useIsCallerApproved() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<boolean>({
+    queryKey: ['isCallerApproved'],
+    queryFn: async () => {
+      if (!actor) return false;
+      return actor.isCallerApproved();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useListApprovals() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<UserApprovalInfo[]>({
+    queryKey: ['approvals'],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.listApprovals();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useSetApproval() {
+  const queryClient = useQueryClient();
+  const { actor } = useActor();
+
+  return useMutation<void, Error, { user: Principal; status: ApprovalStatus }>({
+    mutationFn: async ({ user, status }) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.getUserProfile(user);
+      return actor.setApproval(user, status);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['approvals'] });
+    },
+  });
+}
+
+export function useRequestApproval() {
+  const queryClient = useQueryClient();
+  const { actor } = useActor();
+
+  return useMutation<void, Error>({
+    mutationFn: async () => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.requestApproval();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['isCallerApproved'] });
     },
   });
 }

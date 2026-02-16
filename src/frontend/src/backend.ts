@@ -93,7 +93,6 @@ export interface UserApprovalInfo {
     status: ApprovalStatus;
     principal: Principal;
 }
-export type DesignCode = string;
 export type Time = bigint;
 export interface HealthCheckResponse {
     status: string;
@@ -155,10 +154,9 @@ export interface backendInterface {
     _initializeAccessControlWithSecret(userSecret: string): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     createUserProfile(user: Principal, profile: UserProfile): Promise<void>;
-    deleteOrder(orderNo: string): Promise<void>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
-    getMasterDesigns(): Promise<Array<[DesignCode, MasterDesignEntry]>>;
+    getMasterDesigns(): Promise<Array<[string, MasterDesignEntry]>>;
     getOrders(): Promise<Array<Order>>;
     getUnmappedDesignCodes(): Promise<Array<UnmappedOrderEntry>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
@@ -167,8 +165,9 @@ export interface backendInterface {
     isCallerApproved(): Promise<boolean>;
     listApprovals(): Promise<Array<UserApprovalInfo>>;
     requestApproval(): Promise<void>;
-    saveMasterDesigns(masterDesigns: Array<[DesignCode, MasterDesignEntry]>): Promise<void>;
-    setActiveFlagForMasterDesign(designCode: DesignCode, isActive: boolean): Promise<void>;
+    saveCallerUserProfile(profile: UserProfile): Promise<void>;
+    saveMasterDesigns(masterDesigns: Array<[string, MasterDesignEntry]>): Promise<void>;
+    setActiveFlagForMasterDesign(designCode: string, isActive: boolean): Promise<void>;
     setApproval(user: Principal, status: ApprovalStatus): Promise<void>;
     uploadParsedOrders(parsedOrders: Array<Order>): Promise<void>;
 }
@@ -217,20 +216,6 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async deleteOrder(arg0: string): Promise<void> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.deleteOrder(arg0);
-                return result;
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.deleteOrder(arg0);
-            return result;
-        }
-    }
     async getCallerUserProfile(): Promise<UserProfile | null> {
         if (this.processError) {
             try {
@@ -259,7 +244,7 @@ export class Backend implements backendInterface {
             return from_candid_UserRole_n13(this._uploadFile, this._downloadFile, result);
         }
     }
-    async getMasterDesigns(): Promise<Array<[DesignCode, MasterDesignEntry]>> {
+    async getMasterDesigns(): Promise<Array<[string, MasterDesignEntry]>> {
         if (this.processError) {
             try {
                 const result = await this.actor.getMasterDesigns();
@@ -385,7 +370,21 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async saveMasterDesigns(arg0: Array<[DesignCode, MasterDesignEntry]>): Promise<void> {
+    async saveCallerUserProfile(arg0: UserProfile): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.saveCallerUserProfile(to_candid_UserProfile_n3(this._uploadFile, this._downloadFile, arg0));
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.saveCallerUserProfile(to_candid_UserProfile_n3(this._uploadFile, this._downloadFile, arg0));
+            return result;
+        }
+    }
+    async saveMasterDesigns(arg0: Array<[string, MasterDesignEntry]>): Promise<void> {
         if (this.processError) {
             try {
                 const result = await this.actor.saveMasterDesigns(arg0);
@@ -399,7 +398,7 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async setActiveFlagForMasterDesign(arg0: DesignCode, arg1: boolean): Promise<void> {
+    async setActiveFlagForMasterDesign(arg0: string, arg1: boolean): Promise<void> {
         if (this.processError) {
             try {
                 const result = await this.actor.setActiveFlagForMasterDesign(arg0, arg1);

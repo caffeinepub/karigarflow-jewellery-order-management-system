@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useGetOrders } from '../../hooks/useQueries';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,13 +7,16 @@ import { OrdersTable } from '../../components/orders/OrdersTable';
 import { OrdersFiltersBar } from '../../components/orders/OrdersFiltersBar';
 import { ExportActions } from '../../components/exports/ExportActions';
 import { InlineErrorState } from '../../components/errors/InlineErrorState';
-import { Upload } from 'lucide-react';
-import { formatKarigarName } from '../../lib/orders/formatKarigarName';
+import { Upload, Package } from 'lucide-react';
 import { sortOrdersDesignWise } from '../../lib/orders/sortOrdersDesignWise';
+import { getOrderTimestamp } from '../../lib/orders/getOrderTimestamp';
+import { formatKarigarName } from '../../lib/orders/formatKarigarName';
+import type { Order } from '../../backend';
 
 export function StaffDashboardPage() {
   const navigate = useNavigate();
-  const { data: orders = [], isLoading, error, refetch } = useGetOrders();
+  const { data: orders = [], isLoading, error, refetch, isFetching } = useGetOrders();
+
   const [filters, setFilters] = useState({
     karigar: '',
     dateFrom: null as Date | null,
@@ -22,39 +25,54 @@ export function StaffDashboardPage() {
     status: '',
   });
 
-  const filteredAndSortedOrders = useMemo(() => {
-    const filtered = orders.filter((order) => {
-      // Use formatted karigar name for comparison - must match the dropdown values exactly
-      if (filters.karigar) {
-        const orderKarigar = formatKarigarName(order.karigarName);
-        if (orderKarigar !== filters.karigar) return false;
-      }
-      
-      if (filters.coOnly && !order.isCustomerOrder) return false;
-      if (filters.status && order.status !== filters.status) return false;
-      
-      if (filters.dateFrom || filters.dateTo) {
-        const orderDate = new Date(Number(order.uploadDate) / 1000000);
-        if (filters.dateFrom && orderDate < filters.dateFrom) return false;
-        if (filters.dateTo && orderDate > filters.dateTo) return false;
-      }
-      
-      return true;
-    });
+  const sortedOrders = useMemo(() => sortOrdersDesignWise(orders), [orders]);
 
-    return sortOrdersDesignWise(filtered);
-  }, [orders, filters]);
+  const filteredOrders = useMemo(() => {
+    let result = sortedOrders;
+
+    // Filter by karigar
+    if (filters.karigar) {
+      result = result.filter((order) => {
+        const formattedName = formatKarigarName(order.karigarName);
+        return formattedName === filters.karigar;
+      });
+    }
+
+    // Filter by date range
+    if (filters.dateFrom || filters.dateTo) {
+      result = result.filter((order) => {
+        const orderDate = getOrderTimestamp(order);
+        const fromMatch = !filters.dateFrom || orderDate >= filters.dateFrom;
+        const toMatch = !filters.dateTo || orderDate <= filters.dateTo;
+        return fromMatch && toMatch;
+      });
+    }
+
+    // Filter by CO
+    if (filters.coOnly) {
+      result = result.filter((order) => order.isCustomerOrder);
+    }
+
+    // Filter by status
+    if (filters.status) {
+      result = result.filter((order) => order.status === filters.status);
+    }
+
+    return result;
+  }, [sortedOrders, filters]);
 
   if (error) {
     return (
       <InlineErrorState
         title="Failed to load orders"
-        message="Unable to fetch orders from the backend."
-        onRetry={() => refetch()}
+        message="Unable to fetch orders from the backend"
         error={error}
+        onRetry={refetch}
       />
     );
   }
+
+  const showLoadingSkeleton = isLoading || (isFetching && orders.length === 0);
 
   return (
     <div className="space-y-6">
@@ -70,24 +88,51 @@ export function StaffDashboardPage() {
       </div>
 
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Orders</CardTitle>
-            <ExportActions orders={filteredAndSortedOrders} />
-          </div>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Orders</CardTitle>
+          <ExportActions
+            filteredOrders={filteredOrders}
+            selectedKarigar={filters.karigar}
+            fromDate={filters.dateFrom || undefined}
+            toDate={filters.dateTo || undefined}
+          />
+        </CardHeader>
+        <CardContent className="space-y-4">
           <OrdersFiltersBar
             orders={orders}
             filters={filters}
             onFiltersChange={setFilters}
           />
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="text-center py-8">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto" />
+
+          {showLoadingSkeleton ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4" />
+                <p className="text-muted-foreground">Loading orders...</p>
+              </div>
+            </div>
+          ) : filteredOrders.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No orders found</p>
+              {(filters.karigar || filters.dateFrom || filters.dateTo || filters.coOnly || filters.status) && (
+                <Button 
+                  variant="link" 
+                  onClick={() => setFilters({
+                    karigar: '',
+                    dateFrom: null,
+                    dateTo: null,
+                    coOnly: false,
+                    status: '',
+                  })} 
+                  className="mt-2"
+                >
+                  Clear filters
+                </Button>
+              )}
             </div>
           ) : (
-            <OrdersTable orders={filteredAndSortedOrders} />
+            <OrdersTable orders={filteredOrders} />
           )}
         </CardContent>
       </Card>

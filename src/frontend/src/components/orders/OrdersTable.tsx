@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import type { Order } from '../../backend';
 import { format } from 'date-fns';
 import { formatKarigarName } from '../../lib/orders/formatKarigarName';
+import { getOrderTimestamp } from '../../lib/orders/getOrderTimestamp';
 
 interface OrdersTableProps {
   orders: Order[];
@@ -100,7 +101,7 @@ export function OrdersTable({ orders, showStatusUpdate = false }: OrdersTablePro
                 )}
               </TableCell>
               <TableCell className="text-sm text-muted-foreground">
-                {format(new Date(Number(order.uploadDate) / 1000000), 'MMM d, yyyy')}
+                {format(getOrderTimestamp(order), 'MMM d, yyyy')}
               </TableCell>
             </TableRow>
           ))}

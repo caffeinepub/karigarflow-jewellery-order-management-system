@@ -1,24 +1,67 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-16T05:55:45.038Z",
+  "generatedAt": "2026-02-16T07:56:51.173Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 1,
-    "implemented": 1,
+    "total": 4,
+    "implemented": 4,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Update the Master Designs Excel import parser to recognize the column header \"Karigar/Factory Name\" (and common punctuation/spacing variants that normalize to the same key) as the karigar/factory name column, so imported master design mappings populate `karigarName` instead of defaulting to \"Unassigned\".",
+        "summary": "Fix the bootstrap flow so authenticated users are not stuck on an infinite loading screen. Specifically, ensure the admin-check query resolves (isFetched becomes true) even when access-control initialization is skipped or fails, so routing can proceed past the loading state.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/lib/parsers/excel/parseMasterDesignsFromWorkbook.ts"
+          "frontend/src/App.tsx",
+          "frontend/src/hooks/useEffectiveAppRole.ts"
         ],
         "matchedFiles": [
-          "frontend/src/lib/parsers/excel/parseMasterDesignsFromWorkbook.ts"
+          "frontend/src/App.tsx",
+          "frontend/src/hooks/useEffectiveAppRole.ts"
+        ]
+      },
+      {
+        "id": "REQ-2",
+        "summary": "Update frontend admin-check and related bootstrap queries to use the non-blocking actor creation path (useSafeActor) rather than the initialization-blocking actor hook, so that missing/empty admin token does not prevent app load. This includes updating useIsCallerAdmin (and any bootstrap-critical queries it depends on) to be enabled and fetchable when an authenticated safe actor is available.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/App.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/App.tsx"
+        ]
+      },
+      {
+        "id": "REQ-3",
+        "summary": "Harden the loading-state guards in the router layout and role gate so disabled queries (e.g., admin-check not enabled due to missing actor) cannot keep the app in a perpetual loading state. Ensure loading screens are only shown when at least one in-flight request exists, and otherwise fall back to a controlled error or safe default path.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/components/auth/RoleGate.tsx",
+          "frontend/src/hooks/useEffectiveAppRole.ts",
+          "frontend/src/App.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/components/auth/RoleGate.tsx",
+          "frontend/src/hooks/useEffectiveAppRole.ts",
+          "frontend/src/App.tsx"
+        ]
+      },
+      {
+        "id": "REQ-4",
+        "summary": "Mitigate potential stale-cache/service-worker causes of \"stuck loading\" by updating the service worker behavior for navigation requests (index.html/app shell) to prefer the network and fall back to cache only when offline, and by bumping the cache version so production clients receive the updated bundle.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/public/service-worker.js",
+          "frontend/src/pwa/registerServiceWorker.ts"
+        ],
+        "matchedFiles": [
+          "frontend/public/service-worker.js",
+          "frontend/src/pwa/registerServiceWorker.ts"
         ]
       }
     ]
@@ -28,7 +71,12 @@
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/lib/parsers/excel/parseMasterDesignsFromWorkbook.ts",
+    "frontend/public/service-worker.js",
+    "frontend/src/App.tsx",
+    "frontend/src/components/auth/RoleGate.tsx",
+    "frontend/src/hooks/useEffectiveAppRole.ts",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pwa/registerServiceWorker.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

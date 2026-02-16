@@ -1,35 +1,88 @@
 {
   "kind": "build_request",
-  "title": "Accept 'Karigar/Factory Name' column in Master Designs Excel import parser",
-  "priority": "normal",
+  "title": "Fix app stuck on loading (bootstrap never resolves)",
+  "priority": "high",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Update the Master Designs Excel import parser to recognize the column header \"Karigar/Factory Name\" (and common punctuation/spacing variants that normalize to the same key) as the karigar/factory name column, so imported master design mappings populate `karigarName` instead of defaulting to \"Unassigned\".",
+      "text": "Fix the bootstrap flow so authenticated users are not stuck on an infinite loading screen. Specifically, ensure the admin-check query resolves (isFetched becomes true) even when access-control initialization is skipped or fails, so routing can proceed past the loading state.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-6"
         ],
         "quotes": [
-          "Update your apps parser so it accepts the names"
+          "The app is failing to load any page. It’s stuck in loading only"
         ]
       },
       "acceptanceCriteria": [
-        "Given an Excel file where the karigar column header is exactly \"Karigar/Factory Name\", importing via the Master Designs import dialog parses rows with `entry.karigarName` set to the cell values (not \"Unassigned\" unless the cell is empty).",
-        "Given an Excel file where the karigar column header is a common variant such as \"Karigar / Factory Name\" or \"Karigar-Factory Name\" (i.e., variants that normalize to the same normalized key), the parser still maps it to `karigarName`.",
-        "No regression: existing supported headers such as \"Karigar Name\", \"Factory\", and \"Factory Name\" continue to be recognized.",
-        "When the parsed preview is shown in the import dialog, the \"Karigar Name\" column displays the parsed values for affected files."
+        "After login, the app consistently navigates to the correct dashboard route (e.g., /admin, /staff, /karigar) instead of remaining on a loading spinner indefinitely.",
+        "The role-resolution logic in the index route (\"Loading...\" state) completes and triggers navigation without requiring a hard refresh.",
+        "If admin-check cannot be performed due to actor creation/initialization issues, the UI shows a clear error state (existing BootstrapErrorScreen) rather than infinite loading."
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Update frontend admin-check and related bootstrap queries to use the non-blocking actor creation path (useSafeActor) rather than the initialization-blocking actor hook, so that missing/empty admin token does not prevent app load. This includes updating useIsCallerAdmin (and any bootstrap-critical queries it depends on) to be enabled and fetchable when an authenticated safe actor is available.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-6"
+        ],
+        "quotes": [
+          "The app is failing to load any page. It’s stuck in loading only"
+        ]
+      },
+      "acceptanceCriteria": [
+        "With no caffeine admin token present, the app still completes bootstrap and shows either the correct dashboard (if a profile exists) or the existing NoProfileBlockedScreen/ProfileSetupModal flows (as applicable).",
+        "useIsCallerAdmin reaches an isFetched=true state during normal bootstrap for authenticated users (no indefinite unresolved state).",
+        "Any failures during admin-check are surfaced via existing error-handling UI (BootstrapErrorScreen) with a working Retry action."
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Harden the loading-state guards in the router layout and role gate so disabled queries (e.g., admin-check not enabled due to missing actor) cannot keep the app in a perpetual loading state. Ensure loading screens are only shown when at least one in-flight request exists, and otherwise fall back to a controlled error or safe default path.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-6"
+        ],
+        "quotes": [
+          "The app is failing to load any page. It’s stuck in loading only"
+        ]
+      },
+      "acceptanceCriteria": [
+        "The app does not display a loading spinner indefinitely due solely to a query never running (disabled) or never reaching isFetched.",
+        "When bootstrap cannot proceed, the app shows an actionable error screen with English user-facing text and a Retry button that attempts to refetch the actor/profile/admin-check in the correct order."
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Mitigate potential stale-cache/service-worker causes of \"stuck loading\" by updating the service worker behavior for navigation requests (index.html/app shell) to prefer the network and fall back to cache only when offline, and by bumping the cache version so production clients receive the updated bundle.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-6"
+        ],
+        "quotes": [
+          "The app is failing to load any page. It’s stuck in loading only"
+        ]
+      },
+      "acceptanceCriteria": [
+        "After deploying the fix, a previously affected client with an existing service worker can hard-reload and successfully load the app (no infinite loading).",
+        "Navigation requests (e.g., opening /admin directly) do not get stuck serving an incompatible cached app shell; the app loads the latest version when online.",
+        "Offline behavior remains functional (cached assets still available when the network is unavailable)."
       ]
     }
   ],
   "constraints": [
-    "Do not modify any files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useInternetIdentity.tsx, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui (these paths are immutable)."
+    "Do not edit files under frontend/src/hooks/useActor.ts or other paths listed as immutable in SYSTEM_CONTEXT.",
+    "Keep all backend logic within the single Motoko actor (backend/main.mo); only add migration logic if persistent state schema changes are required."
   ],
   "nonGoals": [
-    "Changing backend canister deployment behavior or reliability as part of this request.",
-    "Adding new database/storage structures for karigar names.",
-    "Redesigning the Master Designs page beyond what is necessary to reflect the corrected parsed values."
+    "Implementing new product features or changing business flows beyond fixing the loading/bootstrap failure.",
+    "Adding third-party auth providers or non-Internet-Identity login methods.",
+    "Introducing new backend services or external databases."
   ],
   "imageRequirements": {
     "required": [],

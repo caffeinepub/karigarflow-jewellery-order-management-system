@@ -1,12 +1,12 @@
 # Specification
 
 ## Summary
-**Goal:** Ensure the Master Designs Excel import correctly maps the column header "Karigar/Factory Name" (including common punctuation/spacing variants) to the karigar/factory name field so imported mappings don’t default to "Unassigned".
+**Goal:** Fix the frontend bootstrap flow so authenticated users are not stuck on an infinite loading screen, and ensure routing proceeds to the correct dashboard or an actionable error state.
 
 **Planned changes:**
-- Update the Master Designs Excel import parser to recognize "Karigar/Factory Name" as the `karigarName` column.
-- Extend header normalization/mapping so common variants (e.g., "Karigar / Factory Name", "Karigar-Factory Name") resolve to the same key.
-- Preserve existing support for other karigar/factory headers (e.g., "Karigar Name", "Factory", "Factory Name").
-- Ensure the import preview shows the parsed values under the "Karigar Name" column.
+- Update bootstrap/admin-check flow so role resolution always completes (admin-check reaches a resolved state such as `isFetched=true`) and does not block routing when access-control initialization is skipped or fails.
+- Change bootstrap-critical admin-check logic (including `useIsCallerAdmin` and its dependencies) to use the non-blocking safe actor creation path (`useSafeActor`) so missing/empty admin token does not prevent app load.
+- Harden router/layout loading guards so disabled/unrun queries cannot cause perpetual loading; show loading only when requests are actually in flight and otherwise fall back to existing error UI (BootstrapErrorScreen) with Retry that refetches in the correct order.
+- Adjust service worker navigation/app-shell caching to prefer network with offline cache fallback, and bump cache version to reduce stale cached-bundle issues that can cause “stuck loading”.
 
-**User-visible outcome:** When importing a Master Designs Excel file that uses a "Karigar/Factory Name" header (or common variants), the preview and resulting mappings display the correct Karigar Name values instead of defaulting to "Unassigned" (unless the cell is empty).
+**User-visible outcome:** After login (and when opening routes like `/admin` directly), the app reliably loads and navigates to the correct dashboard or shows a clear Bootstrap error with Retry—no indefinite loading spinner, including for clients without an admin token and clients affected by stale service worker cache.

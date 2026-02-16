@@ -1,10 +1,10 @@
-import type { DesignCode, MasterDesignEntry } from '../../backend';
+import type { MasterDesignEntry } from '../../backend';
 import { parseMasterDesignsFromWorkbook } from './excel/parseMasterDesignsFromWorkbook';
 import { readWorkbookFromFile } from './excel/readWorkbookFromFile';
 import { extractTextFromPDF } from './pdf/extractText';
 import { parseMasterDesignsFromPdfText } from './pdf/parseMasterDesignsFromPdfText';
 
-export async function parseMasterDesignFile(file: File): Promise<[DesignCode, MasterDesignEntry][]> {
+export async function parseMasterDesignFile(file: File): Promise<[string, MasterDesignEntry][]> {
   const fileType = file.name.toLowerCase();
   
   if (fileType.endsWith('.pdf')) {
@@ -16,7 +16,7 @@ export async function parseMasterDesignFile(file: File): Promise<[DesignCode, Ma
   }
 }
 
-async function parsePDFMasterDesigns(file: File): Promise<[DesignCode, MasterDesignEntry][]> {
+async function parsePDFMasterDesigns(file: File): Promise<[string, MasterDesignEntry][]> {
   try {
     console.log('[PDF Parser] Starting PDF text extraction...');
     const pageTexts = await extractTextFromPDF(file);
@@ -37,7 +37,7 @@ async function parsePDFMasterDesigns(file: File): Promise<[DesignCode, MasterDes
   }
 }
 
-async function parseExcelMasterDesigns(file: File): Promise<[DesignCode, MasterDesignEntry][]> {
+async function parseExcelMasterDesigns(file: File): Promise<[string, MasterDesignEntry][]> {
   try {
     // Read the workbook from the file
     const workbook = await readWorkbookFromFile(file);

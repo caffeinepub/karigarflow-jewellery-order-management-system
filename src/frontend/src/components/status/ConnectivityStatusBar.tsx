@@ -6,7 +6,7 @@ import { useOfflineSync } from '../../offline/sync';
 
 export function ConnectivityStatusBar() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const { queuedCount, lastSyncTime, syncNow, isSyncing } = useOfflineSync();
+  const { queueCount, lastSyncTime, processQueue, isSyncing } = useOfflineSync();
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -21,7 +21,7 @@ export function ConnectivityStatusBar() {
     };
   }, []);
 
-  if (isOnline && queuedCount === 0) {
+  if (isOnline && queueCount === 0) {
     return null;
   }
 
@@ -38,9 +38,9 @@ export function ConnectivityStatusBar() {
               )}
               <AlertDescription className="text-sm">
                 {isOnline ? (
-                  queuedCount > 0 ? (
+                  queueCount > 0 ? (
                     <span>
-                      {queuedCount} upload{queuedCount > 1 ? 's' : ''} pending sync
+                      {queueCount} upload{queueCount > 1 ? 's' : ''} pending sync
                     </span>
                   ) : (
                     <span>Connected</span>
@@ -55,11 +55,11 @@ export function ConnectivityStatusBar() {
                 )}
               </AlertDescription>
             </div>
-            {isOnline && queuedCount > 0 && (
+            {isOnline && queueCount > 0 && (
               <Button
                 size="sm"
                 variant="outline"
-                onClick={syncNow}
+                onClick={processQueue}
                 disabled={isSyncing}
               >
                 <RefreshCw className={`mr-2 h-3 w-3 ${isSyncing ? 'animate-spin' : ''}`} />

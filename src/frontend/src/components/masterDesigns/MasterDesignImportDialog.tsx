@@ -10,7 +10,7 @@ import { useSaveMasterDesigns, useGetMasterDesigns } from '../../hooks/useQuerie
 import { parseMasterDesignFile } from '../../lib/parsers/masterDesignParser';
 import { toast } from 'sonner';
 import { Upload, CheckCircle, AlertCircle } from 'lucide-react';
-import type { DesignCode, MasterDesignEntry } from '../../backend';
+import type { MasterDesignEntry } from '../../backend';
 
 interface MasterDesignImportDialogProps {
   open: boolean;
@@ -23,7 +23,7 @@ export function MasterDesignImportDialog({ open, onOpenChange }: MasterDesignImp
   const [file, setFile] = useState<File | null>(null);
   const [isParsing, setIsParsing] = useState(false);
   const [parseError, setParseError] = useState<string | null>(null);
-  const [parsedDesigns, setParsedDesigns] = useState<[DesignCode, MasterDesignEntry][] | null>(null);
+  const [parsedDesigns, setParsedDesigns] = useState<[string, MasterDesignEntry][] | null>(null);
   const [summary, setSummary] = useState<{ created: number; updated: number } | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {

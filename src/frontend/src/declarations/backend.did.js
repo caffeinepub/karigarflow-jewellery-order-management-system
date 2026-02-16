@@ -23,7 +23,6 @@ export const UserProfile = IDL.Record({
   'name' : IDL.Text,
   'karigarName' : IDL.Opt(IDL.Text),
 });
-export const DesignCode = IDL.Text;
 export const MasterDesignEntry = IDL.Record({
   'isActive' : IDL.Bool,
   'karigarName' : IDL.Text,
@@ -75,12 +74,11 @@ export const idlService = IDL.Service({
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
   'createUserProfile' : IDL.Func([IDL.Principal, UserProfile], [], []),
-  'deleteOrder' : IDL.Func([IDL.Text], [], []),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
   'getMasterDesigns' : IDL.Func(
       [],
-      [IDL.Vec(IDL.Tuple(DesignCode, MasterDesignEntry))],
+      [IDL.Vec(IDL.Tuple(IDL.Text, MasterDesignEntry))],
       ['query'],
     ),
   'getOrders' : IDL.Func([], [IDL.Vec(Order)], ['query']),
@@ -99,12 +97,13 @@ export const idlService = IDL.Service({
   'isCallerApproved' : IDL.Func([], [IDL.Bool], ['query']),
   'listApprovals' : IDL.Func([], [IDL.Vec(UserApprovalInfo)], ['query']),
   'requestApproval' : IDL.Func([], [], []),
+  'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
   'saveMasterDesigns' : IDL.Func(
-      [IDL.Vec(IDL.Tuple(DesignCode, MasterDesignEntry))],
+      [IDL.Vec(IDL.Tuple(IDL.Text, MasterDesignEntry))],
       [],
       [],
     ),
-  'setActiveFlagForMasterDesign' : IDL.Func([DesignCode, IDL.Bool], [], []),
+  'setActiveFlagForMasterDesign' : IDL.Func([IDL.Text, IDL.Bool], [], []),
   'setApproval' : IDL.Func([IDL.Principal, ApprovalStatus], [], []),
   'uploadParsedOrders' : IDL.Func([IDL.Vec(Order)], [], []),
 });
@@ -127,7 +126,6 @@ export const idlFactory = ({ IDL }) => {
     'name' : IDL.Text,
     'karigarName' : IDL.Opt(IDL.Text),
   });
-  const DesignCode = IDL.Text;
   const MasterDesignEntry = IDL.Record({
     'isActive' : IDL.Bool,
     'karigarName' : IDL.Text,
@@ -179,12 +177,11 @@ export const idlFactory = ({ IDL }) => {
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
     'createUserProfile' : IDL.Func([IDL.Principal, UserProfile], [], []),
-    'deleteOrder' : IDL.Func([IDL.Text], [], []),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
     'getMasterDesigns' : IDL.Func(
         [],
-        [IDL.Vec(IDL.Tuple(DesignCode, MasterDesignEntry))],
+        [IDL.Vec(IDL.Tuple(IDL.Text, MasterDesignEntry))],
         ['query'],
       ),
     'getOrders' : IDL.Func([], [IDL.Vec(Order)], ['query']),
@@ -203,12 +200,13 @@ export const idlFactory = ({ IDL }) => {
     'isCallerApproved' : IDL.Func([], [IDL.Bool], ['query']),
     'listApprovals' : IDL.Func([], [IDL.Vec(UserApprovalInfo)], ['query']),
     'requestApproval' : IDL.Func([], [], []),
+    'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
     'saveMasterDesigns' : IDL.Func(
-        [IDL.Vec(IDL.Tuple(DesignCode, MasterDesignEntry))],
+        [IDL.Vec(IDL.Tuple(IDL.Text, MasterDesignEntry))],
         [],
         [],
       ),
-    'setActiveFlagForMasterDesign' : IDL.Func([DesignCode, IDL.Bool], [], []),
+    'setActiveFlagForMasterDesign' : IDL.Func([IDL.Text, IDL.Bool], [], []),
     'setApproval' : IDL.Func([IDL.Principal, ApprovalStatus], [], []),
     'uploadParsedOrders' : IDL.Func([IDL.Vec(Order)], [], []),
   });

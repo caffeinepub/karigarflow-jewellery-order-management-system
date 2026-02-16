@@ -1,7 +1,12 @@
 import type { Order } from '../../backend';
 import { format } from 'date-fns';
+import { getOrderTimestamp } from '../orders/getOrderTimestamp';
 
-export function exportOrders(orders: Order[], type: 'all' | 'karigar' | 'co' | 'daily') {
+export function exportOrders(
+  orders: Order[],
+  type: 'all' | 'karigar' | 'co' | 'daily',
+  selectedDate?: Date
+) {
   let filteredOrders = orders;
   let filename = 'orders';
 
@@ -11,13 +16,17 @@ export function exportOrders(orders: Order[], type: 'all' | 'karigar' | 'co' | '
       filename = 'co-orders';
       break;
     case 'daily':
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      // Use selectedDate if provided (from Admin Dashboard), otherwise use today
+      const targetDate = selectedDate || new Date();
+      targetDate.setHours(0, 0, 0, 0);
+      const targetEnd = new Date(targetDate);
+      targetEnd.setHours(23, 59, 59, 999);
+      
       filteredOrders = orders.filter((o) => {
-        const orderDate = new Date(Number(o.uploadDate) / 1000000);
-        return orderDate >= today;
+        const orderDate = getOrderTimestamp(o);
+        return orderDate >= targetDate && orderDate <= targetEnd;
       });
-      filename = `daily-orders-${format(today, 'yyyy-MM-dd')}`;
+      filename = `daily-orders-${format(targetDate, 'yyyy-MM-dd')}`;
       break;
     case 'karigar':
       filename = 'karigar-wise-orders';
@@ -58,7 +67,7 @@ function convertToCSV(orders: Order[]): string {
     order.remarks,
     order.status,
     order.isCustomerOrder ? 'Yes' : 'No',
-    format(new Date(Number(order.uploadDate) / 1000000), 'yyyy-MM-dd'),
+    format(getOrderTimestamp(order), 'yyyy-MM-dd'),
   ]);
 
   const csvContent = [

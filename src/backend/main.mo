@@ -2,16 +2,18 @@ import Text "mo:core/Text";
 import Time "mo:core/Time";
 import Map "mo:core/Map";
 import Iter "mo:core/Iter";
-import Order "mo:core/Order";
-import Principal "mo:core/Principal";
+import Array "mo:core/Array";
 import Runtime "mo:core/Runtime";
 import Nat "mo:core/Nat";
-import Array "mo:core/Array";
+import Principal "mo:core/Principal";
 
-// Component imports
+// Authorization & Approval Components
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
 import UserApproval "user-approval/approval";
+
+
+// Core Types
 
 actor {
   public type HealthCheckResponse = {
@@ -19,104 +21,41 @@ actor {
     canisterId : Text;
   };
 
-  public query ({ caller }) func healthCheck() : async HealthCheckResponse {
-    {
-      status = "OK";
-      canisterId = "unknown";
-    };
+  public type Order = {
+    orderNo : Text;
+    orderType : Text;
+    designCode : Text;
+    genericName : Text;
+    karigarName : Text;
+    weight : Float;
+    size : Float;
+    qty : Nat;
+    remarks : Text;
+    status : Text;
+    isCustomerOrder : Bool;
+    uploadDate : Time.Time;
+    createdAt : Time.Time;
   };
 
-  let accessControlState = AccessControl.initState();
-  include MixinAuthorization(accessControlState);
-
-  let approvalState = UserApproval.initState(accessControlState);
-
-  module DesignCode {
-    public type DesignCode = Text;
-
-    public func compareByDesignCode(designCode1 : DesignCode, designCode2 : DesignCode) : Order.Order {
-      Text.compare(designCode1, designCode2);
-    };
+  public type MasterDesignEntry = {
+    genericName : Text;
+    karigarName : Text;
+    isActive : Bool;
   };
 
-  module MasterDesignEntry {
-    public type MasterDesignEntry = {
-      genericName : Text;
-      karigarName : Text;
-      isActive : Bool;
-    };
-
-    public func compare(entry1 : MasterDesignEntry, entry2 : MasterDesignEntry) : Order.Order {
-      switch (Text.compare(entry1.genericName, entry2.genericName)) {
-        case (#equal) { Text.compare(entry1.karigarName, entry2.karigarName) };
-        case (order) { order };
-      };
-    };
-
-    public func compareByKarigarName(entry1 : MasterDesignEntry, entry2 : MasterDesignEntry) : Order.Order {
-      Text.compare(entry1.karigarName, entry2.karigarName);
-    };
+  public type UnmappedOrderEntry = {
+    orderNo : Text;
+    orderType : Text;
+    designCode : Text;
+    weight : Float;
+    size : Float;
+    qty : Nat;
+    remarks : Text;
+    isCustomerOrder : Bool;
+    uploadDate : Time.Time;
+    createdAt : Time.Time;
   };
 
-  module OrderModule {
-    public type Order = {
-      orderNo : Text;
-      orderType : Text;
-      designCode : Text;
-      genericName : Text;
-      karigarName : Text;
-      weight : Float;
-      size : Float;
-      qty : Nat;
-      remarks : Text;
-      status : Text;
-      isCustomerOrder : Bool;
-      uploadDate : Time.Time;
-      createdAt : Time.Time;
-    };
-
-    public func compare(order1 : Order, order2 : Order) : Order.Order {
-      switch (Text.compare(order1.orderNo, order2.orderNo)) {
-        case (#equal) { Text.compare(order1.designCode, order2.designCode) };
-        case (order) { order };
-      };
-    };
-
-    public func compareByDesignCode(order1 : Order, order2 : Order) : Order.Order {
-      switch (Text.compare(order1.designCode, order2.designCode)) {
-        case (#equal) { Text.compare(order1.orderNo, order2.orderNo) };
-        case (order) { order };
-      };
-    };
-  };
-
-  module UnmappedOrderEntry {
-    public type UnmappedOrderEntry = {
-      orderNo : Text;
-      orderType : Text;
-      designCode : Text;
-      weight : Float;
-      size : Float;
-      qty : Nat;
-      remarks : Text;
-      isCustomerOrder : Bool;
-      uploadDate : Time.Time;
-      createdAt : Time.Time;
-    };
-
-    public func compare(entry1 : UnmappedOrderEntry, entry2 : UnmappedOrderEntry) : Order.Order {
-      switch (Text.compare(entry1.orderNo, entry2.orderNo)) {
-        case (#equal) { Text.compare(entry1.designCode, entry2.designCode) };
-        case (order) { order };
-      };
-    };
-
-    public func compareByDesignCode(entry1 : UnmappedOrderEntry, entry2 : UnmappedOrderEntry) : Order.Order {
-      Text.compare(entry1.designCode, entry2.designCode);
-    };
-  };
-
-  // Application-specific role type
   public type AppRole = {
     #Admin;
     #Staff;
@@ -129,59 +68,41 @@ actor {
     karigarName : ?Text;
   };
 
+  // Health Check
+  public query ({ caller }) func healthCheck() : async HealthCheckResponse {
+    {
+      status = "OK";
+      canisterId = "unknown";
+    };
+  };
+
+  // Initialize Authorization & Approval
+  let accessControlState = AccessControl.initState();
+  include MixinAuthorization(accessControlState);
+
+  let approvalState = UserApproval.initState(accessControlState);
+
+  // Persistent State Maps
   let userProfiles = Map.empty<Principal, UserProfile>();
-  let masterDesignsMap = Map.empty<DesignCode.DesignCode, MasterDesignEntry.MasterDesignEntry>();
-  let ordersMap = Map.empty<Text, OrderModule.Order>();
-  let unmappedDesignCodesMap = Map.empty<Text, UnmappedOrderEntry.UnmappedOrderEntry>();
+  let masterDesignsMap = Map.empty<Text, MasterDesignEntry>();
+  let ordersMap = Map.empty<Text, Order>();
+  let unmappedDesignCodesMap = Map.empty<Text, UnmappedOrderEntry>();
 
-  // Approval management functions
-
-  public query ({ caller }) func isCallerApproved() : async Bool {
-    AccessControl.hasPermission(accessControlState, caller, #admin) or UserApproval.isApproved(approvalState, caller);
+  // Helper Functions
+  func validateOrder(order : Order) : Bool {
+    order.orderNo != "" and order.designCode != "" and order.orderType != "" and order.qty != 0
   };
 
-  public shared ({ caller }) func setApproval(user : Principal, status : UserApproval.ApprovalStatus) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
-      Runtime.trap("Unauthorized: Only admins can perform this action");
-    };
-    UserApproval.setApproval(approvalState, user, status);
+  func validateDesignCode(designCode : Text) : Bool {
+    designCode != "";
   };
 
-  public query ({ caller }) func listApprovals() : async [UserApproval.UserApprovalInfo] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
-      Runtime.trap("Unauthorized: Only admins can perform this action");
+  func isAdminOrStaff(caller : Principal) : Bool {
+    switch (getAppRole(caller)) {
+      case (?#Admin) { true };
+      case (?#Staff) { true };
+      case _ { false };
     };
-    UserApproval.listApprovals(approvalState);
-  };
-
-  public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
-    if (not (AccessControl.isAdmin(accessControlState, caller) or AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only authenticated users can view profiles");
-    };
-
-    userProfiles.get(caller);
-  };
-
-  public query ({ caller }) func getUserProfile(user : Principal) : async ?UserProfile {
-    if (caller != user and not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Can only view your own profile");
-    };
-    userProfiles.get(user);
-  };
-
-  public shared ({ caller }) func createUserProfile(user : Principal, profile : UserProfile) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can create user profiles");
-    };
-
-    let accessRole : AccessControl.UserRole = switch (profile.appRole) {
-      case (#Admin) { #admin };
-      case (#Staff) { #user };
-      case (#Karigar) { #user };
-    };
-
-    AccessControl.assignRole(accessControlState, caller, user, accessRole);
-    userProfiles.add(user, profile);
   };
 
   func getAppRole(caller : Principal) : ?AppRole {
@@ -195,14 +116,6 @@ actor {
         case (?profile) { ?profile.appRole };
         case null { null };
       };
-    };
-  };
-
-  func isAdminOrStaff(caller : Principal) : Bool {
-    switch (getAppRole(caller)) {
-      case (?#Admin) { true };
-      case (?#Staff) { true };
-      case _ { false };
     };
   };
 
@@ -223,63 +136,154 @@ actor {
     trimmed.replace(#text("  "), " ");
   };
 
-  // Upload parsed orders - hosted only, user_approval-packed backend
-  public shared ({ caller }) func uploadParsedOrders(parsedOrders : [OrderModule.Order]) : async () {
+  // State Queries
+  public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
+    if (not (AccessControl.isAdmin(accessControlState, caller) or AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only authenticated users can view profiles");
+    };
+    userProfiles.get(caller);
+  };
+
+  public query ({ caller }) func getUserProfile(user : Principal) : async ?UserProfile {
+    if (caller != user and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Can only view your own profile");
+    };
+    userProfiles.get(user);
+  };
+
+  public shared ({ caller }) func saveCallerUserProfile(profile : UserProfile) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can save profiles");
+    };
+    userProfiles.add(caller, profile);
+  };
+
+  public query ({ caller }) func getOrders() : async [Order] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only authenticated users can view orders");
+    };
+
+    if (not AccessControl.isAdmin(accessControlState, caller) and not UserApproval.isApproved(approvalState, caller)) {
+      Runtime.trap("Unauthorized: User must be approved to view orders");
+    };
+
+    let allOrders = ordersMap.values().toArray();
+
+    switch (getAppRole(caller)) {
+      case (?#Admin) {
+        allOrders.sort(
+          func(a, b) {
+            switch (Text.compare(a.designCode, b.designCode)) {
+              case (#equal) { Nat.compare(a.qty, b.qty) };
+              case (order) { order };
+            };
+          }
+        );
+      };
+      case (?#Staff) {
+        allOrders.sort(
+          func(a, b) {
+            switch (Text.compare(a.designCode, b.designCode)) {
+              case (#equal) { Nat.compare(a.qty, b.qty) };
+              case (order) { order };
+            };
+          }
+        );
+      };
+      case (?#Karigar) {
+        switch (getKarigarName(caller)) {
+          case (?karigarName) {
+            let filtered = allOrders.filter(
+              func(order) { order.karigarName == karigarName }
+            );
+            filtered.sort(
+              func(a, b) {
+                switch (Text.compare(a.designCode, b.designCode)) {
+                  case (#equal) { Nat.compare(a.qty, b.qty) };
+                  case (order) { order };
+                };
+              }
+            );
+          };
+          case null { Runtime.trap("Karigar profile missing karigarName") };
+        };
+      };
+      case null { Runtime.trap("User profile not found") };
+    };
+  };
+
+  public query ({ caller }) func getUnmappedDesignCodes() : async [UnmappedOrderEntry] {
+    if (not isAdminOrStaff(caller)) {
+      Runtime.trap("Unauthorized: Only Admin or Staff can view unmapped design codes");
+    };
+    unmappedDesignCodesMap.values().toArray();
+  };
+
+  public query ({ caller }) func getMasterDesigns() : async [(Text, MasterDesignEntry)] {
+    if (not isAdminOrStaff(caller)) {
+      Runtime.trap("Unauthorized: Only Admin or Staff can view master designs");
+    };
+    masterDesignsMap.toArray();
+  };
+
+  // Upload Processed Orders
+  public shared ({ caller }) func uploadParsedOrders(parsedOrders : [Order]) : async () {
     if (not isAdminOrStaff(caller)) {
       Runtime.trap("Unauthorized: Only Admin or Staff can upload orders");
     };
 
     for (order in parsedOrders.values()) {
       let normalizedDesignCode = normalizeDesignCode(order.designCode);
+      let finalOrder = { order with uploadDate = if (order.uploadDate <= 0) { Time.now() } else { order.uploadDate } };
       switch (masterDesignsMap.get(normalizedDesignCode)) {
         case (null) {
-          let unmappedOrder : UnmappedOrderEntry.UnmappedOrderEntry = {
-            orderNo = order.orderNo;
-            orderType = order.orderType;
-            designCode = order.designCode;
-            weight = order.weight;
-            size = order.size;
-            qty = order.qty;
-            remarks = order.remarks;
-            isCustomerOrder = order.isCustomerOrder;
-            uploadDate = order.uploadDate;
-            createdAt = order.createdAt;
+          let unmappedOrder : UnmappedOrderEntry = {
+            orderNo = finalOrder.orderNo;
+            orderType = finalOrder.orderType;
+            designCode = finalOrder.designCode;
+            weight = finalOrder.weight;
+            size = finalOrder.size;
+            qty = finalOrder.qty;
+            remarks = finalOrder.remarks;
+            isCustomerOrder = finalOrder.isCustomerOrder;
+            uploadDate = finalOrder.uploadDate;
+            createdAt = finalOrder.createdAt;
           };
           unmappedDesignCodesMap.add(unmappedOrder.orderNo # "-" # unmappedOrder.designCode, unmappedOrder);
         };
         case (?masterDesign) {
           if (masterDesign.isActive) {
-            let correctOrder : OrderModule.Order = {
-              orderNo = order.orderNo;
-              orderType = order.orderType;
-              designCode = order.designCode;
+            let correctOrder : Order = {
+              orderNo = finalOrder.orderNo;
+              orderType = finalOrder.orderType;
+              designCode = finalOrder.designCode;
               genericName = masterDesign.genericName;
-              karigarName = switch (order.karigarName == "") {
+              karigarName = switch (finalOrder.karigarName == "") {
                 case (true) { masterDesign.karigarName };
-                case (false) { order.karigarName };
+                case (false) { finalOrder.karigarName };
               };
-              weight = order.weight;
-              size = order.size;
-              qty = order.qty;
-              remarks = order.remarks;
+              weight = finalOrder.weight;
+              size = finalOrder.size;
+              qty = finalOrder.qty;
+              remarks = finalOrder.remarks;
               status = "pending";
-              isCustomerOrder = order.isCustomerOrder;
-              uploadDate = order.uploadDate;
-              createdAt = order.createdAt;
+              isCustomerOrder = finalOrder.isCustomerOrder;
+              uploadDate = finalOrder.uploadDate;
+              createdAt = finalOrder.createdAt;
             };
-            ordersMap.add(order.orderNo, correctOrder);
+            ordersMap.add(finalOrder.orderNo, correctOrder);
           } else {
-            let unmappedOrder : UnmappedOrderEntry.UnmappedOrderEntry = {
-              orderNo = order.orderNo;
-              orderType = order.orderType;
-              designCode = order.designCode;
-              weight = order.weight;
-              size = order.size;
-              qty = order.qty;
-              remarks = order.remarks;
-              isCustomerOrder = order.isCustomerOrder;
-              uploadDate = order.uploadDate;
-              createdAt = order.createdAt;
+            let unmappedOrder : UnmappedOrderEntry = {
+              orderNo = finalOrder.orderNo;
+              orderType = finalOrder.orderType;
+              designCode = finalOrder.designCode;
+              weight = finalOrder.weight;
+              size = finalOrder.size;
+              qty = finalOrder.qty;
+              remarks = finalOrder.remarks;
+              isCustomerOrder = finalOrder.isCustomerOrder;
+              uploadDate = finalOrder.uploadDate;
+              createdAt = finalOrder.createdAt;
             };
             unmappedDesignCodesMap.add(unmappedOrder.orderNo # "-" # unmappedOrder.designCode, unmappedOrder);
           };
@@ -288,7 +292,8 @@ actor {
     };
   };
 
-  public shared ({ caller }) func saveMasterDesigns(masterDesigns : [(DesignCode.DesignCode, MasterDesignEntry.MasterDesignEntry)]) : async () {
+  // Master Designs Management
+  public shared ({ caller }) func saveMasterDesigns(masterDesigns : [(Text, MasterDesignEntry)]) : async () {
     if (not AccessControl.isAdmin(accessControlState, caller)) {
       Runtime.trap("Unauthorized: Only Admin can save master designs");
     };
@@ -307,94 +312,7 @@ actor {
     processUnmappedOrders();
   };
 
-  public query ({ caller }) func getOrders() : async [OrderModule.Order] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only authenticated users can view orders");
-    };
-
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      if (not UserApproval.isApproved(approvalState, caller)) {
-        Runtime.trap("Unauthorized: User must be approved to view orders");
-      };
-    };
-
-    let allOrders = ordersMap.values().toArray();
-
-    switch (getAppRole(caller)) {
-      case (?#Admin) {
-        allOrders.sort(
-          func(a, b) {
-            switch (OrderModule.compareByDesignCode(a, b)) {
-              case (#equal) {
-                Nat.compare(a.qty, b.qty);
-              };
-              case (order) { order };
-            };
-          }
-        );
-      };
-      case (?#Staff) {
-        allOrders.sort(
-          func(a, b) {
-            switch (OrderModule.compareByDesignCode(a, b)) {
-              case (#equal) {
-                Nat.compare(a.qty, b.qty);
-              };
-              case (order) { order };
-            };
-          }
-        );
-      };
-      case (?#Karigar) {
-        switch (getKarigarName(caller)) {
-          case (?karigarName) {
-            let filtered = allOrders.filter(
-              func(order) { order.karigarName == karigarName }
-            );
-            filtered.sort(
-              func(a, b) {
-                switch (OrderModule.compareByDesignCode(a, b)) {
-                  case (#equal) {
-                    Nat.compare(a.qty, b.qty);
-                  };
-                  case (order) { order };
-                };
-              }
-            );
-          };
-          case null {
-            Runtime.trap("Karigar profile missing karigarName");
-          };
-        };
-      };
-      case null {
-        Runtime.trap("User profile not found");
-      };
-    };
-  };
-
-  public query ({ caller }) func getUnmappedDesignCodes() : async [UnmappedOrderEntry.UnmappedOrderEntry] {
-    if (not isAdminOrStaff(caller)) {
-      Runtime.trap("Unauthorized: Only Admin or Staff can view unmapped design codes");
-    };
-    unmappedDesignCodesMap.values().toArray();
-  };
-
-  public query ({ caller }) func getMasterDesigns() : async [(DesignCode.DesignCode, MasterDesignEntry.MasterDesignEntry)] {
-    if (not isAdminOrStaff(caller)) {
-      Runtime.trap("Unauthorized: Only Admin or Staff can view master designs");
-    };
-    masterDesignsMap.toArray();
-  };
-
-  public shared ({ caller }) func deleteOrder(orderNo : Text) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can delete orders");
-    };
-    ordersMap.remove(orderNo);
-  };
-
-  public shared ({ caller }) func setActiveFlagForMasterDesign(designCode : DesignCode.DesignCode, isActive : Bool) : async () {
+  public shared ({ caller }) func setActiveFlagForMasterDesign(designCode : Text, isActive : Bool) : async () {
     if (not AccessControl.isAdmin(accessControlState, caller)) {
       Runtime.trap("Unauthorized: Only admins can set active flag");
     };
@@ -402,7 +320,7 @@ actor {
     let normalizedDesignCode = normalizeDesignCode(designCode);
     let existingEntry = masterDesignsMap.get(normalizedDesignCode);
 
-    let updatedEntry : MasterDesignEntry.MasterDesignEntry = switch (existingEntry) {
+    let updatedEntry : MasterDesignEntry = switch (existingEntry) {
       case (null) { Runtime.trap("Master design not found") };
       case (?entry) {
         {
@@ -415,16 +333,51 @@ actor {
     masterDesignsMap.add(normalizedDesignCode, updatedEntry);
   };
 
-  func validateOrder(order : OrderModule.Order) : Bool {
-    if (order.orderNo == "" or order.designCode == "" or order.orderType == "" or order.qty == 0) {
-      false;
-    } else { true };
+  // Approval Functions
+  public query ({ caller }) func isCallerApproved() : async Bool {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only authenticated users can check approval status");
+    };
+    AccessControl.hasPermission(accessControlState, caller, #admin) or UserApproval.isApproved(approvalState, caller);
   };
 
-  func validateDesignCode(designCode : DesignCode.DesignCode) : Bool {
-    designCode != "";
+  public shared ({ caller }) func setApproval(user : Principal, status : UserApproval.ApprovalStatus) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can perform this action");
+    };
+    UserApproval.setApproval(approvalState, user, status);
   };
 
+  public query ({ caller }) func listApprovals() : async [UserApproval.UserApprovalInfo] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can perform this action");
+    };
+    UserApproval.listApprovals(approvalState);
+  };
+
+  public shared ({ caller }) func requestApproval() : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only authenticated users can request approval");
+    };
+    UserApproval.setApproval(approvalState, caller, #pending);
+  };
+
+  public shared ({ caller }) func createUserProfile(user : Principal, profile : UserProfile) : async () {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admins can create user profiles");
+    };
+
+    let accessRole : AccessControl.UserRole = switch (profile.appRole) {
+      case (#Admin) { #admin };
+      case (#Staff) { #user };
+      case (#Karigar) { #user };
+    };
+
+    AccessControl.assignRole(accessControlState, caller, user, accessRole);
+    userProfiles.add(user, profile);
+  };
+
+  // Internal Process Unmapped Orders
   func processUnmappedOrders() {
     let unmappedEntries = unmappedDesignCodesMap.toArray();
 
@@ -432,7 +385,7 @@ actor {
       let normalizedDesignCode = normalizeDesignCode(unmappedOrder.designCode);
       switch (masterDesignsMap.get(normalizedDesignCode)) {
         case (?masterDesign) {
-          let order : OrderModule.Order = {
+          let order : Order = {
             orderNo = unmappedOrder.orderNo;
             orderType = unmappedOrder.orderType;
             designCode = unmappedOrder.designCode;
@@ -453,13 +406,5 @@ actor {
         case null {};
       };
     };
-  };
-
-  public shared ({ caller }) func requestApproval() : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only authenticated users can request approval");
-    };
-
-    UserApproval.setApproval(approvalState, caller, #pending);
   };
 };

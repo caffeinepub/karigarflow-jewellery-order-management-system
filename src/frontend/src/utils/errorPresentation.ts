@@ -1,51 +1,68 @@
-/**
- * Shared helpers for presenting errors to users with friendly messages
- * and optional technical details.
- */
-
-import { classifyBootstrapError, getSafeErrorString, type ErrorClassification } from './bootstrapErrorClassification';
+import { classifyBootstrapError, getSafeErrorString } from './bootstrapErrorClassification';
 
 export interface ErrorPresentation {
   friendlyMessage: string;
   rawErrorString: string;
-  classification: ErrorClassification;
+  isStoppedCanister: boolean;
+  isNetworkError: boolean;
 }
 
 /**
- * Converts any error into a user-friendly presentation with hidden technical details.
+ * Present an error to the user with a friendly message and optional technical details.
+ * Reuses bootstrap error classification for stopped-canister and network error detection.
  */
 export function presentError(error: unknown): ErrorPresentation {
-  const classification = classifyBootstrapError(error);
   const rawErrorString = getSafeErrorString(error);
+  const classification = classifyBootstrapError(error);
 
-  let friendlyMessage: string;
+  let friendlyMessage = 'An unexpected error occurred. Please try again.';
 
-  if (classification.isStoppedCanister && classification.userMessage) {
-    friendlyMessage = classification.userMessage;
+  if (classification.isStoppedCanister) {
+    friendlyMessage = classification.userMessage || 'The backend service is currently stopped.';
   } else if (classification.isNetworkError) {
-    friendlyMessage = 'Unable to reach the backend service. Please check your internet connection and try again.';
+    friendlyMessage = 'Network error. Please check your connection and try again.';
   } else {
-    // Generic fallback for other errors
-    friendlyMessage = 'An unexpected error occurred. Please try again or contact support if the problem persists.';
+    // Try to extract user-friendly messages from backend errors
+    const lowerError = rawErrorString.toLowerCase();
+    
+    if (lowerError.includes('unauthorized')) {
+      friendlyMessage = 'You do not have permission to perform this action.';
+    } else if (lowerError.includes('not found')) {
+      friendlyMessage = 'The requested resource was not found.';
+    } else if (lowerError.includes('invalid')) {
+      friendlyMessage = 'Invalid data provided. Please check your input.';
+    } else if (lowerError.includes('duplicate')) {
+      friendlyMessage = 'This item already exists.';
+    } else if (lowerError.includes('actor not available')) {
+      friendlyMessage = 'Backend connection not ready. Please wait a moment and try again.';
+    } else if (rawErrorString.includes('batch') && rawErrorString.includes('failed')) {
+      // Extract batch-specific error messages
+      friendlyMessage = rawErrorString;
+    } else {
+      // Use the raw error if it looks like a user-facing message (not too technical)
+      const isTechnical = rawErrorString.includes('IC0') || 
+                          rawErrorString.includes('canister') ||
+                          rawErrorString.includes('agent') ||
+                          rawErrorString.length > 200;
+      
+      if (!isTechnical && rawErrorString.length > 0) {
+        friendlyMessage = rawErrorString;
+      }
+    }
   }
 
   return {
     friendlyMessage,
     rawErrorString,
-    classification,
+    isStoppedCanister: classification.isStoppedCanister,
+    isNetworkError: classification.isNetworkError,
   };
 }
 
 /**
- * Returns a friendly message for stopped-canister errors, or null for other errors.
- * Use this when you want to preserve existing page-specific error messages for non-stopped errors.
+ * Get a user-friendly message for stopped canister errors, or null if not a stopped canister error.
  */
 export function getStoppedCanisterMessage(error: unknown): string | null {
   const classification = classifyBootstrapError(error);
-  
-  if (classification.isStoppedCanister && classification.userMessage) {
-    return classification.userMessage;
-  }
-  
-  return null;
+  return classification.isStoppedCanister ? (classification.userMessage || null) : null;
 }
