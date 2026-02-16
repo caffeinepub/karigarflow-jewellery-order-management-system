@@ -1,21 +1,28 @@
-import type { Order } from '../../backend';
+import type { PersistentOrder } from '../../backend';
 import { formatKarigarName } from './formatKarigarName';
+
+export interface KarigarStats {
+  count: number;
+  totalWeight: number;
+  totalQty: number;
+  customerOrdersCount: number;
+}
 
 export interface OrderMetrics {
   totalOrders: number;
   totalWeight: number;
   totalQty: number;
-  coOrders: number;
-  karigarWise: Record<string, { qty: number; weight: number }>;
+  customerOrdersCount: number;
+  byKarigar: Record<string, KarigarStats>;
 }
 
-export function deriveMetrics(orders: Order[]): OrderMetrics {
+export function deriveMetrics(orders: PersistentOrder[]): OrderMetrics {
   const metrics: OrderMetrics = {
     totalOrders: orders.length,
     totalWeight: 0,
     totalQty: 0,
-    coOrders: 0,
-    karigarWise: {},
+    customerOrdersCount: 0,
+    byKarigar: {},
   };
 
   orders.forEach((order) => {
@@ -23,18 +30,28 @@ export function deriveMetrics(orders: Order[]): OrderMetrics {
     metrics.totalQty += Number(order.qty);
     
     if (order.isCustomerOrder) {
-      metrics.coOrders++;
+      metrics.customerOrdersCount++;
     }
 
     // Use shared formatter to ensure consistent display
     const displayKarigar = formatKarigarName(order.karigarName);
 
-    if (!metrics.karigarWise[displayKarigar]) {
-      metrics.karigarWise[displayKarigar] = { qty: 0, weight: 0 };
+    if (!metrics.byKarigar[displayKarigar]) {
+      metrics.byKarigar[displayKarigar] = { 
+        count: 0, 
+        totalWeight: 0, 
+        totalQty: 0,
+        customerOrdersCount: 0,
+      };
     }
     
-    metrics.karigarWise[displayKarigar].qty += Number(order.qty);
-    metrics.karigarWise[displayKarigar].weight += order.weight;
+    metrics.byKarigar[displayKarigar].count++;
+    metrics.byKarigar[displayKarigar].totalQty += Number(order.qty);
+    metrics.byKarigar[displayKarigar].totalWeight += order.weight;
+    
+    if (order.isCustomerOrder) {
+      metrics.byKarigar[displayKarigar].customerOrdersCount++;
+    }
   });
 
   return metrics;

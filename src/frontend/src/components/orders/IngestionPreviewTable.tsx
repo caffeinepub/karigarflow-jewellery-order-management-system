@@ -1,94 +1,73 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, CheckCircle } from 'lucide-react';
-import type { Order } from '../../backend';
-import { normalizeDesignCode } from '../../lib/mapping/normalizeDesignCode';
-import { formatKarigarName } from '../../lib/orders/formatKarigarName';
+import { Check } from 'lucide-react';
+import { formatKarigarName } from '@/lib/orders/formatKarigarName';
+import type { PersistentOrder } from '../../backend';
 
 interface IngestionPreviewTableProps {
-  orders: Order[];
+  orders: PersistentOrder[];
   unmappedCodes: string[];
 }
 
 export function IngestionPreviewTable({ orders, unmappedCodes }: IngestionPreviewTableProps) {
-  // Normalize unmapped codes for comparison
-  const normalizedUnmappedCodes = new Set(unmappedCodes.map(code => normalizeDesignCode(code)));
+  const unmappedSet = new Set(unmappedCodes);
 
   return (
-    <div className="rounded-md border overflow-x-auto">
+    <ScrollArea className="h-[500px] rounded-md border">
       <Table>
-        <TableHeader>
+        <TableHeader className="sticky top-0 bg-background z-10">
           <TableRow>
-            <TableHead>Order No</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Design</TableHead>
-            <TableHead>Generic</TableHead>
-            <TableHead>Karigar</TableHead>
-            <TableHead className="text-right">Weight</TableHead>
-            <TableHead className="text-right">Size</TableHead>
-            <TableHead className="text-right">Qty</TableHead>
-            <TableHead>Status</TableHead>
+            <TableHead className="w-[180px]">Order No</TableHead>
+            <TableHead className="w-[80px]">Type</TableHead>
+            <TableHead className="w-[120px]">Design</TableHead>
+            <TableHead className="w-[150px]">Generic</TableHead>
+            <TableHead className="w-[150px]">Karigar</TableHead>
+            <TableHead className="w-[100px] text-right">Weight</TableHead>
+            <TableHead className="w-[100px] text-right">Size</TableHead>
+            <TableHead className="w-[80px] text-right">Qty</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {orders.map((order, idx) => {
-            // Check if this order's design code is unmapped using normalized comparison
-            const normalizedOrderCode = normalizeDesignCode(order.designCode);
-            const isUnmapped = normalizedUnmappedCodes.has(normalizedOrderCode);
-            const hasKarigarName = order.karigarName && order.karigarName.trim() !== '';
+            const isUnmapped = unmappedSet.has(order.designCode);
+            const hasPdfKarigar = order.karigarName && order.karigarName.trim() !== '' && order.karigarName.trim().toLowerCase() !== 'unassigned';
             
             return (
-              <TableRow
-                key={idx}
-                className={order.isCustomerOrder ? 'bg-yellow-50 dark:bg-yellow-950/20' : ''}
-              >
-                <TableCell className="font-medium">{order.orderNo}</TableCell>
+              <TableRow key={`${order.orderNo}-${idx}`} className={isUnmapped ? 'bg-yellow-50 dark:bg-yellow-950/20' : ''}>
+                <TableCell className="font-mono text-xs">{order.orderNo}</TableCell>
                 <TableCell>
-                  <div className="flex items-center gap-2">
+                  <Badge variant={order.isCustomerOrder ? 'default' : 'secondary'} className="text-xs">
                     {order.orderType}
-                    {order.isCustomerOrder && (
-                      <Badge variant="outline" className="text-xs bg-yellow-100 dark:bg-yellow-900">
-                        CO
-                      </Badge>
-                    )}
-                  </div>
+                  </Badge>
                 </TableCell>
-                <TableCell className="font-mono text-sm">{order.designCode}</TableCell>
-                <TableCell>
-                  {isUnmapped ? (
-                    <div className="flex items-center gap-1 text-orange-600">
-                      <AlertCircle className="h-3 w-3" />
-                      <span className="text-xs">Unmapped</span>
-                    </div>
-                  ) : (
-                    order.genericName || '-'
+                <TableCell className="font-mono text-xs">
+                  {order.designCode}
+                  {isUnmapped && (
+                    <Badge variant="outline" className="ml-2 text-xs text-yellow-600">
+                      Unmapped
+                    </Badge>
                   )}
                 </TableCell>
-                <TableCell>
+                <TableCell className="text-sm">
+                  {order.genericName || '-'}
+                </TableCell>
+                <TableCell className="text-sm">
                   <div className="flex items-center gap-2">
-                    {hasKarigarName ? (
-                      <>
-                        <CheckCircle className="h-3 w-3 text-green-600 flex-shrink-0" />
-                        <span>{order.karigarName}</span>
-                      </>
-                    ) : (
-                      <span className="text-muted-foreground italic">
-                        {formatKarigarName(order.karigarName)}
-                      </span>
+                    {hasPdfKarigar && (
+                      <Check className="h-3 w-3 text-green-600 flex-shrink-0" aria-label="Assigned from PDF" />
                     )}
+                    <span>{formatKarigarName(order.karigarName)}</span>
                   </div>
                 </TableCell>
-                <TableCell className="text-right">{order.weight.toFixed(2)}</TableCell>
-                <TableCell className="text-right">{order.size.toFixed(2)}</TableCell>
-                <TableCell className="text-right">{Number(order.qty)}</TableCell>
-                <TableCell>
-                  <Badge variant="outline">{order.status}</Badge>
-                </TableCell>
+                <TableCell className="text-right font-mono text-xs">{order.weight.toFixed(2)}</TableCell>
+                <TableCell className="text-right font-mono text-xs">{order.size.toFixed(2)}</TableCell>
+                <TableCell className="text-right font-mono text-xs">{order.qty}</TableCell>
               </TableRow>
             );
           })}
         </TableBody>
       </Table>
-    </div>
+    </ScrollArea>
   );
 }

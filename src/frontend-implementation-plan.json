@@ -1,93 +1,31 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Fix infinite bootstrap loading by making admin-check and role resolution fetch-safe",
+  "title": "Refresh and reflect hallmark bulk updates in Admin/Staff dashboards",
   "requirements": [
     {
-      "id": "REQ-1",
-      "summary": "Ensure bootstrap completes by making the admin-check resolve (isFetched true) or fail into BootstrapErrorScreen instead of hanging on loading.",
+      "id": "REQ-3",
+      "summary": "Ensure Admin and Staff dashboards correctly apply bulk hallmark status updates, refresh orders, and reflect moved orders across Total Orders and Hallmark tabs with proper error handling.",
       "acceptanceCriteria": [
-        "After login, the app consistently navigates to the correct dashboard route (e.g., /admin, /staff, /karigar) instead of remaining on a loading spinner indefinitely.",
-        "The role-resolution logic in the index route (\"Loading...\" state) completes and triggers navigation without requiring a hard refresh.",
-        "If admin-check cannot be performed due to actor creation/initialization issues, the UI shows a clear error state (existing BootstrapErrorScreen) rather than infinite loading."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/App.tsx",
-          "operation": "modify",
-          "description": "Update Layout + IndexPage bootstrap gating so loading screens depend on real in-flight requests (actor/profile/admin-check), and ensure the admin-check/role-resolution path deterministically transitions to either routing or the existing BootstrapErrorScreen (never infinite loading)."
-        },
-        {
-          "path": "frontend/src/hooks/useEffectiveAppRole.ts",
-          "operation": "modify",
-          "description": "Harden role resolution so it becomes 'resolved' when bootstrap-critical dependencies have either fetched or deterministically concluded (e.g., admin-check returns a safe default after actor readiness), preventing IndexPage from waiting forever. Verify the authorization component’s frontend guidance before implementing."
-        }
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "summary": "Switch admin-check and bootstrap-critical queries from the initialization-blocking actor hook to useSafeActor so missing/empty admin token does not block app load.",
-      "acceptanceCriteria": [
-        "With no caffeine admin token present, the app still completes bootstrap and shows either the correct dashboard (if a profile exists) or the existing NoProfileBlockedScreen/ProfileSetupModal flows (as applicable).",
-        "useIsCallerAdmin reaches an isFetched=true state during normal bootstrap for authenticated users (no indefinite unresolved state).",
-        "Any failures during admin-check are surfaced via existing error-handling UI (BootstrapErrorScreen) with a working Retry action."
+        "After successfully marking selected orders as hallmark, the UI no longer shows those orders in the \"Total Orders\" tab/list (because Total Orders excludes status \"given_to_hallmark\").",
+        "After successfully marking selected orders as hallmark, the orders appear in the \"Hallmark\" tab/list.",
+        "If the bulk update fails, the UI shows an error message (toast) and does not clear the selection."
       ],
       "file_operations": [
         {
           "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Refactor useIsCallerAdmin to use the non-blocking useSafeActor path (instead of useActor) and return a bootstrap-safe state shape (including an isFetched that cannot remain false solely due to a disabled query). Ensure failures are surfaced via thrown errors (so Layout can show BootstrapErrorScreen) rather than silent unresolved state. Verify the authorization component’s frontend guidance before implementing."
+          "description": "Fix useBulkUpdateOrderStatus to call the backend bulk update capability using the correct argument shape (BulkOrderUpdate object) and keep the existing post-mutation orders query invalidation/refetch so dashboards refresh and reflect status changes."
         },
         {
-          "path": "frontend/src/App.tsx",
+          "path": "frontend/src/pages/admin/AdminDashboardPage.tsx",
           "operation": "modify",
-          "description": "Align Layout’s bootstrap retry order and readiness checks with the new safe admin-check behavior (refetch actor → refetch profile → refetch admin-check), ensuring missing admin token does not prevent progressing past bootstrap."
-        }
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "summary": "Prevent router/layout/RoleGate loading guards from showing infinite spinners when queries are disabled; fall back to actionable error or safe default.",
-      "acceptanceCriteria": [
-        "The app does not display a loading spinner indefinitely due solely to a query never running (disabled) or never reaching isFetched.",
-        "When bootstrap cannot proceed, the app shows an actionable error screen with English user-facing text and a Retry button that attempts to refetch the actor/profile/admin-check in the correct order."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/components/auth/RoleGate.tsx",
-          "operation": "modify",
-          "description": "Update RoleGate loading logic to only show a spinner when role resolution has an active in-flight request; if role resolution is not progressing (e.g., missing actor after readiness), render a controlled fallback (AccessDeniedScreen or a minimal inline error) rather than an indefinite loader. Verify the authorization component’s frontend guidance before implementing."
+          "description": "Update the Admin \"Mark as Hallmark\" action flow to rely on the corrected bulk update hook so that on success orders refresh and naturally move from the Total Orders list (status != given_to_hallmark) into the Hallmark tab; ensure failure shows a toast and keeps the current selection intact."
         },
         {
-          "path": "frontend/src/hooks/useEffectiveAppRole.ts",
+          "path": "frontend/src/pages/staff/StaffDashboardPage.tsx",
           "operation": "modify",
-          "description": "Expose a clearer 'isResolved' vs 'isLoading' contract that distinguishes 'no request in flight' from 'still fetching', so RoleGate and IndexPage can avoid perpetual loading when a query is disabled."
-        },
-        {
-          "path": "frontend/src/App.tsx",
-          "operation": "modify",
-          "description": "Adjust Layout’s bootstrapping condition to show loading only when at least one of actor/profile/admin-check is actively fetching, and otherwise surface BootstrapErrorScreen when bootstrap cannot proceed."
-        }
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "summary": "Update service worker navigation caching to prefer network and bump cache version to reduce stale app-shell causing stuck loading.",
-      "acceptanceCriteria": [
-        "After deploying the fix, a previously affected client with an existing service worker can hard-reload and successfully load the app (no infinite loading).",
-        "Navigation requests (e.g., opening /admin directly) do not get stuck serving an incompatible cached app shell; the app loads the latest version when online.",
-        "Offline behavior remains functional (cached assets still available when the network is unavailable)."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/public/service-worker.js",
-          "operation": "modify",
-          "description": "Bump CACHE_NAME (e.g., v1 → v2) and change fetch handling for navigation/app-shell requests to network-first with cache fallback only when offline; keep asset caching behavior for offline support and ensure activate cleans up old caches."
-        },
-        {
-          "path": "frontend/src/pwa/registerServiceWorker.ts",
-          "operation": "modify",
-          "description": "Optionally add lightweight logging/handling for updated service worker activation (without new UI) to help confirm clients pick up the new cache version and app bundle after deployment."
+          "description": "Update the Staff \"Mark as Hallmark\" action flow to rely on the corrected bulk update hook so that on success orders refresh and move from Total Orders into Hallmark; ensure failure shows a toast and keeps the current selection intact."
         }
       ]
     }

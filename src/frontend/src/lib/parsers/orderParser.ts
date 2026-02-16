@@ -1,46 +1,41 @@
-import type { Order } from '../../backend';
-import { parseOrdersFromWorkbook } from './excel/parseOrdersFromWorkbook';
-import { readWorkbookFromFile } from './excel/readWorkbookFromFile';
+import type { PersistentOrder } from '../../backend';
 import { extractTextFromPDF } from './pdf/extractText';
 import { parseOrdersFromPdfText } from './pdf/parseOrdersFromPdfText';
+import { parseOrdersFromWorkbook } from './excel/parseOrdersFromWorkbook';
+import { readWorkbookFromFile } from './excel/readWorkbookFromFile';
 
-export async function parseOrderFile(file: File, uploadDate: Date): Promise<Order[]> {
-  const fileType = file.name.toLowerCase();
-  
-  if (fileType.endsWith('.pdf')) {
-    return parsePDFOrders(file, uploadDate);
-  } else if (fileType.endsWith('.xlsx') || fileType.endsWith('.xls')) {
-    return parseExcelOrders(file, uploadDate);
-  } else {
-    throw new Error('Unsupported file type. Please upload a PDF or Excel file.');
-  }
-}
+/**
+ * Main order file parser that routes to Excel or PDF parsers with proper error handling
+ * and user-friendly messages for both file types.
+ */
+export async function parseOrderFile(file: File, uploadDate: Date): Promise<PersistentOrder[]> {
+  const fileName = file.name.toLowerCase();
 
-async function parsePDFOrders(file: File, uploadDate: Date): Promise<Order[]> {
   try {
-    const pageTexts = await extractTextFromPDF(file);
-    return parseOrdersFromPdfText(pageTexts, uploadDate);
-  } catch (error: any) {
-    console.error('PDF parsing error:', error);
-    throw new Error(
-      error.message || 
-      'Failed to parse PDF file. Please ensure the PDF contains order data in a readable format, or use an Excel file (.xlsx) for more reliable parsing.'
-    );
-  }
-}
-
-async function parseExcelOrders(file: File, uploadDate: Date): Promise<Order[]> {
-  try {
-    // Read the workbook from the file
-    const workbook = await readWorkbookFromFile(file);
+    if (fileName.endsWith('.pdf')) {
+      // PDF parsing - extractTextFromPDF returns string[][] (pages with lines)
+      // Flatten to single string for parsing
+      const pageTexts = await extractTextFromPDF(file);
+      const text = pageTexts.map(lines => lines.join('\n')).join('\n');
+      return parseOrdersFromPdfText(text, uploadDate);
+    } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+      // Excel parsing
+      const workbook = await readWorkbookFromFile(file);
+      return parseOrdersFromWorkbook(workbook, uploadDate);
+    } else {
+      throw new Error('Unsupported file format. Please upload a PDF or Excel file (.pdf, .xlsx, .xls)');
+    }
+  } catch (error) {
+    console.error('Parse error:', error);
     
-    // Parse orders from the workbook
-    return parseOrdersFromWorkbook(workbook, uploadDate);
-  } catch (error: any) {
-    console.error('Excel parsing error:', error);
-    throw new Error(
-      error.message || 
-      'Failed to parse Excel file. Please ensure the file is a valid Excel workbook with proper column headers.'
-    );
+    // Provide user-friendly error messages
+    if (error instanceof Error) {
+      if (error.message.includes('Failed to load')) {
+        throw new Error(`Failed to load ${fileName.endsWith('.pdf') ? 'PDF' : 'Excel'} file. The file may be corrupted or in an unsupported format.`);
+      }
+      throw error;
+    }
+    
+    throw new Error(`Failed to parse ${file.name}. Please check the file format and try again.`);
   }
 }

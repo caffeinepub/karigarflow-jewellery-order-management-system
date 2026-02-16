@@ -1,148 +1,108 @@
-import type { Order } from '../../../backend';
-import { isCustomerOrder } from '../../orders/isCustomerOrder';
+import type { PersistentOrder } from '../../../backend';
 
 /**
- * Gets the XLSX library from the global window object.
- * This assumes the library has been loaded via readWorkbookFromFile.
+ * Parse orders from a SheetJS workbook with flexible column name matching,
+ * numeric field validation, customer order detection, and detailed row-level error messages.
  */
-function getXLSX(): any {
-  if (typeof (window as any).XLSX === 'undefined') {
-    throw new Error('Excel parsing library not loaded');
-  }
-  return (window as any).XLSX;
-}
-
-/**
- * Parses orders from a SheetJS workbook object.
- * Expected columns: Order No, Order Type, Design Code, Weight, Size, Qty, Remarks
- * @param workbook - SheetJS workbook object
- * @param uploadDate - The upload date to assign to all orders
- * @returns Array of parsed Order objects
- */
-export function parseOrdersFromWorkbook(workbook: any, uploadDate: Date): Order[] {
-  const XLSX = getXLSX();
-
-  // Get the first sheet
+export function parseOrdersFromWorkbook(workbook: any, uploadDate: Date): PersistentOrder[] {
   const sheetName = workbook.SheetNames[0];
-  const worksheet = workbook.Sheets[sheetName];
-  
-  // Convert sheet to JSON with header row
-  const rawData: any[] = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
-  
+  const sheet = workbook.Sheets[sheetName];
+  const rawData: any[] = (window as any).XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
   if (rawData.length === 0) {
-    throw new Error('The Excel sheet is empty. Please upload a file with order data.');
+    throw new Error('Excel file is empty');
   }
-  
-  // Normalize header names (case-insensitive, trim spaces)
-  const normalizeKey = (key: string): string => key.toLowerCase().trim().replace(/\s+/g, '_');
-  
-  // Get the first row to check headers
-  const firstRow = rawData[0];
-  const headers = Object.keys(firstRow).map(normalizeKey);
-  
-  // Required columns (with flexible naming)
-  const requiredColumns = {
-    orderNo: ['order_no', 'orderno', 'order_number', 'order'],
-    orderType: ['order_type', 'ordertype', 'type'],
-    designCode: ['design_code', 'designcode', 'design', 'code'],
-    weight: ['weight', 'wt'],
-    size: ['size', 'sz'],
-    qty: ['qty', 'quantity', 'pieces', 'pcs'],
-    remarks: ['remarks', 'remark', 'notes', 'note', 'comments']
-  };
-  
-  // Find matching columns
-  const columnMap: Record<string, string> = {};
-  
-  for (const [field, aliases] of Object.entries(requiredColumns)) {
-    const matchedHeader = Object.keys(firstRow).find(key => 
-      aliases.includes(normalizeKey(key))
-    );
-    
-    if (!matchedHeader) {
-      const aliasesStr = aliases.join(', ');
-      throw new Error(
-        `Missing required column: ${field}. Expected one of: ${aliasesStr}. ` +
-        `Found columns: ${Object.keys(firstRow).join(', ')}`
-      );
+
+  const orders: PersistentOrder[] = [];
+  const errors: string[] = [];
+
+  // Flexible column name matching
+  const findColumn = (row: any, possibleNames: string[]): string | undefined => {
+    for (const name of possibleNames) {
+      if (row[name] !== undefined) return name;
     }
-    
-    columnMap[field] = matchedHeader;
-  }
-  
-  // Parse rows into Order objects
-  const orders: Order[] = [];
-  const uploadTimestamp = BigInt(uploadDate.getTime());
-  const createdTimestamp = BigInt(Date.now());
-  
-  for (let i = 0; i < rawData.length; i++) {
-    const row = rawData[i];
-    
+    return undefined;
+  };
+
+  rawData.forEach((row, index) => {
     try {
-      // Extract values using the column map
-      const orderNo = String(row[columnMap.orderNo] || '').trim();
-      const orderType = String(row[columnMap.orderType] || '').trim();
-      const designCode = String(row[columnMap.designCode] || '').trim();
-      const remarks = String(row[columnMap.remarks] || '').trim();
-      
-      // Skip completely empty rows
-      if (!orderNo && !orderType && !designCode) {
-        continue;
+      const orderNoCol = findColumn(row, ['Order No', 'OrderNo', 'Order_No', 'order_no', 'Order Number']);
+      const orderTypeCol = findColumn(row, ['Order Type', 'OrderType', 'Type', 'order_type']);
+      const designCodeCol = findColumn(row, ['Design Code', 'DesignCode', 'Design', 'design_code', 'Code']);
+      const genericNameCol = findColumn(row, ['Generic Name', 'GenericName', 'Generic', 'generic_name']);
+      const karigarNameCol = findColumn(row, ['Karigar Name', 'KarigarName', 'Karigar', 'karigar_name', 'Artisan']);
+      const weightCol = findColumn(row, ['Weight', 'weight', 'Wt', 'wt']);
+      const sizeCol = findColumn(row, ['Size', 'size']);
+      const qtyCol = findColumn(row, ['Qty', 'qty', 'Quantity', 'quantity']);
+      const remarksCol = findColumn(row, ['Remarks', 'remarks', 'Notes', 'notes', 'Comment']);
+
+      if (!orderNoCol || !orderTypeCol || !designCodeCol) {
+        errors.push(`Row ${index + 2}: Missing required columns (Order No, Order Type, or Design Code)`);
+        return;
       }
-      
-      // Validate required fields
-      if (!orderNo) {
-        throw new Error(`Row ${i + 2}: Order No is required`);
+
+      const orderNo = String(row[orderNoCol] || '').trim();
+      const orderType = String(row[orderTypeCol] || '').trim();
+      const designCode = String(row[designCodeCol] || '').trim();
+      const genericName = genericNameCol ? String(row[genericNameCol] || '').trim() : '';
+      const karigarName = karigarNameCol ? String(row[karigarNameCol] || '').trim() : '';
+      const remarks = remarksCol ? String(row[remarksCol] || '').trim() : '';
+
+      if (!orderNo || !orderType || !designCode) {
+        errors.push(`Row ${index + 2}: Empty required fields`);
+        return;
       }
-      if (!orderType) {
-        throw new Error(`Row ${i + 2}: Order Type is required`);
+
+      // Parse numeric fields with validation
+      const weight = weightCol ? parseFloat(String(row[weightCol])) : 0;
+      const size = sizeCol ? parseFloat(String(row[sizeCol])) : 0;
+      const qty = qtyCol ? parseInt(String(row[qtyCol]), 10) : 1;
+
+      if (isNaN(weight) || weight < 0) {
+        errors.push(`Row ${index + 2}: Invalid weight value`);
+        return;
       }
-      if (!designCode) {
-        throw new Error(`Row ${i + 2}: Design Code is required`);
-      }
-      
-      // Parse numeric fields
-      const weight = parseFloat(String(row[columnMap.weight] || '0'));
-      const size = parseFloat(String(row[columnMap.size] || '0'));
-      const qty = parseInt(String(row[columnMap.qty] || '0'), 10);
-      
-      if (isNaN(weight)) {
-        throw new Error(`Row ${i + 2}: Invalid weight value`);
-      }
-      if (isNaN(size)) {
-        throw new Error(`Row ${i + 2}: Invalid size value`);
+      if (isNaN(size) || size < 0) {
+        errors.push(`Row ${index + 2}: Invalid size value`);
+        return;
       }
       if (isNaN(qty) || qty <= 0) {
-        throw new Error(`Row ${i + 2}: Quantity must be a positive number`);
+        errors.push(`Row ${index + 2}: Invalid quantity value`);
+        return;
       }
-      
-      // Create order object
-      const order: Order = {
+
+      // Detect customer orders
+      const isCustomerOrder = orderType.toUpperCase().includes('CO');
+
+      const uploadTimestamp = BigInt(uploadDate.getTime()) * 1_000_000n;
+
+      orders.push({
         orderNo,
         orderType,
         designCode,
-        genericName: '', // Will be filled by backend mapping
-        karigarName: '', // Will be filled by backend mapping
+        genericName,
+        karigarName,
         weight,
         size,
         qty: BigInt(qty),
         remarks,
         status: 'pending',
-        isCustomerOrder: isCustomerOrder(orderType),
+        isCustomerOrder,
         uploadDate: uploadTimestamp,
-        createdAt: createdTimestamp
-      };
-      
-      orders.push(order);
-    } catch (error: any) {
-      // Re-throw with row context
-      throw new Error(error.message || `Row ${i + 2}: Failed to parse order data`);
+        createdAt: uploadTimestamp,
+      });
+    } catch (error) {
+      errors.push(`Row ${index + 2}: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
+  });
+
+  if (errors.length > 0) {
+    throw new Error(`Failed to parse ${errors.length} row(s):\n${errors.slice(0, 5).join('\n')}${errors.length > 5 ? `\n... and ${errors.length - 5} more` : ''}`);
   }
-  
+
   if (orders.length === 0) {
-    throw new Error('No valid orders found in the Excel file. Please check the data and try again.');
+    throw new Error('No valid orders found in Excel file');
   }
-  
+
   return orders;
 }

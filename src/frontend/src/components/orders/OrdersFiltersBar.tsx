@@ -6,11 +6,11 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { CalendarIcon, X } from 'lucide-react';
 import { format } from 'date-fns';
-import type { Order } from '../../backend';
+import type { PersistentOrder } from '../../backend';
 import { formatKarigarName } from '../../lib/orders/formatKarigarName';
 
 interface OrdersFiltersBarProps {
-  orders: Order[];
+  orders: PersistentOrder[];
   filters: {
     karigar: string;
     dateFrom: Date | null;
@@ -22,11 +22,16 @@ interface OrdersFiltersBarProps {
 }
 
 const ALL_KARIGARS_SENTINEL = '__all_karigars__';
+const ALL_STATUS_SENTINEL = '__all_status__';
 
 export function OrdersFiltersBar({ orders, filters, onFiltersChange }: OrdersFiltersBarProps) {
   // Use shared formatter to get unique karigar names - this ensures dropdown values match filter comparison
   const uniqueKarigars = Array.from(
     new Set(orders.map((o) => formatKarigarName(o.karigarName)))
+  ).sort();
+
+  const uniqueStatuses = Array.from(
+    new Set(orders.map((o) => o.status))
   ).sort();
 
   const hasActiveFilters = filters.karigar || filters.dateFrom || filters.dateTo || filters.coOnly || filters.status;
@@ -42,7 +47,8 @@ export function OrdersFiltersBar({ orders, filters, onFiltersChange }: OrdersFil
   };
 
   // Convert internal filter state to Select value
-  const selectValue = filters.karigar === '' ? ALL_KARIGARS_SENTINEL : filters.karigar;
+  const selectKarigarValue = filters.karigar === '' ? ALL_KARIGARS_SENTINEL : filters.karigar;
+  const selectStatusValue = filters.status === '' ? ALL_STATUS_SENTINEL : filters.status;
 
   // Convert Select value to internal filter state
   const handleKarigarChange = (value: string) => {
@@ -50,10 +56,15 @@ export function OrdersFiltersBar({ orders, filters, onFiltersChange }: OrdersFil
     onFiltersChange({ ...filters, karigar: internalValue });
   };
 
+  const handleStatusChange = (value: string) => {
+    const internalValue = value === ALL_STATUS_SENTINEL ? '' : value;
+    onFiltersChange({ ...filters, status: internalValue });
+  };
+
   return (
     <div className="flex flex-wrap gap-4 items-center mt-4">
       <div className="flex-1 min-w-[200px]">
-        <Select value={selectValue} onValueChange={handleKarigarChange}>
+        <Select value={selectKarigarValue} onValueChange={handleKarigarChange}>
           <SelectTrigger>
             <SelectValue placeholder="All Karigars" />
           </SelectTrigger>
@@ -62,6 +73,22 @@ export function OrdersFiltersBar({ orders, filters, onFiltersChange }: OrdersFil
             {uniqueKarigars.map((karigar) => (
               <SelectItem key={karigar} value={karigar}>
                 {karigar}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="flex-1 min-w-[200px]">
+        <Select value={selectStatusValue} onValueChange={handleStatusChange}>
+          <SelectTrigger>
+            <SelectValue placeholder="All Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL_STATUS_SENTINEL}>All Status</SelectItem>
+            {uniqueStatuses.map((status) => (
+              <SelectItem key={status} value={status}>
+                {status}
               </SelectItem>
             ))}
           </SelectContent>

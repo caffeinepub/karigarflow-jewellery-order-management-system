@@ -5,16 +5,20 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useCreateUserProfile } from '../../hooks/useQueries';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useCreateUserProfile, useListUserProfiles } from '../../hooks/useQueries';
 import { AppRole, type UserProfile } from '../../backend';
 import { Principal } from '@dfinity/principal';
 import { toast } from 'sonner';
-import { UserPlus, CheckCircle, AlertCircle, Copy, Check } from 'lucide-react';
+import { UserPlus, CheckCircle, AlertCircle, Copy, Check, Users } from 'lucide-react';
 import { useCopyToClipboard } from '@/hooks/useCopyToClipboard';
 import { getStoppedCanisterMessage, presentError } from '@/utils/errorPresentation';
 
 export function UserManagementPage() {
   const createUserMutation = useCreateUserProfile();
+  const { data: userProfiles = [], isLoading: profilesLoading } = useListUserProfiles();
   const { copyStatus, copyToClipboard, getButtonLabel } = useCopyToClipboard();
   const [principalId, setPrincipalId] = useState('');
   const [name, setName] = useState('');
@@ -64,29 +68,38 @@ export function UserManagementPage() {
     } catch (error: any) {
       console.error('Failed to create user profile:', error);
       
-      // Check if this is a stopped-canister error
       const stoppedMessage = getStoppedCanisterMessage(error);
       if (stoppedMessage) {
-        const presentation = presentError(error);
+        const errorDetails = presentError(error);
         toast.error(stoppedMessage, {
-          description: 'Copy error details for diagnostics',
-          action: {
-            label: getButtonLabel(),
-            onClick: () => copyToClipboard(presentation.rawErrorString),
-          },
+          description: errorDetails.friendlyMessage,
+          action: errorDetails.rawErrorString ? {
+            label: <Copy className="h-4 w-4" />,
+            onClick: () => {
+              navigator.clipboard.writeText(errorDetails.rawErrorString || '');
+              toast.success('Error details copied to clipboard');
+            },
+          } : undefined,
         });
       } else {
-        toast.error(error.message || 'Failed to create user profile. Please try again.');
+        toast.error('Failed to create user profile', {
+          description: error.message || 'An unknown error occurred',
+        });
       }
     }
   };
 
-  const handleReset = () => {
-    setPrincipalId('');
-    setName('');
-    setAppRole(AppRole.Staff);
-    setKarigarName('');
-    setValidationError(null);
+  const getRoleBadgeVariant = (role: AppRole) => {
+    switch (role) {
+      case AppRole.Admin:
+        return 'destructive';
+      case AppRole.Staff:
+        return 'default';
+      case AppRole.Karigar:
+        return 'secondary';
+      default:
+        return 'outline';
+    }
   };
 
   return (
@@ -100,76 +113,11 @@ export function UserManagementPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <UserPlus className="h-5 w-5" />
-            Create User Profile
+            Create New User
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Alert className="mb-6">
-            <AlertDescription>
-              When a new user logs in for the first time, they will see a blocked screen with their Principal ID. 
-              They should share that ID with you. Use this form to create their profile and assign their role.
-            </AlertDescription>
-          </Alert>
-
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="principalId">User Principal ID *</Label>
-              <Input
-                id="principalId"
-                value={principalId}
-                onChange={(e) => setPrincipalId(e.target.value)}
-                placeholder="e.g., 2vxsx-fae..."
-                className="font-mono text-sm"
-                required
-              />
-              <p className="text-xs text-muted-foreground">
-                The user will provide this ID from their blocked screen
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="name">User Name *</Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Enter user's full name"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="role">Role *</Label>
-              <Select value={appRole} onValueChange={(value) => setAppRole(value as AppRole)}>
-                <SelectTrigger id="role">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={AppRole.Staff}>Staff</SelectItem>
-                  <SelectItem value={AppRole.Karigar}>Karigar</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                Staff can manage orders and designs. Karigar can only view their assigned orders.
-              </p>
-            </div>
-
-            {appRole === AppRole.Karigar && (
-              <div className="space-y-2">
-                <Label htmlFor="karigarName">Karigar Name *</Label>
-                <Input
-                  id="karigarName"
-                  value={karigarName}
-                  onChange={(e) => setKarigarName(e.target.value)}
-                  placeholder="Enter karigar name (must match master designs)"
-                  required
-                />
-                <p className="text-xs text-muted-foreground">
-                  This name must match the karigar names in your master designs
-                </p>
-              </div>
-            )}
-
             {validationError && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
@@ -177,69 +125,150 @@ export function UserManagementPage() {
               </Alert>
             )}
 
-            {createUserMutation.isSuccess && (
-              <Alert className="border-green-600 bg-green-50 dark:bg-green-950">
-                <CheckCircle className="h-4 w-4 text-green-600" />
-                <AlertDescription className="text-green-600">
-                  User profile created successfully! The user can now refresh their page and access the system.
-                </AlertDescription>
-              </Alert>
+            <div className="space-y-2">
+              <Label htmlFor="principalId">Principal ID</Label>
+              <Input
+                id="principalId"
+                placeholder="Enter user's Principal ID"
+                value={principalId}
+                onChange={(e) => setPrincipalId(e.target.value)}
+                disabled={createUserMutation.isPending}
+              />
+              <p className="text-sm text-muted-foreground">
+                The unique identifier for the user on the Internet Computer
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                placeholder="Enter user's name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                disabled={createUserMutation.isPending}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="role">Role</Label>
+              <Select
+                value={appRole}
+                onValueChange={(value) => setAppRole(value as AppRole)}
+                disabled={createUserMutation.isPending}
+              >
+                <SelectTrigger id="role">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={AppRole.Admin}>Admin</SelectItem>
+                  <SelectItem value={AppRole.Staff}>Staff</SelectItem>
+                  <SelectItem value={AppRole.Karigar}>Karigar</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {appRole === AppRole.Karigar && (
+              <div className="space-y-2">
+                <Label htmlFor="karigarName">Karigar Name</Label>
+                <Input
+                  id="karigarName"
+                  placeholder="Enter karigar name"
+                  value={karigarName}
+                  onChange={(e) => setKarigarName(e.target.value)}
+                  disabled={createUserMutation.isPending}
+                />
+                <p className="text-sm text-muted-foreground">
+                  This name will be used to assign orders to this karigar
+                </p>
+              </div>
             )}
 
-            <div className="flex gap-2">
-              <Button
-                type="submit"
-                disabled={createUserMutation.isPending}
-                className="flex-1"
-              >
-                {createUserMutation.isPending ? (
-                  <>
-                    <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                    Creating...
-                  </>
-                ) : (
-                  <>
-                    <UserPlus className="mr-2 h-4 w-4" />
-                    Create User Profile
-                  </>
-                )}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleReset}
-                disabled={createUserMutation.isPending}
-              >
-                Reset
-              </Button>
-            </div>
+            <Button
+              type="submit"
+              disabled={createUserMutation.isPending}
+              className="w-full"
+            >
+              {createUserMutation.isPending ? (
+                <>Creating User...</>
+              ) : (
+                <>
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Create User Profile
+                </>
+              )}
+            </Button>
           </form>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>How It Works</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Created Users
+          </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="space-y-2">
-            <h3 className="font-medium">For New Users:</h3>
-            <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
-              <li>User logs in with Internet Identity for the first time</li>
-              <li>They see a blocked screen with their Principal ID</li>
-              <li>They copy and share their Principal ID with you (the Admin)</li>
-              <li>You create their profile using this form</li>
-              <li>User refreshes their page and gains access</li>
-            </ol>
-          </div>
-          
-          <div className="space-y-2">
-            <h3 className="font-medium">Role Descriptions:</h3>
-            <ul className="space-y-1 text-sm text-muted-foreground">
-              <li><strong>Staff:</strong> Can upload orders, manage master designs, and view all orders</li>
-              <li><strong>Karigar:</strong> Can only view orders assigned to their karigar name</li>
-            </ul>
-          </div>
+        <CardContent>
+          {profilesLoading ? (
+            <div className="space-y-2">
+              {[...Array(3)].map((_, i) => (
+                <Skeleton key={i} className="h-12 w-full" />
+              ))}
+            </div>
+          ) : userProfiles.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No users created yet</p>
+              <p className="text-xs mt-2">Backend support for user listing may not be available yet</p>
+            </div>
+          ) : (
+            <div className="rounded-md border overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Karigar Name</TableHead>
+                    <TableHead>Principal ID</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {userProfiles.map((userInfo) => (
+                    <TableRow key={userInfo.principal.toString()}>
+                      <TableCell className="font-medium">{userInfo.profile.name}</TableCell>
+                      <TableCell>
+                        <Badge variant={getRoleBadgeVariant(userInfo.profile.appRole)}>
+                          {userInfo.profile.appRole}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {userInfo.profile.karigarName || '-'}
+                      </TableCell>
+                      <TableCell className="font-mono text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="truncate max-w-[200px]">
+                            {userInfo.principal.toString()}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => copyToClipboard(userInfo.principal.toString())}
+                          >
+                            {copyStatus === 'success' ? (
+                              <Check className="h-3 w-3" />
+                            ) : (
+                              <Copy className="h-3 w-3" />
+                            )}
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

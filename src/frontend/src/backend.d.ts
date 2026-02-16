@@ -12,16 +12,7 @@ export interface UserApprovalInfo {
     principal: Principal;
 }
 export type Time = bigint;
-export interface HealthCheckResponse {
-    status: string;
-    canisterId: string;
-}
-export interface MasterDesignEntry {
-    isActive: boolean;
-    karigarName: string;
-    genericName: string;
-}
-export interface Order {
+export interface PersistentOrder {
     qty: bigint;
     weight: number;
     status: string;
@@ -35,6 +26,19 @@ export interface Order {
     designCode: string;
     uploadDate: Time;
     remarks: string;
+}
+export interface HealthCheckResponse {
+    status: string;
+    canisterId: string;
+}
+export interface BulkOrderUpdate {
+    orderNos: Array<string>;
+    newStatus: string;
+}
+export interface MasterDesignEntry {
+    isActive: boolean;
+    karigarName: string;
+    genericName: string;
 }
 export interface UserProfile {
     appRole: AppRole;
@@ -70,11 +74,12 @@ export enum UserRole {
 }
 export interface backendInterface {
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
+    bulkUpdateOrderStatus(bulkUpdate: BulkOrderUpdate): Promise<void>;
     createUserProfile(user: Principal, profile: UserProfile): Promise<void>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     getMasterDesigns(): Promise<Array<[string, MasterDesignEntry]>>;
-    getOrders(): Promise<Array<Order>>;
+    getOrders(): Promise<Array<PersistentOrder>>;
     getUnmappedDesignCodes(): Promise<Array<UnmappedOrderEntry>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     healthCheck(): Promise<HealthCheckResponse>;
@@ -86,5 +91,5 @@ export interface backendInterface {
     saveMasterDesigns(masterDesigns: Array<[string, MasterDesignEntry]>): Promise<void>;
     setActiveFlagForMasterDesign(designCode: string, isActive: boolean): Promise<void>;
     setApproval(user: Principal, status: ApprovalStatus): Promise<void>;
-    uploadParsedOrders(parsedOrders: Array<Order>): Promise<void>;
+    uploadParsedOrders(parsedOrders: Array<PersistentOrder>): Promise<void>;
 }

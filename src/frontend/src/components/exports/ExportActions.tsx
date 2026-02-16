@@ -4,191 +4,141 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   DropdownMenuSub,
   DropdownMenuSubTrigger,
   DropdownMenuSubContent,
 } from '@/components/ui/dropdown-menu';
-import { Download, FileDown, Image } from 'lucide-react';
+import { Download, FileText, Image } from 'lucide-react';
 import { exportOrders } from '../../lib/exports/ordersExport';
 import { downloadKarigarPDF, downloadKarigarJPEG } from '../../lib/exports/karigarOrdersDownloads';
+import { deriveMetrics } from '../../lib/orders/deriveMetrics';
 import { toast } from 'sonner';
-import type { Order } from '../../backend';
+import type { PersistentOrder } from '../../backend';
+import { format as formatDate } from 'date-fns';
 
 interface ExportActionsProps {
+  filteredOrders: PersistentOrder[];
   selectedDate?: Date;
-  filteredOrders?: Order[];
-  selectedKarigar?: string;
-  fromDate?: Date;
-  toDate?: Date;
 }
 
-export function ExportActions({ selectedDate, filteredOrders, selectedKarigar, fromDate, toDate }: ExportActionsProps) {
+export function ExportActions({ filteredOrders, selectedDate }: ExportActionsProps) {
   const [isExporting, setIsExporting] = useState(false);
 
-  const handleExportAll = async () => {
+  const handleExport = async (type: 'all' | 'co' | 'daily') => {
     setIsExporting(true);
     try {
-      exportOrders(filteredOrders || [], 'all', selectedDate);
-      toast.success('All orders exported successfully');
+      exportOrders(filteredOrders, type, selectedDate);
+      toast.success('Export completed successfully');
     } catch (error) {
-      console.error('Export error:', error);
+      console.error('Export failed:', error);
       toast.error('Failed to export orders');
     } finally {
       setIsExporting(false);
     }
   };
 
-  const handleExportKarigarWise = async () => {
+  const handleKarigarExport = async (karigarName: string, exportFormat: 'pdf' | 'jpeg') => {
     setIsExporting(true);
     try {
-      exportOrders(filteredOrders || [], 'karigar', selectedDate);
-      toast.success('Karigar-wise export completed');
-    } catch (error) {
-      console.error('Export error:', error);
-      toast.error('Failed to export orders');
-    } finally {
-      setIsExporting(false);
-    }
-  };
+      const karigarOrders = filteredOrders.filter(
+        (order) => order.karigarName === karigarName || (order.karigarName.trim() === '' && karigarName === 'Unassigned')
+      );
 
-  const handleExportCOOnly = async () => {
-    setIsExporting(true);
-    try {
-      exportOrders(filteredOrders || [], 'co', selectedDate);
-      toast.success('CO orders exported successfully');
-    } catch (error) {
-      console.error('Export error:', error);
-      toast.error('Failed to export orders');
-    } finally {
-      setIsExporting(false);
-    }
-  };
+      if (karigarOrders.length === 0) {
+        toast.error(`No orders found for ${karigarName}`);
+        return;
+      }
 
-  const handleExportDailySheet = async () => {
-    setIsExporting(true);
-    try {
-      exportOrders(filteredOrders || [], 'daily', selectedDate);
-      toast.success('Daily sheet exported successfully');
-    } catch (error) {
-      console.error('Export error:', error);
-      toast.error('Failed to export orders');
-    } finally {
-      setIsExporting(false);
-    }
-  };
+      const dateLabel = selectedDate ? formatDate(selectedDate, 'MMMM do, yyyy') : undefined;
 
-  const handleKarigarExport = async (karigarName: string, format: 'pdf' | 'jpeg') => {
-    if (!filteredOrders) {
-      toast.error('No orders available for export');
-      return;
-    }
-
-    const karigarOrders = filteredOrders.filter(
-      (order) => order.karigarName === karigarName || (karigarName === 'Unassigned' && !order.karigarName.trim())
-    );
-
-    if (karigarOrders.length === 0) {
-      toast.error(`No orders found for ${karigarName} with current filters`);
-      return;
-    }
-
-    setIsExporting(true);
-    try {
-      if (format === 'pdf') {
+      if (exportFormat === 'pdf') {
         downloadKarigarPDF({
           karigarName,
           orders: karigarOrders,
-          dateLabel: fromDate && toDate 
-            ? `${fromDate.toLocaleDateString()} - ${toDate.toLocaleDateString()}`
-            : fromDate
-            ? `From ${fromDate.toLocaleDateString()}`
-            : toDate
-            ? `Until ${toDate.toLocaleDateString()}`
-            : undefined,
+          selectedDate,
+          dateLabel,
         });
-        toast.success(`Opening print dialog for ${karigarName} orders`);
+        toast.success(`PDF export initiated for ${karigarName}`);
       } else {
         await downloadKarigarJPEG({
           karigarName,
           orders: karigarOrders,
-          dateLabel: fromDate && toDate 
-            ? `${fromDate.toLocaleDateString()} - ${toDate.toLocaleDateString()}`
-            : fromDate
-            ? `From ${fromDate.toLocaleDateString()}`
-            : toDate
-            ? `Until ${toDate.toLocaleDateString()}`
-            : undefined,
+          selectedDate,
+          dateLabel,
         });
-        toast.success(`Downloaded ${karigarName} orders as JPEG`);
+        toast.success(`JPEG downloaded for ${karigarName}`);
       }
     } catch (error) {
-      console.error('Export error:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to export orders');
+      console.error('Karigar export failed:', error);
+      toast.error('Failed to export karigar orders');
     } finally {
       setIsExporting(false);
     }
   };
 
-  // For Staff Dashboard: show per-Karigar exports if we have filtered orders
-  const showKarigarExports = filteredOrders && filteredOrders.length > 0;
-  const karigarList = showKarigarExports 
-    ? Object.keys(
-        filteredOrders.reduce((acc, order) => {
-          const name = order.karigarName || 'Unassigned';
-          acc[name] = true;
-          return acc;
-        }, {} as Record<string, boolean>)
-      ).sort()
-    : [];
+  const metrics = deriveMetrics(filteredOrders);
+  const karigarNames = Object.keys(metrics.byKarigar).sort();
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" disabled={isExporting}>
-          <Download className="mr-2 h-4 w-4" />
+        <Button variant="outline" size="sm" disabled={isExporting || filteredOrders.length === 0}>
+          <Download className="h-4 w-4 mr-2" />
           Export
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel>Export Options</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleExportAll}>
+        <DropdownMenuItem onClick={() => handleExport('all')}>
+          <FileText className="h-4 w-4 mr-2" />
           All Orders (CSV)
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={handleExportKarigarWise}>
-          Karigar-wise (CSV)
+        <DropdownMenuItem onClick={() => handleExport('co')}>
+          <FileText className="h-4 w-4 mr-2" />
+          Customer Orders Only (CSV)
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={handleExportCOOnly}>
-          CO Only (CSV)
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={handleExportDailySheet}>
+        <DropdownMenuItem onClick={() => handleExport('daily')}>
+          <FileText className="h-4 w-4 mr-2" />
           Daily Sheet (CSV)
         </DropdownMenuItem>
-        
-        {showKarigarExports && karigarList.length > 0 && (
+
+        {karigarNames.length > 0 && (
           <>
             <DropdownMenuSeparator />
-            <DropdownMenuLabel>Per-Karigar Exports</DropdownMenuLabel>
-            {karigarList.map((karigarName) => (
-              <DropdownMenuSub key={karigarName}>
-                <DropdownMenuSubTrigger>
-                  {karigarName}
-                </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent>
-                  <DropdownMenuItem onClick={() => handleKarigarExport(karigarName, 'pdf')}>
-                    <FileDown className="mr-2 h-4 w-4" />
-                    PDF (Print)
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                <FileText className="h-4 w-4 mr-2" />
+                Karigar PDF
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent className="max-h-[300px] overflow-y-auto">
+                {karigarNames.map((karigarName) => (
+                  <DropdownMenuItem
+                    key={karigarName}
+                    onClick={() => handleKarigarExport(karigarName, 'pdf')}
+                  >
+                    {karigarName} ({metrics.byKarigar[karigarName].count})
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleKarigarExport(karigarName, 'jpeg')}>
-                    <Image className="mr-2 h-4 w-4" />
-                    JPEG (Download)
+                ))}
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                <Image className="h-4 w-4 mr-2" />
+                Karigar JPEG
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent className="max-h-[300px] overflow-y-auto">
+                {karigarNames.map((karigarName) => (
+                  <DropdownMenuItem
+                    key={karigarName}
+                    onClick={() => handleKarigarExport(karigarName, 'jpeg')}
+                  >
+                    {karigarName} ({metrics.byKarigar[karigarName].count})
                   </DropdownMenuItem>
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
-            ))}
+                ))}
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
           </>
         )}
       </DropdownMenuContent>

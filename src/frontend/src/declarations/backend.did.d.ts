@@ -16,6 +16,10 @@ export type AppRole = { 'Staff' : null } |
 export type ApprovalStatus = { 'pending' : null } |
   { 'approved' : null } |
   { 'rejected' : null };
+export interface BulkOrderUpdate {
+  'orderNos' : Array<string>,
+  'newStatus' : string,
+}
 export interface HealthCheckResponse {
   'status' : string,
   'canisterId' : string,
@@ -25,7 +29,7 @@ export interface MasterDesignEntry {
   'karigarName' : string,
   'genericName' : string,
 }
-export interface Order {
+export interface PersistentOrder {
   'qty' : bigint,
   'weight' : number,
   'status' : string,
@@ -68,11 +72,12 @@ export type UserRole = { 'admin' : null } |
 export interface _SERVICE {
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
+  'bulkUpdateOrderStatus' : ActorMethod<[BulkOrderUpdate], undefined>,
   'createUserProfile' : ActorMethod<[Principal, UserProfile], undefined>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getMasterDesigns' : ActorMethod<[], Array<[string, MasterDesignEntry]>>,
-  'getOrders' : ActorMethod<[], Array<Order>>,
+  'getOrders' : ActorMethod<[], Array<PersistentOrder>>,
   'getUnmappedDesignCodes' : ActorMethod<[], Array<UnmappedOrderEntry>>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'healthCheck' : ActorMethod<[], HealthCheckResponse>,
@@ -87,7 +92,7 @@ export interface _SERVICE {
   >,
   'setActiveFlagForMasterDesign' : ActorMethod<[string, boolean], undefined>,
   'setApproval' : ActorMethod<[Principal, ApprovalStatus], undefined>,
-  'uploadParsedOrders' : ActorMethod<[Array<Order>], undefined>,
+  'uploadParsedOrders' : ActorMethod<[Array<PersistentOrder>], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

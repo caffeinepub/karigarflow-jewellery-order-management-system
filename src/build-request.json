@@ -1,91 +1,86 @@
 {
   "kind": "build_request",
-  "title": "Fix app stuck on loading (bootstrap never resolves)",
+  "title": "Fix hallmark status update and staff portal orders loading",
   "priority": "high",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Fix the bootstrap flow so authenticated users are not stuck on an infinite loading screen. Specifically, ensure the admin-check query resolves (isFetched becomes true) even when access-control initialization is skipped or fails, so routing can proceed past the loading state.",
-      "target": "frontend",
+      "text": "Implement backend support for bulk order status updates so that the Admin/Staff \"Mark as Hallmark\" action can update selected order lines to status \"given_to_hallmark\".",
+      "target": "backend",
       "source": {
         "messageIds": [
-          "msg-6"
+          "msg-1"
         ],
         "quotes": [
-          "The app is failing to load any page. It’s stuck in loading only"
+          "While selecting order line and clicking on *mark as hallmark* , it failed to update order status."
         ]
       },
       "acceptanceCriteria": [
-        "After login, the app consistently navigates to the correct dashboard route (e.g., /admin, /staff, /karigar) instead of remaining on a loading spinner indefinitely.",
-        "The role-resolution logic in the index route (\"Loading...\" state) completes and triggers navigation without requiring a hard refresh.",
-        "If admin-check cannot be performed due to actor creation/initialization issues, the UI shows a clear error state (existing BootstrapErrorScreen) rather than infinite loading."
+        "Backend exposes a shared method for bulk status updates (e.g., bulkUpdateOrderStatus(orderNos, newStatus)).",
+        "Method updates the stored status for each existing orderNo in ordersMap.",
+        "Method enforces authorization: only Admin or Staff callers can update order statuses; unauthorized callers are rejected with a clear error/trap.",
+        "When called with newStatus = \"given_to_hallmark\" and valid orderNos, subsequent getOrders() returns those orders with status \"given_to_hallmark\".",
+        "Frontend call path in frontend/src/hooks/useQueries.ts (useBulkUpdateOrderStatus) succeeds without throwing the \"Backend does not support bulk status updates yet\" error."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Update frontend admin-check and related bootstrap queries to use the non-blocking actor creation path (useSafeActor) rather than the initialization-blocking actor hook, so that missing/empty admin token does not prevent app load. This includes updating useIsCallerAdmin (and any bootstrap-critical queries it depends on) to be enabled and fetchable when an authenticated safe actor is available.",
-      "target": "frontend",
+      "text": "Fix backend authorization/approval logic so Staff users can fetch orders in the staff portal (getOrders) without being blocked by the approval gate immediately after profile creation.",
+      "target": "backend",
       "source": {
         "messageIds": [
-          "msg-6"
+          "msg-1"
         ],
         "quotes": [
-          "The app is failing to load any page. It’s stuck in loading only"
+          "Also on staff portal, order are still not fetched to view and update the status."
         ]
       },
       "acceptanceCriteria": [
-        "With no caffeine admin token present, the app still completes bootstrap and shows either the correct dashboard (if a profile exists) or the existing NoProfileBlockedScreen/ProfileSetupModal flows (as applicable).",
-        "useIsCallerAdmin reaches an isFetched=true state during normal bootstrap for authenticated users (no indefinite unresolved state).",
-        "Any failures during admin-check are surfaced via existing error-handling UI (BootstrapErrorScreen) with a working Retry action."
+        "A caller with an existing UserProfile.appRole = #Staff and the required authenticated permission can successfully call getOrders() even if they are not marked approved in the approval state.",
+        "StaffDashboardPage no longer shows the \"Failed to load orders\" empty/error state when backend is online and orders exist, for a Staff user with a created profile.",
+        "Karigar users remain subject to approval requirements (i.e., this change does not grant Karigar users access without approval)."
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Harden the loading-state guards in the router layout and role gate so disabled queries (e.g., admin-check not enabled due to missing actor) cannot keep the app in a perpetual loading state. Ensure loading screens are only shown when at least one in-flight request exists, and otherwise fall back to a controlled error or safe default path.",
+      "text": "Ensure Admin and Staff portals reflect successful hallmark updates by refreshing orders and removing newly-updated \"given_to_hallmark\" orders from the \"Total Orders\" list after marking as hallmark.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-6"
+          "msg-1"
         ],
         "quotes": [
-          "The app is failing to load any page. It’s stuck in loading only"
+          "While selecting order line and clicking on *mark as hallmark* , it failed to update order status. Kindly check and rectify it."
         ]
       },
       "acceptanceCriteria": [
-        "The app does not display a loading spinner indefinitely due solely to a query never running (disabled) or never reaching isFetched.",
-        "When bootstrap cannot proceed, the app shows an actionable error screen with English user-facing text and a Retry button that attempts to refetch the actor/profile/admin-check in the correct order."
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "text": "Mitigate potential stale-cache/service-worker causes of \"stuck loading\" by updating the service worker behavior for navigation requests (index.html/app shell) to prefer the network and fall back to cache only when offline, and by bumping the cache version so production clients receive the updated bundle.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-6"
-        ],
-        "quotes": [
-          "The app is failing to load any page. It’s stuck in loading only"
-        ]
-      },
-      "acceptanceCriteria": [
-        "After deploying the fix, a previously affected client with an existing service worker can hard-reload and successfully load the app (no infinite loading).",
-        "Navigation requests (e.g., opening /admin directly) do not get stuck serving an incompatible cached app shell; the app loads the latest version when online.",
-        "Offline behavior remains functional (cached assets still available when the network is unavailable)."
+        "After successfully marking selected orders as hallmark, the UI no longer shows those orders in the \"Total Orders\" tab/list (because Total Orders excludes status \"given_to_hallmark\").",
+        "After successfully marking selected orders as hallmark, the orders appear in the \"Hallmark\" tab/list.",
+        "If the bulk update fails, the UI shows an error message (toast) and does not clear the selection."
       ]
     }
   ],
   "constraints": [
-    "Do not edit files under frontend/src/hooks/useActor.ts or other paths listed as immutable in SYSTEM_CONTEXT.",
-    "Keep all backend logic within the single Motoko actor (backend/main.mo); only add migration logic if persistent state schema changes are required."
+    "Backend must remain a single Motoko actor in backend/main.mo (no additional backend services).",
+    "Do not edit any files under frontend/src/components/ui or any other frontend immutablePaths listed in SYSTEM_CONTEXT."
   ],
   "nonGoals": [
-    "Implementing new product features or changing business flows beyond fixing the loading/bootstrap failure.",
-    "Adding third-party auth providers or non-Internet-Identity login methods.",
-    "Introducing new backend services or external databases."
+    "Implementing new third-party authentication methods beyond Internet Identity.",
+    "Adding new order-status workflow states beyond what is required to fix \"given_to_hallmark\" updates and staff order fetching.",
+    "Introducing external databases or off-chain storage."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
+  },
+  "userProfileUpdate": {
+    "goalsToAdd": [],
+    "goalsToRemove": [],
+    "preferencesToAdd": [],
+    "preferencesToRemove": [],
+    "miscToAdd": [],
+    "miscToRemove": [],
+    "fieldsToSet": {},
+    "fieldsToDelete": []
   }
 }

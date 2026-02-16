@@ -1,89 +1,58 @@
-import type { Order } from '../../../backend';
-import { isCustomerOrder } from '../../orders/isCustomerOrder';
+import type { PersistentOrder } from '../../../backend';
 
 /**
- * Attempts to parse a single PDF line in the page-1 table format where each row contains:
- * Order No | Order Type | Design Code | Weight | Size | Qty | Generic Name (multi-word) | Karigar
- * 
- * Example: "6010SO26CSO BR-476895 24.11 8 1 IPL KATLI STAMPING MOMIN"
- * 
- * Returns a fully populated Order if parsing succeeds with high confidence, null otherwise.
+ * Focused helper that parses a single PDF line in the page-1 table format
+ * (with explicit Generic Name and Karigar columns), extracting karigar name
+ * from the last token and generic name from preceding tokens, returning a
+ * fully populated Order when confidence checks pass or null otherwise.
  */
-export function parseOrdersTableRowWithKarigar(
-  line: string,
-  uploadTimestamp: bigint,
-  createdTimestamp: bigint
-): Order | null {
-  const trimmed = line.trim();
-  if (!trimmed) return null;
+export function parseOrdersTableRowWithKarigar(line: string, uploadTimestamp: bigint): PersistentOrder | null {
+  const tokens = line.split(/\s+/);
   
-  // Split by whitespace
-  const parts = trimmed.split(/\s+/).filter(p => p.trim());
+  // Need at least: orderNo, orderType, designCode, genericName, weight, size, qty, karigarName
+  if (tokens.length < 8) return null;
+
+  const orderNo = tokens[0];
+  const orderType = tokens[1];
+  const designCode = tokens[2];
+
+  // Validate order number format
+  if (!orderNo.match(/^\d+[A-Z]+-\d+-\d+$/i)) return null;
   
-  // Need at least: orderNo, orderType, designCode, weight, size, qty, genericName (1+ words), karigar
-  // Minimum 8 parts (if generic name is 1 word)
-  if (parts.length < 8) {
-    return null;
-  }
+  // Validate design code format
+  if (!designCode.match(/^[A-Z0-9-]+$/i)) return null;
+
+  // Last token is karigar name
+  const karigarName = tokens[tokens.length - 1];
   
-  try {
-    // Extract from the beginning (fixed positions)
-    const orderNo = parts[0];
-    const orderType = parts[1];
-    const designCode = parts[2];
-    
-    // Validate order number and design code patterns
-    if (!orderNo || orderNo.length < 3) return null;
-    if (!designCode || designCode.length < 3) return null;
-    
-    // Parse numeric fields (positions 3, 4, 5)
-    const weight = parseFloat(parts[3]);
-    const size = parseFloat(parts[4]);
-    const qty = parseInt(parts[5], 10);
-    
-    // Validate numeric fields
-    if (isNaN(weight) || weight <= 0) return null;
-    if (isNaN(size) || size <= 0) return null;
-    if (isNaN(qty) || qty <= 0) return null;
-    
-    // Extract from the end: last token is Karigar
-    const karigarName = parts[parts.length - 1];
-    
-    // Validate karigar name (should be mostly alphabetic, not numeric)
-    if (!karigarName || karigarName.length < 2) return null;
-    const karigarNumericRatio = (karigarName.match(/\d/g) || []).length / karigarName.length;
-    if (karigarNumericRatio > 0.3) return null; // Too many numbers, probably not a name
-    
-    // Extract generic name: everything between qty (index 5) and karigar (last)
-    // Generic name can be multi-word (e.g., "1 IPL KATLI STAMPING")
-    const genericNameParts = parts.slice(6, parts.length - 1);
-    if (genericNameParts.length === 0) return null; // Must have at least some generic name
-    
-    const genericName = genericNameParts.join(' ');
-    
-    // Additional validation: generic name should contain some alphabetic content
-    if (!/[a-zA-Z]/.test(genericName)) return null;
-    
-    // Create order object
-    const order: Order = {
-      orderNo,
-      orderType,
-      designCode,
-      genericName,
-      karigarName,
-      weight,
-      size,
-      qty: BigInt(qty),
-      remarks: '',
-      status: 'pending',
-      isCustomerOrder: isCustomerOrder(orderType),
-      uploadDate: uploadTimestamp,
-      createdAt: createdTimestamp
-    };
-    
-    return order;
-  } catch (error) {
-    // Parsing failed, return null to try fallback
-    return null;
-  }
+  // Second-to-last, third-to-last, fourth-to-last are qty, size, weight
+  const qty = parseInt(tokens[tokens.length - 2], 10);
+  const size = parseFloat(tokens[tokens.length - 3]);
+  const weight = parseFloat(tokens[tokens.length - 4]);
+
+  if (isNaN(weight) || isNaN(size) || isNaN(qty)) return null;
+
+  // Generic name is everything between designCode and weight
+  const genericName = tokens.slice(3, tokens.length - 4).join(' ');
+  
+  // Validate karigar name (should be alphabetic, possibly with spaces if multi-word)
+  if (!karigarName.match(/^[A-Za-z]+$/)) return null;
+
+  const isCustomerOrder = orderType.toUpperCase().includes('CO');
+
+  return {
+    orderNo,
+    orderType,
+    designCode,
+    genericName,
+    karigarName,
+    weight,
+    size,
+    qty: BigInt(qty),
+    remarks: '',
+    status: 'pending',
+    isCustomerOrder,
+    uploadDate: uploadTimestamp,
+    createdAt: uploadTimestamp,
+  };
 }

@@ -1,12 +1,12 @@
 # Specification
 
 ## Summary
-**Goal:** Fix the frontend bootstrap flow so authenticated users are not stuck on an infinite loading screen, and ensure routing proceeds to the correct dashboard or an actionable error state.
+**Goal:** Fix hallmark bulk status updates and ensure Staff users can load and manage orders in the staff portal.
 
 **Planned changes:**
-- Update bootstrap/admin-check flow so role resolution always completes (admin-check reaches a resolved state such as `isFetched=true`) and does not block routing when access-control initialization is skipped or fails.
-- Change bootstrap-critical admin-check logic (including `useIsCallerAdmin` and its dependencies) to use the non-blocking safe actor creation path (`useSafeActor`) so missing/empty admin token does not prevent app load.
-- Harden router/layout loading guards so disabled/unrun queries cannot cause perpetual loading; show loading only when requests are actually in flight and otherwise fall back to existing error UI (BootstrapErrorScreen) with Retry that refetches in the correct order.
-- Adjust service worker navigation/app-shell caching to prefer network with offline cache fallback, and bump cache version to reduce stale cached-bundle issues that can cause “stuck loading”.
+- Add backend support for bulk order status updates so Admin/Staff “Mark as Hallmark” updates selected order lines to status `given_to_hallmark`.
+- Enforce backend authorization so only Admin/Staff can bulk-update order statuses, with clear errors for unauthorized callers.
+- Adjust backend order-fetch authorization so Staff users can successfully call `getOrders()` after profile creation (without being blocked by approval), while keeping Karigar users subject to approval.
+- Update frontend hallmark action flow to refresh/reload orders after a successful bulk update, moving updated items out of “Total Orders” and into the “Hallmark” list; show an error toast and keep selection if the update fails.
 
-**User-visible outcome:** After login (and when opening routes like `/admin` directly), the app reliably loads and navigates to the correct dashboard or shows a clear Bootstrap error with Retry—no indefinite loading spinner, including for clients without an admin token and clients affected by stale service worker cache.
+**User-visible outcome:** Admin and Staff can mark selected orders as “Hallmark” successfully, see those orders move to the Hallmark tab, and Staff users can load orders in the Staff Dashboard without the “Failed to load orders” state (when backend is online and orders exist).

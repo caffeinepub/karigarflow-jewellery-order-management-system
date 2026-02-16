@@ -1,20 +1,25 @@
-import type { Order } from '../../backend';
+import type { PersistentOrder } from '../../backend';
 import { format } from 'date-fns';
+import { generateKarigarPOCode } from '../orders/generateKarigarPOCode';
 
 interface KarigarDownloadOptions {
   karigarName: string;
-  orders: Order[];
+  orders: PersistentOrder[];
   selectedDate?: Date;
   dateLabel?: string;
+  exportScope?: 'daily' | 'total';
 }
 
 /**
  * Generate and trigger browser print dialog for Karigar orders (PDF export)
  */
-export function downloadKarigarPDF({ karigarName, orders, selectedDate, dateLabel }: KarigarDownloadOptions): void {
+export function downloadKarigarPDF({ karigarName, orders, selectedDate, dateLabel, exportScope = 'total' }: KarigarDownloadOptions): void {
   if (orders.length === 0) {
     throw new Error('No orders to export');
   }
+
+  const today = format(new Date(), 'yyyy-MM-dd');
+  const poCode = generateKarigarPOCode(karigarName);
 
   // Create a hidden iframe for printing
   const iframe = document.createElement('iframe');
@@ -34,13 +39,14 @@ export function downloadKarigarPDF({ karigarName, orders, selectedDate, dateLabe
   const dateStr = dateLabel || (selectedDate ? format(selectedDate, 'MMMM do, yyyy') : 'All Dates');
   const totalWeight = orders.reduce((sum, o) => sum + o.weight, 0);
   const totalQty = orders.reduce((sum, o) => sum + Number(o.qty), 0);
+  const scopeLabel = exportScope === 'daily' ? 'Daily Orders' : 'Total Orders';
 
   const html = `
     <!DOCTYPE html>
     <html>
     <head>
       <meta charset="utf-8">
-      <title>${karigarName} Orders - ${dateStr}</title>
+      <title>${today}_${poCode}_${karigarName}_${scopeLabel}</title>
       <style>
         @media print {
           @page { margin: 1cm; }
@@ -65,6 +71,11 @@ export function downloadKarigarPDF({ karigarName, orders, selectedDate, dateLabe
         .header p {
           margin: 2px 0;
           font-size: 11px;
+        }
+        .header .po-code {
+          font-weight: bold;
+          font-size: 12px;
+          color: #333;
         }
         table {
           width: 100%;
@@ -99,21 +110,20 @@ export function downloadKarigarPDF({ karigarName, orders, selectedDate, dateLabe
     <body>
       <div class="header">
         <h1>KarigarFlow - Orders for ${karigarName}</h1>
-        <p>Date: ${dateStr}</p>
+        <p class="po-code">PO: ${poCode} | Date: ${today}</p>
+        <p>${scopeLabel} - ${dateStr}</p>
         <p>Total Orders: ${orders.length}</p>
       </div>
-      
       <table>
         <thead>
           <tr>
             <th>Order No</th>
             <th>Type</th>
             <th>Design</th>
-            <th>Generic Name</th>
+            <th>Generic</th>
             <th>Weight (g)</th>
             <th>Size</th>
             <th>Qty</th>
-            <th>Status</th>
             <th>Remarks</th>
           </tr>
         </thead>
@@ -121,19 +131,17 @@ export function downloadKarigarPDF({ karigarName, orders, selectedDate, dateLabe
           ${orders.map(order => `
             <tr>
               <td>${order.orderNo}</td>
-              <td>${order.orderType}</td>
+              <td>${order.orderType}${order.isCustomerOrder ? ' (CO)' : ''}</td>
               <td>${order.designCode}</td>
               <td>${order.genericName}</td>
               <td>${order.weight.toFixed(2)}</td>
               <td>${order.size.toFixed(2)}</td>
-              <td>${order.qty}</td>
-              <td>${order.status}</td>
+              <td>${Number(order.qty)}</td>
               <td>${order.remarks}</td>
             </tr>
           `).join('')}
         </tbody>
       </table>
-      
       <div class="summary">
         <p>Total Weight: ${totalWeight.toFixed(2)}g</p>
         <p>Total Quantity: ${totalQty}</p>
@@ -159,142 +167,118 @@ export function downloadKarigarPDF({ karigarName, orders, selectedDate, dateLabe
 }
 
 /**
- * Generate and download Karigar orders as JPEG image
+ * Generate and download JPEG image of Karigar orders
  */
-export async function downloadKarigarJPEG({ karigarName, orders, selectedDate, dateLabel }: KarigarDownloadOptions): Promise<void> {
+export async function downloadKarigarJPEG({ karigarName, orders, selectedDate, dateLabel, exportScope = 'total' }: KarigarDownloadOptions): Promise<void> {
   if (orders.length === 0) {
     throw new Error('No orders to export');
   }
 
+  const today = format(new Date(), 'yyyy-MM-dd');
+  const poCode = generateKarigarPOCode(karigarName);
   const dateStr = dateLabel || (selectedDate ? format(selectedDate, 'MMMM do, yyyy') : 'All Dates');
   const totalWeight = orders.reduce((sum, o) => sum + o.weight, 0);
   const totalQty = orders.reduce((sum, o) => sum + Number(o.qty), 0);
+  const scopeLabel = exportScope === 'daily' ? 'Daily' : 'Total';
 
   // Create canvas
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
   if (!ctx) {
-    throw new Error('Failed to create canvas context');
+    throw new Error('Failed to get canvas context');
   }
 
-  // Canvas dimensions
+  // Set canvas size
   const width = 1200;
   const rowHeight = 30;
-  const headerHeight = 120;
+  const headerHeight = 140;
   const summaryHeight = 80;
-  const padding = 20;
-  const height = headerHeight + (orders.length + 1) * rowHeight + summaryHeight + padding * 2;
-
+  const height = headerHeight + (orders.length + 1) * rowHeight + summaryHeight;
   canvas.width = width;
   canvas.height = height;
 
-  // Background
+  // Fill background
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, width, height);
 
-  // Header
+  // Draw header
   ctx.fillStyle = '#000000';
   ctx.font = 'bold 24px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText(`KarigarFlow - Orders for ${karigarName}`, width / 2, padding + 30);
-  
+  ctx.fillText(`KarigarFlow - Orders for ${karigarName}`, width / 2, 40);
+  ctx.font = 'bold 18px Arial';
+  ctx.fillText(`PO: ${poCode} | Date: ${today}`, width / 2, 70);
   ctx.font = '16px Arial';
-  ctx.fillText(`Date: ${dateStr}`, width / 2, padding + 55);
-  ctx.fillText(`Total Orders: ${orders.length}`, width / 2, padding + 80);
+  ctx.fillText(`${scopeLabel} Orders - ${dateStr}`, width / 2, 95);
+  ctx.fillText(`Total Orders: ${orders.length}`, width / 2, 120);
 
-  // Draw line under header
-  ctx.strokeStyle = '#000000';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(padding, headerHeight);
-  ctx.lineTo(width - padding, headerHeight);
-  ctx.stroke();
-
-  // Table headers
-  const tableTop = headerHeight + 10;
-  const colWidths = [120, 60, 100, 200, 80, 60, 60, 80, 200];
-  const headers = ['Order No', 'Type', 'Design', 'Generic Name', 'Weight', 'Size', 'Qty', 'Status', 'Remarks'];
-  
+  // Draw table header
+  let y = headerHeight;
   ctx.fillStyle = '#f0f0f0';
-  ctx.fillRect(padding, tableTop, width - padding * 2, rowHeight);
-  
+  ctx.fillRect(0, y, width, rowHeight);
   ctx.fillStyle = '#000000';
-  ctx.font = 'bold 12px Arial';
-  ctx.textAlign = 'left';
-  
-  let xPos = padding + 5;
-  headers.forEach((header, i) => {
-    ctx.fillText(header, xPos, tableTop + 20);
-    xPos += colWidths[i];
-  });
-
-  // Table rows
-  ctx.font = '11px Arial';
-  orders.forEach((order, rowIndex) => {
-    const yPos = tableTop + (rowIndex + 1) * rowHeight;
-    
-    // Alternate row background
-    if (rowIndex % 2 === 1) {
-      ctx.fillStyle = '#f9f9f9';
-      ctx.fillRect(padding, yPos, width - padding * 2, rowHeight);
-    }
-    
-    ctx.fillStyle = '#000000';
-    xPos = padding + 5;
-    
-    const values = [
-      order.orderNo,
-      order.orderType,
-      order.designCode,
-      order.genericName,
-      order.weight.toFixed(2),
-      order.size.toFixed(2),
-      order.qty.toString(),
-      order.status,
-      order.remarks
-    ];
-    
-    values.forEach((value, i) => {
-      const maxWidth = colWidths[i] - 10;
-      const text = value.length > 20 ? value.substring(0, 18) + '...' : value;
-      ctx.fillText(text, xPos, yPos + 20, maxWidth);
-      xPos += colWidths[i];
-    });
-  });
-
-  // Draw table borders
-  ctx.strokeStyle = '#000000';
-  ctx.lineWidth = 1;
-  ctx.strokeRect(padding, tableTop, width - padding * 2, (orders.length + 1) * rowHeight);
-
-  // Summary box
-  const summaryTop = tableTop + (orders.length + 1) * rowHeight + 20;
-  ctx.fillStyle = '#f9f9f9';
-  ctx.fillRect(padding, summaryTop, width - padding * 2, summaryHeight - 20);
-  ctx.strokeRect(padding, summaryTop, width - padding * 2, summaryHeight - 20);
-  
-  ctx.fillStyle = '#000000';
+  ctx.strokeRect(0, y, width, rowHeight);
   ctx.font = 'bold 14px Arial';
-  ctx.fillText(`Total Weight: ${totalWeight.toFixed(2)}g`, padding + 10, summaryTop + 25);
-  ctx.fillText(`Total Quantity: ${totalQty}`, padding + 10, summaryTop + 50);
+  ctx.textAlign = 'left';
+  const columns = [
+    { label: 'Order No', x: 10, width: 150 },
+    { label: 'Type', x: 170, width: 80 },
+    { label: 'Design', x: 260, width: 120 },
+    { label: 'Generic', x: 390, width: 150 },
+    { label: 'Weight', x: 550, width: 80 },
+    { label: 'Size', x: 640, width: 70 },
+    { label: 'Qty', x: 720, width: 60 },
+    { label: 'Remarks', x: 790, width: 400 },
+  ];
+  columns.forEach(col => {
+    ctx.fillText(col.label, col.x, y + 20);
+  });
+
+  // Draw table rows
+  y += rowHeight;
+  ctx.font = '12px Arial';
+  orders.forEach((order, idx) => {
+    if (idx % 2 === 0) {
+      ctx.fillStyle = '#f9f9f9';
+      ctx.fillRect(0, y, width, rowHeight);
+    }
+    ctx.fillStyle = '#000000';
+    ctx.strokeRect(0, y, width, rowHeight);
+    
+    ctx.fillText(order.orderNo, 10, y + 20);
+    ctx.fillText(`${order.orderType}${order.isCustomerOrder ? ' (CO)' : ''}`, 170, y + 20);
+    ctx.fillText(order.designCode, 260, y + 20);
+    ctx.fillText(order.genericName, 390, y + 20);
+    ctx.fillText(order.weight.toFixed(2), 550, y + 20);
+    ctx.fillText(order.size.toFixed(2), 640, y + 20);
+    ctx.fillText(String(Number(order.qty)), 720, y + 20);
+    ctx.fillText(order.remarks.substring(0, 50), 790, y + 20);
+    
+    y += rowHeight;
+  });
+
+  // Draw summary
+  ctx.fillStyle = '#f9f9f9';
+  ctx.fillRect(0, y, width, summaryHeight);
+  ctx.fillStyle = '#000000';
+  ctx.strokeRect(0, y, width, summaryHeight);
+  ctx.font = 'bold 16px Arial';
+  ctx.fillText(`Total Weight: ${totalWeight.toFixed(2)}g`, 20, y + 30);
+  ctx.fillText(`Total Quantity: ${totalQty}`, 20, y + 55);
 
   // Convert to blob and download
-  return new Promise((resolve, reject) => {
-    canvas.toBlob((blob) => {
-      if (!blob) {
-        reject(new Error('Failed to create image'));
-        return;
-      }
-
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${karigarName}_orders_${dateStr.replace(/[^a-z0-9]/gi, '_')}.jpg`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      resolve();
-    }, 'image/jpeg', 0.95);
-  });
+  canvas.toBlob((blob) => {
+    if (!blob) {
+      throw new Error('Failed to create image blob');
+    }
+    
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${today}_${poCode}_${karigarName}_${scopeLabel}_Orders.jpg`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }, 'image/jpeg', 0.95);
 }

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from '@tanstack/react-router';
+import { useQueryClient } from '@tanstack/react-query';
 import { useUploadParsedOrdersBatched, useGetMasterDesigns, type BatchUploadProgress } from '../../hooks/useQueries';
 import { useEffectiveAppRole } from '../../hooks/useEffectiveAppRole';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,11 +17,10 @@ import { ErrorDetailsPanel } from '../../components/errors/ErrorDetailsPanel';
 import { parseOrderFile } from '../../lib/parsers/orderParser';
 import { applyMasterDesignMapping } from '../../lib/mapping/applyMasterDesignMapping';
 import { toast } from 'sonner';
-import { Upload, CalendarIcon, CheckCircle, AlertCircle, Info, Loader2, ArrowRight, Copy } from 'lucide-react';
+import { Upload, CalendarIcon, CheckCircle, AlertCircle, Info, Loader2, ArrowRight } from 'lucide-react';
 import { format } from 'date-fns';
-import type { Order } from '../../backend';
+import type { PersistentOrder } from '../../backend';
 import { useCopyToClipboard } from '@/hooks/useCopyToClipboard';
-import { getStoppedCanisterMessage, presentError } from '@/utils/errorPresentation';
 import { AppRole } from '../../backend';
 
 type UploadState = 'idle' | 'uploading' | 'success' | 'partial-success' | 'error';
@@ -34,6 +34,7 @@ interface UploadResult {
 
 export function IngestOrdersPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { effectiveRole } = useEffectiveAppRole();
   const { data: masterDesigns = [], isLoading: masterDesignsLoading, isFetched: masterDesignsFetched } = useGetMasterDesigns();
   const uploadMutation = useUploadParsedOrdersBatched();
@@ -41,9 +42,10 @@ export function IngestOrdersPage() {
   
   const [uploadDate, setUploadDate] = useState<Date>(new Date());
   const [file, setFile] = useState<File | null>(null);
-  const [rawOrders, setRawOrders] = useState<Order[]>([]); // Store raw parsed orders
-  const [mappedOrders, setMappedOrders] = useState<Order[]>([]);
-  const [unmappedOrders, setUnmappedOrders] = useState<Order[]>([]);
+  const [rawOrders, setRawOrders] = useState<PersistentOrder[]>([]); // Store raw parsed orders
+  const [previewOrders, setPreviewOrders] = useState<PersistentOrder[]>([]); // Orders with mapping applied for preview
+  const [mappedOrders, setMappedOrders] = useState<PersistentOrder[]>([]);
+  const [unmappedOrders, setUnmappedOrders] = useState<PersistentOrder[]>([]);
   const [unmappedCodes, setUnmappedCodes] = useState<string[]>([]);
   const [parseError, setParseError] = useState<string | null>(null);
   const [isParsing, setIsParsing] = useState(false);
@@ -58,6 +60,7 @@ export function IngestOrdersPage() {
       setMappedOrders(result.mappedOrders);
       setUnmappedOrders(result.unmappedOrders);
       setUnmappedCodes(result.unmappedDesignCodes);
+      setPreviewOrders(result.previewOrders);
     }
   }, [rawOrders, masterDesigns, masterDesignsFetched]);
 
@@ -68,6 +71,7 @@ export function IngestOrdersPage() {
     setFile(selectedFile);
     setParseError(null);
     setRawOrders([]);
+    setPreviewOrders([]);
     setMappedOrders([]);
     setUnmappedOrders([]);
     setUnmappedCodes([]);
@@ -83,6 +87,7 @@ export function IngestOrdersPage() {
       setMappedOrders(result.mappedOrders);
       setUnmappedOrders(result.unmappedOrders);
       setUnmappedCodes(result.unmappedDesignCodes);
+      setPreviewOrders(result.previewOrders);
       
       toast.success(`Parsed ${parsedOrders.length} orders from file`);
     } catch (error) {
@@ -150,7 +155,17 @@ export function IngestOrdersPage() {
     }
   };
 
-  const handleNavigateToDashboard = () => {
+  const handleNavigateToDashboard = async () => {
+    // Store upload date in sessionStorage so dashboard opens on this date
+    const dateKey = format(uploadDate, 'yyyy-MM-dd');
+    sessionStorage.setItem('adminDashboardSelectedDate', dateKey);
+    
+    // Ensure orders and unmapped queries are refetched before navigation
+    await Promise.all([
+      queryClient.refetchQueries({ queryKey: ['orders'] }),
+      queryClient.refetchQueries({ queryKey: ['unmappedDesignCodes'] }),
+    ]);
+    
     if (effectiveRole === AppRole.Admin) {
       navigate({ to: '/admin' });
     } else {
@@ -167,6 +182,7 @@ export function IngestOrdersPage() {
   const handleReset = () => {
     setFile(null);
     setRawOrders([]);
+    setPreviewOrders([]);
     setMappedOrders([]);
     setUnmappedOrders([]);
     setUnmappedCodes([]);
@@ -176,16 +192,6 @@ export function IngestOrdersPage() {
     // Reset file input
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     if (fileInput) fileInput.value = '';
-  };
-
-  const copyFailedBatchDetails = () => {
-    if (!uploadResult || uploadResult.failedBatches.length === 0) return;
-    
-    const details = uploadResult.failedBatches
-      .map(b => `Batch ${b.batchIndex + 1}: ${b.error}`)
-      .join('\n');
-    
-    copyToClipboard(details);
   };
 
   const isUploading = uploadMutation.isPending;
@@ -245,50 +251,29 @@ export function IngestOrdersPage() {
             )}
 
             {/* Action buttons */}
-            <div className="flex flex-wrap gap-2">
-              {uploadResult.state === 'success' && (
-                <>
-                  <Button onClick={handleNavigateToDashboard} className="gap-2">
-                    Go to Dashboard
-                    <ArrowRight className="h-4 w-4" />
-                  </Button>
-                  <Button variant="outline" onClick={handleReset}>
-                    Upload More Orders
-                  </Button>
-                </>
+            <div className="flex flex-wrap gap-3">
+              {(uploadResult.state === 'success' || uploadResult.state === 'partial-success') && (
+                <Button onClick={handleNavigateToDashboard}>
+                  <ArrowRight className="mr-2 h-4 w-4" />
+                  Go to Dashboard
+                </Button>
               )}
               
-              {uploadResult.state === 'partial-success' && (
-                <>
-                  <Button onClick={handleNavigateToDashboard} className="gap-2">
-                    Go to Dashboard
-                    <ArrowRight className="h-4 w-4" />
-                  </Button>
-                  <Button variant="outline" onClick={handleRetry}>
-                    Retry Failed Batches
-                  </Button>
-                  <Button variant="outline" onClick={handleReset}>
-                    Start Over
-                  </Button>
-                </>
+              {(uploadResult.state === 'error' || uploadResult.state === 'partial-success') && (
+                <Button variant="outline" onClick={handleRetry}>
+                  Retry Upload
+                </Button>
               )}
               
-              {uploadResult.state === 'error' && (
-                <>
-                  <Button onClick={handleRetry}>
-                    Retry Upload
-                  </Button>
-                  <Button variant="outline" onClick={handleReset}>
-                    Start Over
-                  </Button>
-                </>
-              )}
+              <Button variant="outline" onClick={handleReset}>
+                Upload New File
+              </Button>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* File Upload Form - Hide when showing result */}
+      {/* File Upload Section */}
       {!showUploadResult && (
         <Card>
           <CardHeader>
@@ -296,7 +281,7 @@ export function IngestOrdersPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="upload-date">Upload Date</Label>
+              <Label htmlFor="uploadDate">Upload Date</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="w-full justify-start text-left font-normal">
@@ -316,81 +301,73 @@ export function IngestOrdersPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="file">Order File (Excel or PDF)</Label>
+              <Label htmlFor="file">Order File (PDF or Excel)</Label>
               <Input
                 id="file"
                 type="file"
-                accept=".xlsx,.xls,.pdf"
+                accept=".pdf,.xlsx,.xls"
                 onChange={handleFileChange}
                 disabled={isParsing || isUploading}
               />
             </div>
 
-            {isParsing && (
-              <Alert>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <AlertTitle>Parsing file...</AlertTitle>
-                <AlertDescription>Please wait while we process your file.</AlertDescription>
-              </Alert>
-            )}
-
             {parseError && (
               <InlineErrorState
-                title="Failed to parse file"
+                title="Parse Error"
                 message={parseError}
                 error={new Error(parseError)}
               />
             )}
+
+            {isParsing && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Parsing file...</span>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
 
-      {/* Upload Progress */}
-      {isUploading && uploadProgress && (
+      {/* Preview Section */}
+      {showPreview && (
         <Card>
           <CardHeader>
-            <CardTitle>Uploading Orders</CardTitle>
+            <CardTitle>Preview</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Batch {uploadProgress.currentBatch} of {uploadProgress.totalBatches}</span>
-                <span>{uploadProgress.uploadedOrders} / {uploadProgress.totalOrders} orders</span>
+            <div className="flex flex-wrap gap-4 text-sm">
+              <div>
+                <span className="text-muted-foreground">Total Orders:</span>{' '}
+                <span className="font-semibold">{rawOrders.length}</span>
               </div>
-              <Progress value={(uploadProgress.uploadedOrders / uploadProgress.totalOrders) * 100} />
+              <div>
+                <span className="text-muted-foreground">Mapped:</span>{' '}
+                <span className="font-semibold text-green-600">{mappedOrders.length}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Unmapped:</span>{' '}
+                <span className="font-semibold text-yellow-600">{unmappedOrders.length}</span>
+              </div>
             </div>
-            <p className="text-sm text-muted-foreground">
-              Please wait while we upload your orders in batches...
-            </p>
-          </CardContent>
-        </Card>
-      )}
 
-      {/* Preview - Hide when showing result */}
-      {showPreview && (
-        <>
-          {unmappedCodes.length > 0 && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Unmapped Design Codes Found</AlertTitle>
-              <AlertDescription>
-                {unmappedCodes.length} design code(s) are not mapped to master designs. These orders will be added to the unmapped queue.
-              </AlertDescription>
-            </Alert>
-          )}
+            {unmappedCodes.length > 0 && (
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertTitle>Unmapped Design Codes</AlertTitle>
+                <AlertDescription>
+                  {unmappedCodes.length} design code(s) are not in the master designs list. These orders will be stored as unmapped.
+                </AlertDescription>
+              </Alert>
+            )}
 
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Preview Orders</CardTitle>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {mappedOrders.length} mapped, {unmappedOrders.length} unmapped
-                  </p>
-                </div>
+            {/* Upload Controls - Above Table */}
+            <div className="flex flex-col gap-3 p-4 bg-muted/50 rounded-lg border">
+              <div className="flex gap-3">
                 <Button
                   onClick={handleUpload}
-                  disabled={mappedOrders.length === 0 || isUploading || masterDesignsLoading}
+                  disabled={mappedOrders.length === 0 || isUploading}
+                  className="flex-1 sm:flex-none"
                 >
                   {isUploading ? (
                     <>
@@ -400,20 +377,36 @@ export function IngestOrdersPage() {
                   ) : (
                     <>
                       <Upload className="mr-2 h-4 w-4" />
-                      Upload {mappedOrders.length} Orders
+                      Upload {mappedOrders.length} Order{mappedOrders.length !== 1 ? 's' : ''}
                     </>
                   )}
                 </Button>
+                <Button variant="outline" onClick={handleReset} disabled={isUploading}>
+                  Cancel
+                </Button>
               </div>
-            </CardHeader>
-            <CardContent>
-              <IngestionPreviewTable
-                orders={[...mappedOrders, ...unmappedOrders]}
-                unmappedCodes={unmappedCodes}
-              />
-            </CardContent>
-          </Card>
-        </>
+
+              {uploadProgress && (
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>
+                      Batch {uploadProgress.currentBatch} of {uploadProgress.totalBatches}
+                    </span>
+                    <span>
+                      {uploadProgress.uploadedOrders} / {uploadProgress.totalOrders} orders
+                    </span>
+                  </div>
+                  <Progress
+                    value={(uploadProgress.uploadedOrders / uploadProgress.totalOrders) * 100}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Preview Table */}
+            <IngestionPreviewTable orders={previewOrders} unmappedCodes={unmappedCodes} />
+          </CardContent>
+        </Card>
       )}
     </div>
   );

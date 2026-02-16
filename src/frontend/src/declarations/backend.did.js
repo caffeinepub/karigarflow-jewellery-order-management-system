@@ -13,6 +13,10 @@ export const UserRole = IDL.Variant({
   'user' : IDL.Null,
   'guest' : IDL.Null,
 });
+export const BulkOrderUpdate = IDL.Record({
+  'orderNos' : IDL.Vec(IDL.Text),
+  'newStatus' : IDL.Text,
+});
 export const AppRole = IDL.Variant({
   'Staff' : IDL.Null,
   'Admin' : IDL.Null,
@@ -29,7 +33,7 @@ export const MasterDesignEntry = IDL.Record({
   'genericName' : IDL.Text,
 });
 export const Time = IDL.Int;
-export const Order = IDL.Record({
+export const PersistentOrder = IDL.Record({
   'qty' : IDL.Nat,
   'weight' : IDL.Float64,
   'status' : IDL.Text,
@@ -73,6 +77,7 @@ export const UserApprovalInfo = IDL.Record({
 export const idlService = IDL.Service({
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+  'bulkUpdateOrderStatus' : IDL.Func([BulkOrderUpdate], [], []),
   'createUserProfile' : IDL.Func([IDL.Principal, UserProfile], [], []),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
@@ -81,7 +86,7 @@ export const idlService = IDL.Service({
       [IDL.Vec(IDL.Tuple(IDL.Text, MasterDesignEntry))],
       ['query'],
     ),
-  'getOrders' : IDL.Func([], [IDL.Vec(Order)], ['query']),
+  'getOrders' : IDL.Func([], [IDL.Vec(PersistentOrder)], ['query']),
   'getUnmappedDesignCodes' : IDL.Func(
       [],
       [IDL.Vec(UnmappedOrderEntry)],
@@ -105,7 +110,7 @@ export const idlService = IDL.Service({
     ),
   'setActiveFlagForMasterDesign' : IDL.Func([IDL.Text, IDL.Bool], [], []),
   'setApproval' : IDL.Func([IDL.Principal, ApprovalStatus], [], []),
-  'uploadParsedOrders' : IDL.Func([IDL.Vec(Order)], [], []),
+  'uploadParsedOrders' : IDL.Func([IDL.Vec(PersistentOrder)], [], []),
 });
 
 export const idlInitArgs = [];
@@ -115,6 +120,10 @@ export const idlFactory = ({ IDL }) => {
     'admin' : IDL.Null,
     'user' : IDL.Null,
     'guest' : IDL.Null,
+  });
+  const BulkOrderUpdate = IDL.Record({
+    'orderNos' : IDL.Vec(IDL.Text),
+    'newStatus' : IDL.Text,
   });
   const AppRole = IDL.Variant({
     'Staff' : IDL.Null,
@@ -132,7 +141,7 @@ export const idlFactory = ({ IDL }) => {
     'genericName' : IDL.Text,
   });
   const Time = IDL.Int;
-  const Order = IDL.Record({
+  const PersistentOrder = IDL.Record({
     'qty' : IDL.Nat,
     'weight' : IDL.Float64,
     'status' : IDL.Text,
@@ -176,6 +185,7 @@ export const idlFactory = ({ IDL }) => {
   return IDL.Service({
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+    'bulkUpdateOrderStatus' : IDL.Func([BulkOrderUpdate], [], []),
     'createUserProfile' : IDL.Func([IDL.Principal, UserProfile], [], []),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
@@ -184,7 +194,7 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Vec(IDL.Tuple(IDL.Text, MasterDesignEntry))],
         ['query'],
       ),
-    'getOrders' : IDL.Func([], [IDL.Vec(Order)], ['query']),
+    'getOrders' : IDL.Func([], [IDL.Vec(PersistentOrder)], ['query']),
     'getUnmappedDesignCodes' : IDL.Func(
         [],
         [IDL.Vec(UnmappedOrderEntry)],
@@ -208,7 +218,7 @@ export const idlFactory = ({ IDL }) => {
       ),
     'setActiveFlagForMasterDesign' : IDL.Func([IDL.Text, IDL.Bool], [], []),
     'setApproval' : IDL.Func([IDL.Principal, ApprovalStatus], [], []),
-    'uploadParsedOrders' : IDL.Func([IDL.Vec(Order)], [], []),
+    'uploadParsedOrders' : IDL.Func([IDL.Vec(PersistentOrder)], [], []),
   });
 };
 

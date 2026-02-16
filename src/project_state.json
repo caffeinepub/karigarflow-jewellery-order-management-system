@@ -4,45 +4,39 @@
   "summary": "New project",
   "architectural_notes": [],
   "known_issues": [
-    "App fails to load any page; stuck on loading screen (production Version 27)."
+    "Mark as hallmark action fails to update the order status when selecting an order line.",
+    "Staff portal is not fetching/displaying orders for viewing and status updates."
   ],
   "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-fix-the-bootstrap-flow-so-authenticated-users-are-not-stuck-on-an-infinite-loading-screen-specifically-ensure-the-admin-check-query-resolves-isfetched-becomes-true-even-when-access-control-initialization-is-skipped-or-fails-so-routing-can-proceed-past-the-loading-state",
-      "title": "Fix the bootstrap flow so authenticated users are not stuck on an infinite loading screen. Specifically, ensure the admin-check query resolves (isFetched becomes true) even when access-control initialization is skipped or fails, so routing can proceed past the loading state.",
-      "reqIds": [
-        "REQ-1"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-update-frontend-admin-check-and-related-bootstrap-queries-to-use-the-non-blocking-actor-creation-path-usesafeactor-rather-than-the-initialization-blocking-actor-hook-so-that-missing-empty-admin-token-does-not-prevent-app-load-this-includes-updating-useiscalleradmin-and-any-bootstrap-critical-queries-it-depends-on-to-be-enabled-and-fetchable-when-an-authenticated-safe-actor-is-available",
-      "title": "Update frontend admin-check and related bootstrap queries to use the non-blocking actor creation path (useSafeActor) rather than the initialization-blocking actor hook, so that missing/empty admin token does not prevent app load. This includes updating useIsCallerAdmin (and any bootstrap-critical queries it depends on) to be enabled and fetchable when an authenticated safe actor is available.",
-      "reqIds": [
-        "REQ-2"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-harden-the-loading-state-guards-in-the-router-layout-and-role-gate-so-disabled-queries-e-g-admin-check-not-enabled-due-to-missing-actor-cannot-keep-the-app-in-a-perpetual-loading-state-ensure-loading-screens-are-only-shown-when-at-least-one-in-flight-request-exists-and-otherwise-fall-back-to-a-controlled-error-or-safe-default-path",
-      "title": "Harden the loading-state guards in the router layout and role gate so disabled queries (e.g., admin-check not enabled due to missing actor) cannot keep the app in a perpetual loading state. Ensure loading screens are only shown when at least one in-flight request exists, and otherwise fall back to a controlled error or safe default path.",
+      "id": "feature-ensure-admin-and-staff-portals-reflect-successful-hallmark-updates-by-refreshing-orders-and-removing-newly-updated-given-to-hallmark-orders-from-the-total-orders-list-after-marking-as-hallmark",
+      "title": "Ensure Admin and Staff portals reflect successful hallmark updates by refreshing orders and removing newly-updated \"given_to_hallmark\" orders from the \"Total Orders\" list after marking as hallmark.",
       "reqIds": [
         "REQ-3"
       ],
       "version": 1
-    },
-    {
-      "id": "feature-mitigate-potential-stale-cache-service-worker-causes-of-stuck-loading-by-updating-the-service-worker-behavior-for-navigation-requests-index-html-app-shell-to-prefer-the-network-and-fall-back-to-cache-only-when-offline-and-by-bumping-the-cache-version-so-production-clients-receive-the-updated-bundle",
-      "title": "Mitigate potential stale-cache/service-worker causes of \"stuck loading\" by updating the service worker behavior for navigation requests (index.html/app shell) to prefer the network and fall back to cache only when offline, and by bumping the cache version so production clients receive the updated bundle.",
-      "reqIds": [
-        "REQ-4"
-      ],
-      "version": 1
     }
   ],
-  "new_feature_requests": [],
-  "projectName": "Fix app stuck on loading (bootstrap never resolves)",
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "Implement backend support for bulk order status updates so that the Admin/Staff \"Mark as Hallmark\" action can update selected order lines to status \"given_to_hallmark\".",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Fix backend authorization/approval logic so Staff users can fetch orders in the staff portal (getOrders) without being blocked by the approval gate immediately after profile creation.",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "status": "pending"
+    }
+  ],
+  "projectName": "Fix hallmark status update and staff portal orders loading",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

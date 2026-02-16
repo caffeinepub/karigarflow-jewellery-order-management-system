@@ -1,31 +1,15 @@
-import type { Order } from '../../backend';
+import type { PersistentOrder } from '../../backend';
 
 /**
- * Deterministically derives a Date from an order's uploadDate with fallback to createdAt.
- * This ensures consistent date filtering across dashboards, exports, and tables.
+ * Get the timestamp for an order, preferring uploadDate over createdAt.
+ * Returns a Date object for consistent date filtering across dashboards, exports, and tables.
  */
-export function getOrderTimestamp(order: Order): Date {
-  const uploadTime = Number(order.uploadDate);
+export function getOrderTimestamp(order: PersistentOrder): Date {
+  // Prefer uploadDate if it's set (non-zero), otherwise fall back to createdAt
+  const timestamp = order.uploadDate && order.uploadDate > 0n ? order.uploadDate : order.createdAt;
   
-  // If uploadDate is valid (non-zero), use it
-  if (uploadTime > 0) {
-    return new Date(uploadTime / 1000000);
-  }
+  // Convert nanoseconds to milliseconds
+  const milliseconds = Number(timestamp / 1_000_000n);
   
-  // Fallback to createdAt
-  const createdTime = Number(order.createdAt);
-  return new Date(createdTime / 1000000);
-}
-
-/**
- * Checks if an order's timestamp falls within a given date (ignoring time).
- */
-export function isOrderOnDate(order: Order, date: Date): boolean {
-  const orderDate = getOrderTimestamp(order);
-  const targetStart = new Date(date);
-  targetStart.setHours(0, 0, 0, 0);
-  const targetEnd = new Date(date);
-  targetEnd.setHours(23, 59, 59, 999);
-  
-  return orderDate >= targetStart && orderDate <= targetEnd;
+  return new Date(milliseconds);
 }

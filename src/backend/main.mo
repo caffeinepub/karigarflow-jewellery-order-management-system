@@ -1,27 +1,19 @@
-import Text "mo:core/Text";
-import Time "mo:core/Time";
 import Map "mo:core/Map";
-import Iter "mo:core/Iter";
-import Array "mo:core/Array";
+import Text "mo:core/Text";
 import Runtime "mo:core/Runtime";
+import Array "mo:core/Array";
+import Iter "mo:core/Iter";
+import Time "mo:core/Time";
 import Nat "mo:core/Nat";
 import Principal "mo:core/Principal";
-
-// Authorization & Approval Components
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
 import UserApproval "user-approval/approval";
+import Migration "migration";
 
-
-// Core Types
-
+(with migration = Migration.run)
 actor {
-  public type HealthCheckResponse = {
-    status : Text;
-    canisterId : Text;
-  };
-
-  public type Order = {
+  type PersistentOrder = {
     orderNo : Text;
     orderType : Text;
     designCode : Text;
@@ -36,6 +28,10 @@ actor {
     uploadDate : Time.Time;
     createdAt : Time.Time;
   };
+
+  public type HealthCheckResponse = { status : Text; canisterId : Text };
+
+  public type Order = PersistentOrder;
 
   public type MasterDesignEntry = {
     genericName : Text;
@@ -68,6 +64,11 @@ actor {
     karigarName : ?Text;
   };
 
+  public type BulkOrderUpdate = {
+    orderNos : [Text];
+    newStatus : Text;
+  };
+
   // Health Check
   public query ({ caller }) func healthCheck() : async HealthCheckResponse {
     {
@@ -85,11 +86,11 @@ actor {
   // Persistent State Maps
   let userProfiles = Map.empty<Principal, UserProfile>();
   let masterDesignsMap = Map.empty<Text, MasterDesignEntry>();
-  let ordersMap = Map.empty<Text, Order>();
+  let ordersMap = Map.empty<Text, PersistentOrder>();
   let unmappedDesignCodesMap = Map.empty<Text, UnmappedOrderEntry>();
 
   // Helper Functions
-  func validateOrder(order : Order) : Bool {
+  func validateOrder(order : PersistentOrder) : Bool {
     order.orderNo != "" and order.designCode != "" and order.orderType != "" and order.qty != 0
   };
 
@@ -158,13 +159,19 @@ actor {
     userProfiles.add(caller, profile);
   };
 
-  public query ({ caller }) func getOrders() : async [Order] {
+  public query ({ caller }) func getOrders() : async [PersistentOrder] {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only authenticated users can view orders");
     };
 
-    if (not AccessControl.isAdmin(accessControlState, caller) and not UserApproval.isApproved(approvalState, caller)) {
-      Runtime.trap("Unauthorized: User must be approved to view orders");
+    // Only karigar users need to be approved to view orders, admins and staff are exempt
+    switch (getAppRole(caller)) {
+      case (?#Karigar) {
+        if (not AccessControl.isAdmin(accessControlState, caller) and not UserApproval.isApproved(approvalState, caller)) {
+          Runtime.trap("Unauthorized: Karigar users must be approved to view orders");
+        };
+      };
+      case (_) {};
     };
 
     let allOrders = ordersMap.values().toArray();
@@ -226,8 +233,26 @@ actor {
     masterDesignsMap.toArray();
   };
 
-  // Upload Processed Orders
-  public shared ({ caller }) func uploadParsedOrders(parsedOrders : [Order]) : async () {
+  // Bulk Order Update Function
+  public shared ({ caller }) func bulkUpdateOrderStatus(bulkUpdate : BulkOrderUpdate) : async () {
+    if (not isAdminOrStaff(caller)) {
+      Runtime.trap("Unauthorized: Only Admin and Staff can update order status in bulk");
+    };
+
+    for (orderNo in bulkUpdate.orderNos.values()) {
+      switch (ordersMap.get(orderNo)) {
+        case (?order) {
+          let updatedOrder : PersistentOrder = {
+            order with status = bulkUpdate.newStatus;
+          };
+          ordersMap.add(orderNo, updatedOrder);
+        };
+        case (null) { Runtime.trap("Order with orderNo " # orderNo # " not found") };
+      };
+    };
+  };
+
+  public shared ({ caller }) func uploadParsedOrders(parsedOrders : [PersistentOrder]) : async () {
     if (not isAdminOrStaff(caller)) {
       Runtime.trap("Unauthorized: Only Admin or Staff can upload orders");
     };
@@ -253,7 +278,7 @@ actor {
         };
         case (?masterDesign) {
           if (masterDesign.isActive) {
-            let correctOrder : Order = {
+            let correctOrder : PersistentOrder = {
               orderNo = finalOrder.orderNo;
               orderType = finalOrder.orderType;
               designCode = finalOrder.designCode;
@@ -385,7 +410,7 @@ actor {
       let normalizedDesignCode = normalizeDesignCode(unmappedOrder.designCode);
       switch (masterDesignsMap.get(normalizedDesignCode)) {
         case (?masterDesign) {
-          let order : Order = {
+          let order : PersistentOrder = {
             orderNo = unmappedOrder.orderNo;
             orderType = unmappedOrder.orderType;
             designCode = unmappedOrder.designCode;

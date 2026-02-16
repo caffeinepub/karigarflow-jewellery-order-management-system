@@ -1,20 +1,18 @@
-import { Order } from '../../backend';
+import type { PersistentOrder } from '../../backend';
 import { normalizeDesignCode } from '../mapping/normalizeDesignCode';
 
 /**
- * Sort orders design-wise: primary by normalized designCode, secondary by orderNo.
- * This ensures similar designs appear together in the UI.
+ * Sort orders design-wise (primary by normalized designCode, secondary by orderNo)
+ * to ensure similar designs appear together in all order lists.
  */
-export function sortOrdersDesignWise(orders: Order[]): Order[] {
+export function sortOrdersDesignWise(orders: PersistentOrder[]): PersistentOrder[] {
   return [...orders].sort((a, b) => {
-    const designA = normalizeDesignCode(a.designCode);
-    const designB = normalizeDesignCode(b.designCode);
+    const codeA = normalizeDesignCode(a.designCode);
+    const codeB = normalizeDesignCode(b.designCode);
     
-    // Primary sort: by normalized design code
-    const designCompare = designA.localeCompare(designB);
-    if (designCompare !== 0) return designCompare;
+    const codeCompare = codeA.localeCompare(codeB);
+    if (codeCompare !== 0) return codeCompare;
     
-    // Secondary sort: by order number
     return a.orderNo.localeCompare(b.orderNo);
   });
 }

@@ -1,49 +1,72 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useActor } from '../../hooks/useActor';
-import { useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
-import type { Order } from '../../backend';
-import { format } from 'date-fns';
+import { Checkbox } from '@/components/ui/checkbox';
 import { formatKarigarName } from '../../lib/orders/formatKarigarName';
 import { getOrderTimestamp } from '../../lib/orders/getOrderTimestamp';
+import type { PersistentOrder } from '../../backend';
+import { format } from 'date-fns';
 
 interface OrdersTableProps {
-  orders: Order[];
-  showStatusUpdate?: boolean;
+  orders: PersistentOrder[];
+  selectionMode?: boolean;
+  selectedOrders?: Set<string>;
+  onSelectionChange?: (orderNos: Set<string>) => void;
+  emptyMessage?: string;
 }
 
-export function OrdersTable({ orders, showStatusUpdate = false }: OrdersTableProps) {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  const handleStatusChange = async (orderNo: string, newStatus: string) => {
-    if (!actor) return;
-    
-    try {
-      // Note: Backend doesn't have updateOrderStatus, so this is a placeholder
-      // In a real implementation, you'd need to add this method to the backend
-      toast.info('Status update feature coming soon');
-    } catch (error) {
-      console.error('Failed to update status:', error);
-      toast.error('Failed to update order status');
-    }
-  };
-
+export function OrdersTable({ 
+  orders, 
+  selectionMode = false,
+  selectedOrders = new Set(),
+  onSelectionChange,
+  emptyMessage = 'No orders found'
+}: OrdersTableProps) {
   if (orders.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
-        No orders found
+        {emptyMessage}
       </div>
     );
   }
+
+  const handleSelectAll = (checked: boolean) => {
+    if (!onSelectionChange) return;
+    if (checked) {
+      onSelectionChange(new Set(orders.map(o => o.orderNo)));
+    } else {
+      onSelectionChange(new Set());
+    }
+  };
+
+  const handleSelectOne = (orderNo: string, checked: boolean) => {
+    if (!onSelectionChange) return;
+    const newSelection = new Set(selectedOrders);
+    if (checked) {
+      newSelection.add(orderNo);
+    } else {
+      newSelection.delete(orderNo);
+    }
+    onSelectionChange(newSelection);
+  };
+
+  const allSelected = orders.length > 0 && orders.every(o => selectedOrders.has(o.orderNo));
+  const someSelected = orders.some(o => selectedOrders.has(o.orderNo)) && !allSelected;
 
   return (
     <div className="rounded-md border overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow>
+            {selectionMode && (
+              <TableHead className="w-12">
+                <Checkbox
+                  checked={allSelected}
+                  onCheckedChange={handleSelectAll}
+                  aria-label="Select all orders"
+                  className={someSelected ? 'data-[state=checked]:bg-primary/50' : ''}
+                />
+              </TableHead>
+            )}
             <TableHead>Order No</TableHead>
             <TableHead>Type</TableHead>
             <TableHead>Design</TableHead>
@@ -63,6 +86,15 @@ export function OrdersTable({ orders, showStatusUpdate = false }: OrdersTablePro
               key={order.orderNo}
               className={order.isCustomerOrder ? 'bg-yellow-50 dark:bg-yellow-950/20' : ''}
             >
+              {selectionMode && (
+                <TableCell>
+                  <Checkbox
+                    checked={selectedOrders.has(order.orderNo)}
+                    onCheckedChange={(checked) => handleSelectOne(order.orderNo, checked as boolean)}
+                    aria-label={`Select order ${order.orderNo}`}
+                  />
+                </TableCell>
+              )}
               <TableCell className="font-medium">{order.orderNo}</TableCell>
               <TableCell>
                 <div className="flex items-center gap-2">
@@ -82,23 +114,7 @@ export function OrdersTable({ orders, showStatusUpdate = false }: OrdersTablePro
               <TableCell className="text-right">{Number(order.qty)}</TableCell>
               <TableCell className="max-w-[200px] truncate">{order.remarks}</TableCell>
               <TableCell>
-                {showStatusUpdate ? (
-                  <Select
-                    value={order.status}
-                    onValueChange={(value) => handleStatusChange(order.orderNo, value)}
-                  >
-                    <SelectTrigger className="w-[140px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pending">Received</SelectItem>
-                      <SelectItem value="in-progress">In Progress</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <Badge variant="outline">{order.status}</Badge>
-                )}
+                <Badge variant="outline">{order.status}</Badge>
               </TableCell>
               <TableCell className="text-sm text-muted-foreground">
                 {format(getOrderTimestamp(order), 'MMM d, yyyy')}

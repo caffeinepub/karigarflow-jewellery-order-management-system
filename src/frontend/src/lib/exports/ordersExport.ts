@@ -1,93 +1,89 @@
-import type { Order } from '../../backend';
-import { format } from 'date-fns';
+import type { PersistentOrder } from '../../backend';
+import { formatKarigarName } from '../orders/formatKarigarName';
 import { getOrderTimestamp } from '../orders/getOrderTimestamp';
+import { format, startOfDay, endOfDay } from 'date-fns';
 
-export function exportOrders(
-  orders: Order[],
-  type: 'all' | 'karigar' | 'co' | 'daily',
-  selectedDate?: Date
-) {
+type ExportType = 'all' | 'karigar' | 'co' | 'daily';
+
+export function exportOrders(orders: PersistentOrder[], type: ExportType, selectedDate?: Date): void {
   let filteredOrders = orders;
   let filename = 'orders';
 
+  // Apply filters based on export type
   switch (type) {
     case 'co':
-      filteredOrders = orders.filter((o) => o.isCustomerOrder);
-      filename = 'co-orders';
+      filteredOrders = orders.filter(o => o.isCustomerOrder);
+      filename = 'customer_orders';
       break;
     case 'daily':
-      // Use selectedDate if provided (from Admin Dashboard), otherwise use today
-      const targetDate = selectedDate || new Date();
-      targetDate.setHours(0, 0, 0, 0);
-      const targetEnd = new Date(targetDate);
-      targetEnd.setHours(23, 59, 59, 999);
-      
-      filteredOrders = orders.filter((o) => {
-        const orderDate = getOrderTimestamp(o);
-        return orderDate >= targetDate && orderDate <= targetEnd;
-      });
-      filename = `daily-orders-${format(targetDate, 'yyyy-MM-dd')}`;
+      if (selectedDate) {
+        const start = startOfDay(selectedDate);
+        const end = endOfDay(selectedDate);
+        filteredOrders = orders.filter(o => {
+          const orderDate = getOrderTimestamp(o);
+          return orderDate >= start && orderDate <= end;
+        });
+        filename = `daily_sheet_${format(selectedDate, 'yyyy-MM-dd')}`;
+      }
       break;
     case 'karigar':
-      filename = 'karigar-wise-orders';
+      filename = 'orders_by_karigar';
       break;
     default:
-      filename = 'all-orders';
+      filename = 'all_orders';
   }
 
-  const csv = convertToCSV(filteredOrders);
-  downloadCSV(csv, `${filename}.csv`);
-}
-
-function convertToCSV(orders: Order[]): string {
+  // Generate CSV content
   const headers = [
     'Order No',
-    'Order Type',
+    'Type',
     'Design Code',
     'Generic Name',
-    'Karigar Name',
-    'Weight',
+    'Karigar',
+    'Weight (g)',
     'Size',
     'Qty',
     'Remarks',
     'Status',
-    'CO',
-    'Upload Date',
+    'Date',
   ];
 
-  const rows = orders.map((order) => [
+  const rows = filteredOrders.map(order => [
     order.orderNo,
     order.orderType,
     order.designCode,
     order.genericName,
-    order.karigarName,
+    formatKarigarName(order.karigarName),
     order.weight.toFixed(2),
     order.size.toFixed(2),
-    Number(order.qty),
+    String(Number(order.qty)),
     order.remarks,
     order.status,
-    order.isCustomerOrder ? 'Yes' : 'No',
     format(getOrderTimestamp(order), 'yyyy-MM-dd'),
   ]);
 
+  // Sort by karigar if karigar export
+  if (type === 'karigar') {
+    rows.sort((a, b) => {
+      const karigarCompare = a[4].localeCompare(b[4]);
+      if (karigarCompare !== 0) return karigarCompare;
+      return a[2].localeCompare(b[2]); // Then by design code
+    });
+  }
+
   const csvContent = [
     headers.join(','),
-    ...rows.map((row) => row.map((cell) => `"${cell}"`).join(',')),
+    ...rows.map(row => row.map(cell => `"${cell}"`).join(',')),
   ].join('\n');
 
-  return csvContent;
-}
-
-function downloadCSV(csv: string, filename: string) {
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
+  // Download CSV
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
-  
-  link.setAttribute('href', url);
-  link.setAttribute('download', filename);
-  link.style.visibility = 'hidden';
-  
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${filename}.csv`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }

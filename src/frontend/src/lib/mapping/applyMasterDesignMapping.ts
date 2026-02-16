@@ -1,22 +1,23 @@
-import type { Order, MasterDesignEntry } from '../../backend';
+import type { PersistentOrder, MasterDesignEntry } from '../../backend';
 import { normalizeDesignCode } from './normalizeDesignCode';
 
 export interface MappingResult {
-  mappedOrders: Order[];
-  unmappedOrders: Order[];
+  mappedOrders: PersistentOrder[];
+  unmappedOrders: PersistentOrder[];
   unmappedDesignCodes: string[];
+  previewOrders: PersistentOrder[]; // All orders with mapping applied for preview
 }
 
 /**
  * Applies master design mapping to parsed orders.
- * Preserves PDF-derived karigarName when present (non-empty and non-whitespace).
- * Only fills karigarName from master design when incoming order has empty karigarName.
+ * Treats empty, whitespace-only, or "Unassigned" (case-insensitive) karigar names as missing.
+ * Preserves meaningful PDF-derived karigar names.
  * 
  * This function is idempotent and can be called multiple times with the same raw orders
  * as master designs are loaded or updated.
  */
 export function applyMasterDesignMapping(
-  rawOrders: Order[],
+  rawOrders: PersistentOrder[],
   masterDesigns: [string, MasterDesignEntry][]
 ): MappingResult {
   // Build a normalized design map
@@ -26,29 +27,36 @@ export function applyMasterDesignMapping(
     designMap.set(normalizedCode, entry);
   });
 
-  const mappedOrders: Order[] = [];
-  const unmappedOrders: Order[] = [];
+  const mappedOrders: PersistentOrder[] = [];
+  const unmappedOrders: PersistentOrder[] = [];
+  const previewOrders: PersistentOrder[] = [];
   const unmappedCodes = new Set<string>();
 
   rawOrders.forEach((order) => {
     const normalizedOrderCode = normalizeDesignCode(order.designCode);
     const mapping = designMap.get(normalizedOrderCode);
     
-    // Check if PDF-derived karigarName is meaningful (not empty or whitespace-only)
-    const hasPdfKarigarName = order.karigarName && order.karigarName.trim() !== '';
+    // Check if PDF-derived karigarName is meaningful
+    // Treat empty, whitespace-only, or "Unassigned" (case-insensitive) as missing
+    const trimmedKarigar = order.karigarName?.trim() || '';
+    const isPlaceholder = trimmedKarigar === '' || trimmedKarigar.toLowerCase() === 'unassigned';
+    const hasMeaningfulKarigarName = !isPlaceholder;
     
     if (mapping && mapping.isActive) {
       // Design code is mapped
-      mappedOrders.push({
+      const mappedOrder: PersistentOrder = {
         ...order,
         genericName: mapping.genericName,
-        // Preserve PDF-derived karigarName if present and meaningful, otherwise use master design karigarName
-        karigarName: hasPdfKarigarName ? order.karigarName : mapping.karigarName,
-      });
+        // Use master design karigarName only if order's karigar is missing/placeholder
+        karigarName: hasMeaningfulKarigarName ? order.karigarName : mapping.karigarName,
+      };
+      mappedOrders.push(mappedOrder);
+      previewOrders.push(mappedOrder);
     } else {
       // Design code is not mapped or inactive
       unmappedCodes.add(order.designCode);
       unmappedOrders.push(order);
+      previewOrders.push(order); // Keep unmapped orders in preview as-is
     }
   });
 
@@ -56,5 +64,6 @@ export function applyMasterDesignMapping(
     mappedOrders,
     unmappedOrders,
     unmappedDesignCodes: Array.from(unmappedCodes),
+    previewOrders,
   };
 }
