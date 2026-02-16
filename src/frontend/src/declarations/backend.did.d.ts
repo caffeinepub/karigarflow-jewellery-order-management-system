@@ -150,6 +150,7 @@ export interface _SERVICE {
   'isUserBlocked' : ActorMethod<[Principal], boolean>,
   'listApprovals' : ActorMethod<[], Array<UserApprovalInfo>>,
   'listUserProfiles' : ActorMethod<[], Array<UserProfile>>,
+  'markOrderAsDelivered' : ActorMethod<[string], undefined>,
   'processPartialFulfillment' : ActorMethod<
     [PartialFulfillmentRequest],
     undefined

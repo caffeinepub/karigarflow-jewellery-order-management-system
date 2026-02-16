@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2 } from 'lucide-react';
 import { useGetOrders, useGetActivityLog } from '../../hooks/useQueries';
@@ -9,7 +8,6 @@ import { useOrdersCache } from '../../hooks/useOrdersCache';
 import { OrdersTable } from '../../components/orders/OrdersTable';
 import { OrdersFiltersBar } from '../../components/orders/OrdersFiltersBar';
 import { ExportActions } from '../../components/exports/ExportActions';
-import { PartialFulfillmentDialog } from '../../components/orders/PartialFulfillmentDialog';
 import { RbSuppliedQtyEditDialog } from '../../components/orders/RbSuppliedQtyEditDialog';
 import { DesignImageViewerDialog } from '../../components/designImages/DesignImageViewerDialog';
 import { deriveMetrics } from '../../lib/orders/deriveMetrics';
@@ -29,12 +27,34 @@ export function StaffDashboardPage() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('total');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   
-  const [totalFilters, setTotalFilters] = useState({ karigar: '', status: '', dateFrom: null as Date | null, dateTo: null as Date | null, orderNoQuery: '', coOnly: false });
-  const [hallmarkFilters, setHallmarkFilters] = useState({ karigar: '', status: '', dateFrom: null as Date | null, dateTo: null as Date | null, orderNoQuery: '', coOnly: false });
-  const [coFilters, setCoFilters] = useState({ karigar: '', status: '', dateFrom: null as Date | null, dateTo: null as Date | null, orderNoQuery: '', coOnly: false });
+  const [totalFilters, setTotalFilters] = useState({ 
+    karigar: '', 
+    status: '', 
+    dateFrom: null as Date | null, 
+    dateTo: null as Date | null, 
+    orderNoQuery: '', 
+    coFilter: false,
+    rbFilter: false
+  });
+  const [hallmarkFilters, setHallmarkFilters] = useState({ 
+    karigar: '', 
+    status: '', 
+    dateFrom: null as Date | null, 
+    dateTo: null as Date | null, 
+    orderNoQuery: '', 
+    coFilter: false,
+    rbFilter: false
+  });
+  const [coFilters, setCoFilters] = useState({ 
+    karigar: '', 
+    status: '', 
+    dateFrom: null as Date | null, 
+    dateTo: null as Date | null, 
+    orderNoQuery: '', 
+    coFilter: false,
+    rbFilter: false
+  });
   
-  const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
-  const [partialFulfillmentDialogOpen, setPartialFulfillmentDialogOpen] = useState(false);
   const [rbEditOrder, setRbEditOrder] = useState<PersistentOrder | null>(null);
   const [imageViewerDesignCode, setImageViewerDesignCode] = useState<string>('');
   const [imageViewerOpen, setImageViewerOpen] = useState(false);
@@ -53,9 +73,26 @@ export function StaffDashboardPage() {
       if (filters.orderNoQuery && !order.orderNo.toLowerCase().includes(filters.orderNoQuery.toLowerCase())) {
         return false;
       }
-      if (filters.coOnly && !order.isCustomerOrder) {
-        return false;
+      
+      // Separate CO and RB filters
+      if (filters.coFilter && filters.rbFilter) {
+        // Both enabled: show both CO and RB
+        if (order.orderType !== 'CO' && order.orderType !== 'RB') {
+          return false;
+        }
+      } else if (filters.coFilter) {
+        // Only CO enabled: show only CO
+        if (order.orderType !== 'CO') {
+          return false;
+        }
+      } else if (filters.rbFilter) {
+        // Only RB enabled: show only RB
+        if (order.orderType !== 'RB') {
+          return false;
+        }
       }
+      // If neither enabled, show all order types
+      
       if (filters.dateFrom || filters.dateTo) {
         const orderDate = getOrderTimestamp(order);
         if (filters.dateFrom && orderDate < startOfDay(filters.dateFrom)) {
@@ -182,26 +219,8 @@ export function StaffDashboardPage() {
                 onFiltersChange={setTotalFilters}
                 showOrderNoSearch
               />
-              <div className="flex gap-2">
-                <Button
-                  onClick={() => setPartialFulfillmentDialogOpen(true)}
-                  disabled={selectedOrders.size === 0}
-                >
-                  Mark as Delivered ({selectedOrders.size})
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setSelectedOrders(new Set())}
-                  disabled={selectedOrders.size === 0}
-                >
-                  Clear Selection
-                </Button>
-              </div>
               <OrdersTable
                 orders={sortOrdersDesignWise(totalOrders)}
-                selectionMode
-                selectedOrders={selectedOrders}
-                onSelectionChange={setSelectedOrders}
                 onEditRbSupplied={handleEditRbSupplied}
                 onViewDesignImage={handleViewDesignImage}
               />
@@ -284,17 +303,6 @@ export function StaffDashboardPage() {
           </Card>
         </TabsContent>
       </Tabs>
-
-      <PartialFulfillmentDialog
-        orders={orders.filter(o => selectedOrders.has(o.orderNo))}
-        open={partialFulfillmentDialogOpen}
-        onOpenChange={setPartialFulfillmentDialogOpen}
-        onConfirm={() => {
-          setSelectedOrders(new Set());
-          setPartialFulfillmentDialogOpen(false);
-        }}
-        isSubmitting={false}
-      />
 
       <RbSuppliedQtyEditDialog
         order={rbEditOrder!}

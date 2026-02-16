@@ -2,33 +2,11 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-identify-and-fix-the-runtime-crash-that-occurs-when-opening-the-admin-portal-route-admin-ensuring-the-page-renders-successfully-even-on-a-fresh-load-with-no-dialogs-opened",
-      "featureTitle": "Identify and fix the runtime crash that occurs when opening the admin portal route (/admin), ensuring the page renders successfully even on a fresh load with no dialogs opened.",
+      "featureId": "feature-update-the-staff-and-admin-frontends-so-there-is-no-ui-action-that-allows-marking-orders-as-delivered-any-existing-staff-admin-mark-as-delivered-controls-must-be-removed-or-disabled-to-reflect-the-authorization-rule",
+      "featureTitle": "Update the Staff and Admin frontends so there is no UI action that allows marking orders as \"delivered\"; any existing Staff/Admin \"Mark as Delivered\" controls must be removed or disabled to reflect the authorization rule.",
       "files": [
-        "frontend/src/pages/admin/AdminDashboardPage.tsx"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0",
-        "user-approval@3.0.0",
-        "blob-storage@4.0.0"
-      ],
-      "testIds": [
-        "REQ-1"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-remove-all-unsafe-non-null-assertions-and-or-unconditional-rendering-patterns-that-can-crash-the-admin-dashboard-during-initial-render-especially-where-components-receive-props-derived-from-nullable-state-e-g-rbeditorder-ensure-dialogs-and-dependent-ui-render-safely-when-their-backing-state-is-null-empty-and-only-mount-when-needed",
-      "featureTitle": "Remove all unsafe non-null assertions and/or unconditional rendering patterns that can crash the Admin Dashboard during initial render, especially where components receive props derived from nullable state (e.g., rbEditOrder). Ensure dialogs and dependent UI render safely when their backing state is null/empty and only mount when needed.",
-      "files": [
-        "frontend/src/components/orders/PartialFulfillmentDialog.tsx",
-        "frontend/src/components/orders/RbSuppliedQtyEditDialog.tsx",
-        "frontend/src/pages/admin/AdminDashboardPage.tsx"
+        "frontend/src/pages/admin/AdminDashboardPage.tsx",
+        "frontend/src/pages/staff/StaffDashboardPage.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -46,10 +24,9 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-add-an-explicit-user-friendly-non-crashing-error-state-on-the-admin-dashboard-for-unexpected-data-shape-issues-e-g-orders-missing-required-fields-so-that-the-portal-stays-usable-and-provides-a-clear-recovery-path-such-as-clearing-local-cache-and-retrying",
-      "featureTitle": "Add an explicit, user-friendly, non-crashing error state on the Admin Dashboard for unexpected data-shape issues (e.g., orders missing required fields) so that the portal stays usable and provides a clear recovery path (such as clearing local cache and retrying).",
+      "featureId": "feature-in-admin-dashboard-delivered-tab-add-the-same-bulk-action-pattern-available-in-total-orders-selection-action-button-to-change-selected-delivered-orders-to-status-given-to-hallmark",
+      "featureTitle": "In Admin Dashboard → Delivered tab, add the same bulk action pattern available in Total Orders (selection + action button) to change selected delivered orders to status \"given_to_hallmark\".",
       "files": [
-        "frontend/src/components/orders/OrdersDataWarningBanner.tsx",
         "frontend/src/pages/admin/AdminDashboardPage.tsx"
       ],
       "components": [
@@ -64,6 +41,28 @@
       ],
       "testIds": [
         "REQ-3"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-apply-color-styling-on-the-admin-dashboard-metric-cards-for-orders-in-view-customer-orders-active-karigars-and-total-weight-and-add-color-styling-to-the-tab-indicator-slider-bar-for-the-main-admin-dashboard-tabs-from-total-orders-to-karigars",
+      "featureTitle": "Apply color styling on the Admin dashboard metric cards for “Orders in View”, “Customer Orders”, “Active Karigars”, and “Total Weight”, and add color styling to the tab indicator/slider bar for the main Admin dashboard tabs (from Total Orders to Karigars).",
+      "files": [
+        "frontend/src/index.css",
+        "frontend/src/pages/admin/AdminDashboardPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "user-approval@3.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-4"
       ],
       "confidence": "high"
     }

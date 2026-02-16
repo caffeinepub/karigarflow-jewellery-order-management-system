@@ -1,84 +1,99 @@
 {
   "kind": "build_request",
-  "title": "Fix admin portal crash on open (defensive rendering + error-proof dialogs)",
-  "projectName": "KarigarFlow",
-  "priority": "high",
+  "title": "Restrict delivered status updates to Karigar, add hallmark action in Admin Delivered tab, and colorize Admin dashboard tabs",
+  "projectName": "Karigar Orders",
+  "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Identify and fix the runtime crash that occurs when opening the admin portal route (/admin), ensuring the page renders successfully even on a fresh load with no dialogs opened.",
-      "target": "frontend",
+      "text": "Enforce that only the Karigar portal (users with app role #Karigar) can change an order’s status to \"delivered\"; prevent Admin and Staff users from marking orders as delivered via any backend method.",
+      "target": "backend",
       "source": {
         "messageIds": [
-          "msg-6"
+          "msg-1"
         ],
         "quotes": [
-          "Fix this admin portal. It’s crashing with same error while opening. Please completely recheck totally without any flaw. It’s the last chance to make this app successful"
+          "Only karigar portal has the authorisation to mark orders as delivered, not the staff or admin portal"
         ]
       },
       "acceptanceCriteria": [
-        "Navigating to /admin no longer triggers a white screen or AppErrorBoundary for an admin user under normal conditions.",
-        "The admin dashboard renders its header, metrics cards, and tabs without requiring any user interaction."
+        "When a caller with role #Admin or #Staff attempts to update any order to status \"delivered\", the backend rejects the call with an authorization error.",
+        "When a caller with role #Karigar updates orders to status \"delivered\" (for their own orders), the update succeeds.",
+        "Existing Admin/Staff bulk status updates (e.g., setting \"given_to_hallmark\") continue to work as before.",
+        "Karigar users cannot use the delivered update capability to set other statuses besides \"delivered\" via the Karigar flow."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Remove all unsafe non-null assertions and/or unconditional rendering patterns that can crash the Admin Dashboard during initial render, especially where components receive props derived from nullable state (e.g., rbEditOrder). Ensure dialogs and dependent UI render safely when their backing state is null/empty and only mount when needed.",
+      "text": "Update the Staff and Admin frontends so there is no UI action that allows marking orders as \"delivered\"; any existing Staff/Admin \"Mark as Delivered\" controls must be removed or disabled to reflect the authorization rule.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-6"
+          "msg-1"
         ],
         "quotes": [
-          "Fix this admin portal. It’s crashing with same error while opening."
+          "Only karigar portal has the authorisation to mark orders as delivered, not the staff or admin portal"
         ]
       },
       "acceptanceCriteria": [
-        "On initial load of AdminDashboardPage, no component receives a null value where it expects a non-null order object (e.g., eliminate patterns like passing rbEditOrder! when rbEditOrder is null).",
-        "The RB supplied quantity edit dialog and any other admin dialogs do not throw if their backing state is null; they either do not render/mount or render a safe no-op state until opened with valid data.",
-        "Admin dashboard remains stable when opening/closing dialogs repeatedly."
+        "Admin dashboard pages do not present a button/action that triggers a status change to \"delivered\".",
+        "Staff dashboard pages do not present a button/action that triggers a status change to \"delivered\".",
+        "If any legacy Staff/Admin control remains visible for workflow reasons, it must be disabled and show a clear, English explanation that only Karigar can mark delivered (no backend call attempted)."
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Add an explicit, user-friendly, non-crashing error state on the Admin Dashboard for unexpected data-shape issues (e.g., orders missing required fields) so that the portal stays usable and provides a clear recovery path (such as clearing local cache and retrying).",
+      "text": "In Admin Dashboard → Delivered tab, add the same bulk action pattern available in Total Orders (selection + action button) to change selected delivered orders to status \"given_to_hallmark\".",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-6"
+          "msg-1"
         ],
         "quotes": [
-          "Please completely recheck totally without any flaw."
+          "Once the karigar updates the status it shows in the admin portal under the delivered tab... Just like total orders have option to change the status to given for hallmark, same option should be available in this tab too."
         ]
       },
       "acceptanceCriteria": [
-        "If corrupt/invalid orders exist (from backend or IndexedDB), the admin portal still loads and shows a non-blocking warning and/or inline error state rather than crashing.",
-        "The existing 'clear local cache and reload' action remains available and works without throwing.",
-        "Any displayed error text is in English and does not expose sensitive details."
+        "Delivered tab supports selecting one or more rows (checkbox selection) similar to the Total Orders tab selection UI.",
+        "Delivered tab includes an action button that sets the selected delivered orders’ status to \"given_to_hallmark\" using the existing bulk status update flow.",
+        "After a successful update, the selected orders are no longer shown in the Delivered tab list and appear under the Hallmark tab (because of existing tab filtering by status).",
+        "A success toast is shown indicating how many orders were updated; failures show an error toast message in English.",
+        "The existing Delivered tab filters (karigar/status/date/orderNo/CO/RB filters) continue to work."
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Apply color styling on the Admin dashboard metric cards for “Orders in View”, “Customer Orders”, “Active Karigars”, and “Total Weight”, and add color styling to the tab indicator/slider bar for the main Admin dashboard tabs (from Total Orders to Karigars).",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "Under admin dashboard, give colors to the tabs of ‘ orders in view, customer orders, active karigars, total weight ’",
+          "And also give color to the slide bar under these tabs from total orders to karigars."
+        ]
+      },
+      "acceptanceCriteria": [
+        "Each of the four Admin dashboard metric cards has a distinct, consistent accent color (e.g., title/accent bar/badge/background tint) while preserving readability and existing layout.",
+        "The Admin dashboard TabsList/TabsTrigger styling clearly shows the active tab with a colored indicator/underline/slider bar, and inactive tabs have a visually distinct state.",
+        "No edits are made to immutable Shadcn UI component source files; styling is applied via page-level className overrides and/or global Tailwind styles in allowed files.",
+        "All user-facing text remains in English."
       ]
     }
   ],
   "constraints": [
-    "Do not edit files under frontend/src/components/ui (Shadcn components are read-only).",
-    "Do not edit immutable hook/bootstrapping files listed in SYSTEM_CONTEXT.frontend.immutablePaths; compose around them if changes are needed."
+    "Backend must remain a single Motoko actor in backend/main.mo (no additional backend services).",
+    "Do not edit files under frontend/src/components/ui (Shadcn components are read-only in this environment); apply styling via composition/props/page-level classNames or allowed CSS files.",
+    "Do not modify frontend/src/hooks/useInternetIdentity.ts(x), frontend/src/hooks/useActor.ts, or frontend/src/main.tsx (immutable paths)."
   ],
   "nonGoals": [
-    "Adding new admin features unrelated to crash prevention (e.g., new exports, new tables, new roles).",
-    "Changing authentication providers (Internet Identity remains the only auth).",
-    "Backend schema redesign or migrations unless a frontend-only fix is proven impossible."
+    "Do not add new authentication providers or third-party auth; keep Internet Identity as-is.",
+    "Do not redesign unrelated pages (e.g., Design Images, Master Designs) beyond the requested Admin dashboard styling.",
+    "Do not introduce new order statuses beyond the existing ones (e.g., \"pending\", \"delivered\", \"given_to_hallmark\")."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
-  },
-  "userProfileUpdate": {
-    "goalsToAdd": [],
-    "goalsToRemove": [],
-    "preferencesToAdd": [],
-    "preferencesToRemove": [],
-    "miscToAdd": [],
-    "miscToRemove": [],
-    "fieldsToSet": {},
-    "fieldsToDelete": []
   }
 }

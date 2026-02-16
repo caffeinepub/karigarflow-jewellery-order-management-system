@@ -17,7 +17,8 @@ interface OrdersFiltersBarProps {
     karigar: string;
     dateFrom: Date | null;
     dateTo: Date | null;
-    coOnly: boolean;
+    coFilter: boolean;
+    rbFilter: boolean;
     status: string;
     orderNoQuery?: string;
   };
@@ -28,142 +29,202 @@ interface OrdersFiltersBarProps {
 const ALL_KARIGARS_SENTINEL = '__all_karigars__';
 const ALL_STATUS_SENTINEL = '__all_status__';
 
-export function OrdersFiltersBar({ orders, filters, onFiltersChange, showOrderNoSearch = false }: OrdersFiltersBarProps) {
+export function OrdersFiltersBar({ orders, filters, onFiltersChange, showOrderNoSearch }: OrdersFiltersBarProps) {
   // Sanitize orders before computing unique values
   const { validOrders } = sanitizeOrders(orders);
   
-  // Use shared formatter to get unique karigar names - this ensures dropdown values match filter comparison
   const uniqueKarigars = Array.from(
-    new Set(validOrders.map((o) => formatKarigarName(o.karigarName)))
+    new Set(validOrders.map(o => formatKarigarName(o.karigarName)))
   ).sort();
 
   const uniqueStatuses = Array.from(
-    new Set(validOrders.map((o) => o.status))
+    new Set(validOrders.map(o => o.status))
   ).sort();
 
-  const hasActiveFilters = filters.karigar || filters.dateFrom || filters.dateTo || filters.coOnly || filters.status || (filters.orderNoQuery && filters.orderNoQuery.length > 0);
+  const hasActiveFilters = 
+    filters.karigar !== '' || 
+    filters.status !== '' || 
+    filters.dateFrom !== null || 
+    filters.dateTo !== null || 
+    filters.coFilter ||
+    filters.rbFilter ||
+    (filters.orderNoQuery && filters.orderNoQuery !== '');
 
   const clearFilters = () => {
     onFiltersChange({
       karigar: '',
+      status: '',
       dateFrom: null,
       dateTo: null,
-      coOnly: false,
-      status: '',
+      coFilter: false,
+      rbFilter: false,
       orderNoQuery: '',
     });
   };
 
-  // Convert internal filter state to Select value
-  const selectKarigarValue = filters.karigar === '' ? ALL_KARIGARS_SENTINEL : filters.karigar;
-  const selectStatusValue = filters.status === '' ? ALL_STATUS_SENTINEL : filters.status;
-
-  // Convert Select value to internal filter state
-  const handleKarigarChange = (value: string) => {
-    const internalValue = value === ALL_KARIGARS_SENTINEL ? '' : value;
-    onFiltersChange({ ...filters, karigar: internalValue });
-  };
-
-  const handleStatusChange = (value: string) => {
-    const internalValue = value === ALL_STATUS_SENTINEL ? '' : value;
-    onFiltersChange({ ...filters, status: internalValue });
-  };
-
   return (
-    <div className="flex flex-wrap gap-4 items-center mt-4">
-      {showOrderNoSearch && (
-        <div className="flex-1 min-w-[200px]">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search order number..."
-              value={filters.orderNoQuery || ''}
-              onChange={(e) => onFiltersChange({ ...filters, orderNoQuery: e.target.value })}
-              className="pl-9"
-            />
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-4">
+        {showOrderNoSearch && (
+          <div className="flex-1 min-w-[200px]">
+            <Label htmlFor="order-search" className="text-xs text-muted-foreground mb-1 block">
+              Search Order No
+            </Label>
+            <div className="relative">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="order-search"
+                placeholder="Search by order number..."
+                value={filters.orderNoQuery || ''}
+                onChange={(e) => onFiltersChange({ ...filters, orderNoQuery: e.target.value })}
+                className="pl-8"
+              />
+            </div>
           </div>
+        )}
+
+        <div className="w-[180px]">
+          <Label htmlFor="karigar-filter" className="text-xs text-muted-foreground mb-1 block">
+            Karigar
+          </Label>
+          <Select
+            value={filters.karigar || ALL_KARIGARS_SENTINEL}
+            onValueChange={(value) => 
+              onFiltersChange({ 
+                ...filters, 
+                karigar: value === ALL_KARIGARS_SENTINEL ? '' : value 
+              })
+            }
+          >
+            <SelectTrigger id="karigar-filter">
+              <SelectValue placeholder="All Karigars" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL_KARIGARS_SENTINEL}>All Karigars</SelectItem>
+              {uniqueKarigars.map(karigar => (
+                <SelectItem key={karigar} value={karigar}>
+                  {karigar}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-      )}
 
-      <div className="flex-1 min-w-[200px]">
-        <Select value={selectKarigarValue} onValueChange={handleKarigarChange}>
-          <SelectTrigger>
-            <SelectValue placeholder="All Karigars" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL_KARIGARS_SENTINEL}>All Karigars</SelectItem>
-            {uniqueKarigars.map((karigar) => (
-              <SelectItem key={karigar} value={karigar}>
-                {karigar}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="w-[180px]">
+          <Label htmlFor="status-filter" className="text-xs text-muted-foreground mb-1 block">
+            Status
+          </Label>
+          <Select
+            value={filters.status || ALL_STATUS_SENTINEL}
+            onValueChange={(value) => 
+              onFiltersChange({ 
+                ...filters, 
+                status: value === ALL_STATUS_SENTINEL ? '' : value 
+              })
+            }
+          >
+            <SelectTrigger id="status-filter">
+              <SelectValue placeholder="All Statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL_STATUS_SENTINEL}>All Statuses</SelectItem>
+              {uniqueStatuses.map(status => (
+                <SelectItem key={status} value={status}>
+                  {status}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="w-[180px]">
+          <Label htmlFor="date-from" className="text-xs text-muted-foreground mb-1 block">
+            Date From
+          </Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                id="date-from"
+                variant="outline"
+                className="w-full justify-start text-left font-normal"
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {filters.dateFrom ? format(filters.dateFrom, 'PP') : 'Pick a date'}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={filters.dateFrom || undefined}
+                onSelect={(date) => onFiltersChange({ ...filters, dateFrom: date || null })}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+
+        <div className="w-[180px]">
+          <Label htmlFor="date-to" className="text-xs text-muted-foreground mb-1 block">
+            Date To
+          </Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                id="date-to"
+                variant="outline"
+                className="w-full justify-start text-left font-normal"
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {filters.dateTo ? format(filters.dateTo, 'PP') : 'Pick a date'}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={filters.dateTo || undefined}
+                onSelect={(date) => onFiltersChange({ ...filters, dateTo: date || null })}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
       </div>
 
-      <div className="flex-1 min-w-[200px]">
-        <Select value={selectStatusValue} onValueChange={handleStatusChange}>
-          <SelectTrigger>
-            <SelectValue placeholder="All Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL_STATUS_SENTINEL}>All Status</SelectItem>
-            {uniqueStatuses.map((status) => (
-              <SelectItem key={status} value={status}>
-                {status}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button variant="outline" className="min-w-[200px] justify-start">
-            <CalendarIcon className="mr-2 h-4 w-4" />
-            {filters.dateFrom ? format(filters.dateFrom, 'MMM d, yyyy') : 'From date'}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
-          <Calendar
-            mode="single"
-            selected={filters.dateFrom || undefined}
-            onSelect={(date) => onFiltersChange({ ...filters, dateFrom: date || null })}
+      <div className="flex flex-wrap items-center gap-6">
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="co-filter"
+            checked={filters.coFilter}
+            onCheckedChange={(checked) => onFiltersChange({ ...filters, coFilter: checked })}
           />
-        </PopoverContent>
-      </Popover>
+          <Label htmlFor="co-filter" className="text-sm font-medium cursor-pointer">
+            CO Only
+          </Label>
+        </div>
 
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button variant="outline" className="min-w-[200px] justify-start">
-            <CalendarIcon className="mr-2 h-4 w-4" />
-            {filters.dateTo ? format(filters.dateTo, 'MMM d, yyyy') : 'To date'}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
-          <Calendar
-            mode="single"
-            selected={filters.dateTo || undefined}
-            onSelect={(date) => onFiltersChange({ ...filters, dateTo: date || null })}
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="rb-filter"
+            checked={filters.rbFilter}
+            onCheckedChange={(checked) => onFiltersChange({ ...filters, rbFilter: checked })}
           />
-        </PopoverContent>
-      </Popover>
+          <Label htmlFor="rb-filter" className="text-sm font-medium cursor-pointer">
+            RB Only
+          </Label>
+        </div>
 
-      <div className="flex items-center gap-2">
-        <Switch
-          id="co-only"
-          checked={filters.coOnly}
-          onCheckedChange={(checked) => onFiltersChange({ ...filters, coOnly: checked })}
-        />
-        <Label htmlFor="co-only" className="cursor-pointer">CO Only</Label>
+        {hasActiveFilters && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearFilters}
+            className="h-8"
+          >
+            <X className="mr-2 h-4 w-4" />
+            Clear Filters
+          </Button>
+        )}
       </div>
-
-      {hasActiveFilters && (
-        <Button variant="ghost" size="sm" onClick={clearFilters}>
-          <X className="mr-2 h-4 w-4" />
-          Clear Filters
-        </Button>
-      )}
     </div>
   );
 }

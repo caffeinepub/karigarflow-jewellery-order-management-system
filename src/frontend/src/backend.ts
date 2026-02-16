@@ -222,6 +222,7 @@ export interface backendInterface {
     isUserBlocked(user: Principal): Promise<boolean>;
     listApprovals(): Promise<Array<UserApprovalInfo>>;
     listUserProfiles(): Promise<Array<UserProfile>>;
+    markOrderAsDelivered(orderNo: string): Promise<void>;
     processPartialFulfillment(request: PartialFulfillmentRequest): Promise<void>;
     requestApproval(): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
@@ -612,6 +613,20 @@ export class Backend implements backendInterface {
         } else {
             const result = await this.actor.listUserProfiles();
             return from_candid_vec_n35(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async markOrderAsDelivered(arg0: string): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.markOrderAsDelivered(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.markOrderAsDelivered(arg0);
+            return result;
         }
     }
     async processPartialFulfillment(arg0: PartialFulfillmentRequest): Promise<void> {

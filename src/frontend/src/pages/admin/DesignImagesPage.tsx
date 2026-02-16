@@ -14,9 +14,9 @@ import { ExternalBlob } from '../../backend';
 import type { DesignImageMapping } from '../../backend';
 
 interface ParsedRow {
+  slNo: string;
   designCode: string;
-  genericName: string;
-  imageUrl: string;
+  imageBytes: Uint8Array;
   isValid: boolean;
   error?: string;
 }
@@ -86,8 +86,8 @@ export function DesignImagesPage() {
       // Convert ParsedRow[] to DesignImageMapping[]
       const mappings: DesignImageMapping[] = validRows.map(row => ({
         designCode: row.designCode,
-        genericName: row.genericName,
-        image: ExternalBlob.fromURL(row.imageUrl),
+        genericName: row.designCode, // Use design code as generic name since we don't have it
+        image: ExternalBlob.fromBytes(new Uint8Array(row.imageBytes.buffer) as Uint8Array<ArrayBuffer>),
         createdBy: identity.getPrincipal(),
         createdAt: BigInt(Date.now() * 1_000_000), // Convert to nanoseconds
       }));
@@ -121,10 +121,18 @@ export function DesignImagesPage() {
         <CardHeader>
           <CardTitle>Import Design Images</CardTitle>
           <CardDescription>
-            Upload an Excel file (.xlsx) with columns: Design Code, Generic Name, and Image URL
+            Upload an Excel file (.xlsx) with exactly 3 columns: Sl no, Design code, and Image (embedded in Excel)
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              The Excel file must contain exactly 3 columns: <strong>Sl no</strong>, <strong>Design code</strong>, and <strong>Image</strong>. 
+              Images must be embedded directly in the Excel file (not URLs). The app will extract the embedded images from the Excel file.
+            </AlertDescription>
+          </Alert>
+
           <div className="space-y-2">
             <Label htmlFor="file-upload">Excel File</Label>
             <Input
@@ -200,9 +208,9 @@ export function DesignImagesPage() {
                   <thead className="bg-muted sticky top-0">
                     <tr>
                       <th className="px-4 py-2 text-left">Status</th>
+                      <th className="px-4 py-2 text-left">Sl No</th>
                       <th className="px-4 py-2 text-left">Design Code</th>
-                      <th className="px-4 py-2 text-left">Generic Name</th>
-                      <th className="px-4 py-2 text-left">Image URL</th>
+                      <th className="px-4 py-2 text-left">Image</th>
                       <th className="px-4 py-2 text-left">Error</th>
                     </tr>
                   </thead>
@@ -219,9 +227,15 @@ export function DesignImagesPage() {
                             <AlertCircle className="h-4 w-4 text-red-600" />
                           )}
                         </td>
+                        <td className="px-4 py-2">{row.slNo}</td>
                         <td className="px-4 py-2 font-mono">{row.designCode}</td>
-                        <td className="px-4 py-2">{row.genericName}</td>
-                        <td className="px-4 py-2 truncate max-w-xs">{row.imageUrl}</td>
+                        <td className="px-4 py-2">
+                          {row.isValid ? (
+                            <span className="text-green-600">✓ Image found ({(row.imageBytes.length / 1024).toFixed(1)} KB)</span>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </td>
                         <td className="px-4 py-2 text-red-600">{row.error}</td>
                       </tr>
                     ))}

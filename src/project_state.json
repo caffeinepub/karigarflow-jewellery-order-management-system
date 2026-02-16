@@ -1,40 +1,61 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "New project",
-  "architectural_notes": [],
-  "known_issues": [
-    "Admin portal crashes with the same error when opening (regression persists after deployment)."
+  "summary": "Admin/Karigar order management portal with role-based order status updates and enhanced admin dashboard UI styling.",
+  "architectural_notes": [
+    "Role-based authorization: only Karigar portal can mark orders as Delivered; Admin/Staff should not have this permission."
   ],
-  "isFixRequest": true,
+  "known_issues": [],
+  "isFixRequest": false,
   "existing_features": [
     {
-      "id": "feature-identify-and-fix-the-runtime-crash-that-occurs-when-opening-the-admin-portal-route-admin-ensuring-the-page-renders-successfully-even-on-a-fresh-load-with-no-dialogs-opened",
-      "title": "Identify and fix the runtime crash that occurs when opening the admin portal route (/admin), ensuring the page renders successfully even on a fresh load with no dialogs opened.",
-      "reqIds": [
-        "REQ-1"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-remove-all-unsafe-non-null-assertions-and-or-unconditional-rendering-patterns-that-can-crash-the-admin-dashboard-during-initial-render-especially-where-components-receive-props-derived-from-nullable-state-e-g-rbeditorder-ensure-dialogs-and-dependent-ui-render-safely-when-their-backing-state-is-null-empty-and-only-mount-when-needed",
-      "title": "Remove all unsafe non-null assertions and/or unconditional rendering patterns that can crash the Admin Dashboard during initial render, especially where components receive props derived from nullable state (e.g., rbEditOrder). Ensure dialogs and dependent UI render safely when their backing state is null/empty and only mount when needed.",
+      "id": "feature-update-the-staff-and-admin-frontends-so-there-is-no-ui-action-that-allows-marking-orders-as-delivered-any-existing-staff-admin-mark-as-delivered-controls-must-be-removed-or-disabled-to-reflect-the-authorization-rule",
+      "title": "Update the Staff and Admin frontends so there is no UI action that allows marking orders as \"delivered\"; any existing Staff/Admin \"Mark as Delivered\" controls must be removed or disabled to reflect the authorization rule.",
       "reqIds": [
         "REQ-2"
       ],
       "version": 1
     },
     {
-      "id": "feature-add-an-explicit-user-friendly-non-crashing-error-state-on-the-admin-dashboard-for-unexpected-data-shape-issues-e-g-orders-missing-required-fields-so-that-the-portal-stays-usable-and-provides-a-clear-recovery-path-such-as-clearing-local-cache-and-retrying",
-      "title": "Add an explicit, user-friendly, non-crashing error state on the Admin Dashboard for unexpected data-shape issues (e.g., orders missing required fields) so that the portal stays usable and provides a clear recovery path (such as clearing local cache and retrying).",
+      "id": "feature-in-admin-dashboard-delivered-tab-add-the-same-bulk-action-pattern-available-in-total-orders-selection-action-button-to-change-selected-delivered-orders-to-status-given-to-hallmark",
+      "title": "In Admin Dashboard → Delivered tab, add the same bulk action pattern available in Total Orders (selection + action button) to change selected delivered orders to status \"given_to_hallmark\".",
       "reqIds": [
         "REQ-3"
       ],
       "version": 1
+    },
+    {
+      "id": "feature-apply-color-styling-on-the-admin-dashboard-metric-cards-for-orders-in-view-customer-orders-active-karigars-and-total-weight-and-add-color-styling-to-the-tab-indicator-slider-bar-for-the-main-admin-dashboard-tabs-from-total-orders-to-karigars",
+      "title": "Apply color styling on the Admin dashboard metric cards for “Orders in View”, “Customer Orders”, “Active Karigars”, and “Total Weight”, and add color styling to the tab indicator/slider bar for the main Admin dashboard tabs (from Total Orders to Karigars).",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "version": 1
     }
   ],
-  "new_feature_requests": [],
-  "projectName": "KarigarFlow",
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "Add action in Admin portal Delivered tab to change order status to 'Given for hallmark' (similar to Total Orders tab)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Add color styling to Admin dashboard tabs (Orders in View, Customer Orders, Active Karigars, Total Weight) and the slide bar/indicator across tabs from Total Orders to Karigars",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Enforce that only the Karigar portal (users with app role #Karigar) can change an order’s status to \"delivered\"; prevent Admin and Staff users from marking orders as delivered via any backend method.",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "status": "pending"
+    }
+  ],
+  "projectName": "Karigar Orders",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

@@ -1,65 +1,74 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-16T18:52:41.483Z",
+  "generatedAt": "2026-02-16T20:10:49.468Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 3,
+    "total": 4,
     "implemented": 3,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Identify and fix the runtime crash that occurs when opening the admin portal route (/admin), ensuring the page renders successfully even on a fresh load with no dialogs opened.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/pages/admin/AdminDashboardPage.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/pages/admin/AdminDashboardPage.tsx"
-        ]
+        "summary": "Enforce that only the Karigar portal (users with app role #Karigar) can change an order’s status to \"delivered\"; prevent Admin and Staff users from marking orders as delivered via any backend method.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
       },
       {
         "id": "REQ-2",
-        "summary": "Remove all unsafe non-null assertions and/or unconditional rendering patterns that can crash the Admin Dashboard during initial render, especially where components receive props derived from nullable state (e.g., rbEditOrder). Ensure dialogs and dependent UI render safely when their backing state is null/empty and only mount when needed.",
+        "summary": "Update the Staff and Admin frontends so there is no UI action that allows marking orders as \"delivered\"; any existing Staff/Admin \"Mark as Delivered\" controls must be removed or disabled to reflect the authorization rule.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/pages/admin/AdminDashboardPage.tsx",
-          "frontend/src/components/orders/RbSuppliedQtyEditDialog.tsx",
-          "frontend/src/components/orders/PartialFulfillmentDialog.tsx"
+          "frontend/src/pages/staff/StaffDashboardPage.tsx",
+          "frontend/src/pages/admin/AdminDashboardPage.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/pages/admin/AdminDashboardPage.tsx",
-          "frontend/src/components/orders/RbSuppliedQtyEditDialog.tsx",
-          "frontend/src/components/orders/PartialFulfillmentDialog.tsx"
+          "frontend/src/pages/staff/StaffDashboardPage.tsx",
+          "frontend/src/pages/admin/AdminDashboardPage.tsx"
         ]
       },
       {
         "id": "REQ-3",
-        "summary": "Add an explicit, user-friendly, non-crashing error state on the Admin Dashboard for unexpected data-shape issues (e.g., orders missing required fields) so that the portal stays usable and provides a clear recovery path (such as clearing local cache and retrying).",
+        "summary": "In Admin Dashboard → Delivered tab, add the same bulk action pattern available in Total Orders (selection + action button) to change selected delivered orders to status \"given_to_hallmark\".",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/admin/AdminDashboardPage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/admin/AdminDashboardPage.tsx"
+        ]
+      },
+      {
+        "id": "REQ-4",
+        "summary": "Apply color styling on the Admin dashboard metric cards for “Orders in View”, “Customer Orders”, “Active Karigars”, and “Total Weight”, and add color styling to the tab indicator/slider bar for the main Admin dashboard tabs (from Total Orders to Karigars).",
         "status": "implemented",
         "plannedFiles": [
           "frontend/src/pages/admin/AdminDashboardPage.tsx",
-          "frontend/src/components/orders/OrdersDataWarningBanner.tsx"
+          "frontend/src/index.css"
         ],
         "matchedFiles": [
           "frontend/src/pages/admin/AdminDashboardPage.tsx",
-          "frontend/src/components/orders/OrdersDataWarningBanner.tsx"
+          "frontend/src/index.css"
         ]
       }
     ]
   },
   "changedFiles": [
+    "backend/main.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/components/orders/OrdersDataWarningBanner.tsx",
-    "frontend/src/components/orders/PartialFulfillmentDialog.tsx",
-    "frontend/src/components/orders/RbSuppliedQtyEditDialog.tsx",
+    "frontend/src/backend.d.ts",
+    "frontend/src/backend.ts",
+    "frontend/src/declarations/backend.did.d.ts",
+    "frontend/src/declarations/backend.did.js",
+    "frontend/src/index.css",
     "frontend/src/pages/admin/AdminDashboardPage.tsx",
+    "frontend/src/pages/staff/StaffDashboardPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

@@ -129,6 +129,7 @@ export interface backendInterface {
     isUserBlocked(user: Principal): Promise<boolean>;
     listApprovals(): Promise<Array<UserApprovalInfo>>;
     listUserProfiles(): Promise<Array<UserProfile>>;
+    markOrderAsDelivered(orderNo: string): Promise<void>;
     processPartialFulfillment(request: PartialFulfillmentRequest): Promise<void>;
     requestApproval(): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;

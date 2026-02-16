@@ -16,7 +16,6 @@ import UserApproval "user-approval/approval";
 import BlobStorage "blob-storage/Storage";
 import MixinStorage "blob-storage/Mixin";
 
-
 actor {
   // Types
   type PersistentOrder = {
@@ -374,6 +373,11 @@ actor {
     };
     checkBlockedUser(caller);
 
+    // Prevent Admin and Staff from marking orders as delivered
+    if (bulkUpdate.newStatus == "delivered") {
+      Runtime.trap("Unauthorized: Only Karigar users can mark orders as delivered");
+    };
+
     for (orderNo in bulkUpdate.orderNos.values()) {
       switch (ordersMap.get(orderNo)) {
         case (?order) {
@@ -383,6 +387,68 @@ actor {
           ordersMap.add(orderNo, updatedOrder);
         };
         case (null) { Runtime.trap("Order with orderNo " # orderNo # " not found") };
+      };
+    };
+
+    recordActivity(caller, "bulkUpdateOrderStatus", "Bulk status update to " # bulkUpdate.newStatus);
+  };
+
+  // New function: Only Karigar users can mark orders as delivered
+  public shared ({ caller }) func markOrderAsDelivered(orderNo : Text) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only authenticated users can mark orders as delivered");
+    };
+
+    checkBlockedUser(caller);
+
+    // Verify caller is a Karigar user
+    switch (getAppRole(caller)) {
+      case (?#Karigar) {
+        // Karigar must be approved
+        if (not AccessControl.isAdmin(accessControlState, caller) and not UserApproval.isApproved(approvalState, caller)) {
+          Runtime.trap("Unauthorized: Karigar users must be approved to mark orders as delivered");
+        };
+      };
+      case (?#Admin) {
+        Runtime.trap("Unauthorized: Only Karigar users can mark orders as delivered");
+      };
+      case (?#Staff) {
+        Runtime.trap("Unauthorized: Only Karigar users can mark orders as delivered");
+      };
+      case null {
+        Runtime.trap("Unauthorized: User profile not found");
+      };
+    };
+
+    // Get the order
+    switch (ordersMap.get(orderNo)) {
+      case (?order) {
+        // Verify the order belongs to this Karigar
+        switch (getKarigarName(caller)) {
+          case (?karigarName) {
+            if (order.karigarName != karigarName) {
+              Runtime.trap("Unauthorized: Can only mark your own orders as delivered");
+            };
+          };
+          case null {
+            Runtime.trap("Karigar profile missing karigarName");
+          };
+        };
+
+        // Update order status to delivered
+        let updatedOrder : PersistentOrder = {
+          order with status = "delivered";
+        };
+        ordersMap.add(orderNo, updatedOrder);
+
+        recordActivity(
+          caller,
+          "markOrderAsDelivered",
+          "Order " # orderNo # " marked as delivered by Karigar"
+        );
+      };
+      case null {
+        Runtime.trap("Order with orderNo " # orderNo # " not found");
       };
     };
   };
@@ -430,7 +496,7 @@ actor {
     switch (ordersMap.get(orderNo)) {
       case (?order) {
         let updatedOrder : PersistentOrder = {
-          order with status = newStatus
+          order with status = newStatus;
         };
         ordersMap.add(orderNo, updatedOrder);
 

@@ -1,27 +1,42 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-16T18:52:41.480Z",
-  "summary": "Diff adds defensive guards around admin dialogs, introduces an orders data-quality warning banner, and sanitizes orders before use in AdminDashboardPage. However, the diff evidence is insufficient to पुष्टि that all unsafe non-null assertions/unconditional dialog mounts (e.g., passing rbEditOrder! when null) were removed across the Admin Dashboard initial render path.",
+  "generatedAt": "2026-02-16T20:10:49.464Z",
+  "summary": "Diff implements Admin dashboard styling (tab indicator + metric card accents) and appears to add a Delivered-tab bulk action to move orders to \"given_to_hallmark\". Staff dashboard code was modified and the change log claims \"Mark as Delivered\" was removed there. Backend authorization changes for restricting \"delivered\" updates to Karigar cannot be confirmed from the truncated backend diff excerpt.",
   "missing_requirements": [
     {
-      "id": "REQ-2",
-      "requirement": "Remove all unsafe non-null assertions and/or unconditional rendering patterns that can crash the Admin Dashboard during initial render (e.g., eliminate passing rbEditOrder! when rbEditOrder is null) and ensure dialogs only mount/render with valid backing state.",
-      "reason": "While dialog components now defensively return null when given invalid props, the diff excerpt for AdminDashboardPage is truncated before showing how these dialogs are instantiated. There is no explicit diff evidence that the dashboard stopped passing nullable state via non-null assertions (e.g., rbEditOrder!) or that dialogs are conditionally mounted only when backing state is non-null.",
+      "id": "REQ-1",
+      "requirement": "Enforce that only users with app role #Karigar can change an order’s status to \"delivered\"; Admin/Staff attempts must be rejected with an authorization error; Karigar flow must only allow setting \"delivered\" (not other statuses).",
+      "reason": "backend/main.mo is truncated and the provided excerpt only shows helper functions (e.g., role detection) but does not show any authorization checks inside the order-status update methods (single update or bulk update) that would explicitly reject Admin/Staff \"delivered\" transitions and constrain Karigar to only \"delivered\".",
       "evidence": [
-        "frontend/src/pages/admin/AdminDashboardPage.tsx",
-        "frontend/src/components/orders/RbSuppliedQtyEditDialog.tsx"
+        "backend/main.mo (truncated excerpt does not include the status update methods / checks)"
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "requirement": "Remove/disable any Admin UI action that marks orders as \"delivered\" (and if visible, it must be disabled with an English explanation and must not call the backend).",
+      "reason": "AdminDashboardPage.tsx is truncated and the diff summary does not explicitly show removal/disablement of any Admin \"Mark as Delivered\" control; therefore this cannot be verified from the provided evidence.",
+      "evidence": [
+        "frontend/src/pages/admin/AdminDashboardPage.tsx (truncated)"
       ]
     }
   ],
-  "hallucinated_features": [],
-  "confidence": 0.63,
+  "hallucinated_features": [
+    {
+      "description": "Added project tracking entries AR-1..AR-6 in project_state.json describing the same requests as \"pending\".",
+      "reason": "The BuildRequest does not ask to update or maintain project_state.json/new_feature_requests metadata.",
+      "evidence": [
+        "project_state.json"
+      ]
+    }
+  ],
+  "confidence": 0.54,
   "changed_files": [
+    "backend/main.mo",
     "frontend-file-summaries.txt",
-    "frontend/src/components/orders/OrdersDataWarningBanner.tsx",
-    "frontend/src/components/orders/PartialFulfillmentDialog.tsx",
-    "frontend/src/components/orders/RbSuppliedQtyEditDialog.tsx",
+    "frontend/src/index.css",
     "frontend/src/pages/admin/AdminDashboardPage.tsx",
+    "frontend/src/pages/staff/StaffDashboardPage.tsx",
     "project_state.json"
   ]
 }
