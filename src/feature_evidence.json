@@ -2,10 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-ensure-admin-and-staff-portals-reflect-successful-hallmark-updates-by-refreshing-orders-and-removing-newly-updated-given-to-hallmark-orders-from-the-total-orders-list-after-marking-as-hallmark",
-      "featureTitle": "Ensure Admin and Staff portals reflect successful hallmark updates by refreshing orders and removing newly-updated \"given_to_hallmark\" orders from the \"Total Orders\" list after marking as hallmark.",
+      "featureId": "feature-identify-and-fix-the-runtime-crash-that-occurs-when-opening-the-admin-portal-route-admin-ensuring-the-page-renders-successfully-even-on-a-fresh-load-with-no-dialogs-opened",
+      "featureTitle": "Identify and fix the runtime crash that occurs when opening the admin portal route (/admin), ensuring the page renders successfully even on a fresh load with no dialogs opened.",
       "files": [
-        "frontend/src/hooks/useQueries.ts"
+        "frontend/src/pages/admin/AdminDashboardPage.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -14,7 +14,53 @@
         "build-template-react@1.0.0",
         "initial-app@1.0.0",
         "github-export-icp-cli@1.0.0",
-        "user-approval@3.0.0"
+        "user-approval@3.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-1"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-remove-all-unsafe-non-null-assertions-and-or-unconditional-rendering-patterns-that-can-crash-the-admin-dashboard-during-initial-render-especially-where-components-receive-props-derived-from-nullable-state-e-g-rbeditorder-ensure-dialogs-and-dependent-ui-render-safely-when-their-backing-state-is-null-empty-and-only-mount-when-needed",
+      "featureTitle": "Remove all unsafe non-null assertions and/or unconditional rendering patterns that can crash the Admin Dashboard during initial render, especially where components receive props derived from nullable state (e.g., rbEditOrder). Ensure dialogs and dependent UI render safely when their backing state is null/empty and only mount when needed.",
+      "files": [
+        "frontend/src/components/orders/PartialFulfillmentDialog.tsx",
+        "frontend/src/components/orders/RbSuppliedQtyEditDialog.tsx",
+        "frontend/src/pages/admin/AdminDashboardPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "user-approval@3.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-2"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-an-explicit-user-friendly-non-crashing-error-state-on-the-admin-dashboard-for-unexpected-data-shape-issues-e-g-orders-missing-required-fields-so-that-the-portal-stays-usable-and-provides-a-clear-recovery-path-such-as-clearing-local-cache-and-retrying",
+      "featureTitle": "Add an explicit, user-friendly, non-crashing error state on the Admin Dashboard for unexpected data-shape issues (e.g., orders missing required fields) so that the portal stays usable and provides a clear recovery path (such as clearing local cache and retrying).",
+      "files": [
+        "frontend/src/components/orders/OrdersDataWarningBanner.tsx",
+        "frontend/src/pages/admin/AdminDashboardPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "user-approval@3.0.0",
+        "blob-storage@4.0.0"
       ],
       "testIds": [
         "REQ-3"

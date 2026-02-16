@@ -1,56 +1,65 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-16T11:59:33.640Z",
+  "generatedAt": "2026-02-16T18:52:41.483Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
     "total": 3,
-    "implemented": 1,
+    "implemented": 3,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Implement backend support for bulk order status updates so that the Admin/Staff \"Mark as Hallmark\" action can update selected order lines to status \"given_to_hallmark\".",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
+        "summary": "Identify and fix the runtime crash that occurs when opening the admin portal route (/admin), ensuring the page renders successfully even on a fresh load with no dialogs opened.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/admin/AdminDashboardPage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/admin/AdminDashboardPage.tsx"
+        ]
       },
       {
         "id": "REQ-2",
-        "summary": "Fix backend authorization/approval logic so Staff users can fetch orders in the staff portal (getOrders) without being blocked by the approval gate immediately after profile creation.",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
+        "summary": "Remove all unsafe non-null assertions and/or unconditional rendering patterns that can crash the Admin Dashboard during initial render, especially where components receive props derived from nullable state (e.g., rbEditOrder). Ensure dialogs and dependent UI render safely when their backing state is null/empty and only mount when needed.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/admin/AdminDashboardPage.tsx",
+          "frontend/src/components/orders/RbSuppliedQtyEditDialog.tsx",
+          "frontend/src/components/orders/PartialFulfillmentDialog.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/admin/AdminDashboardPage.tsx",
+          "frontend/src/components/orders/RbSuppliedQtyEditDialog.tsx",
+          "frontend/src/components/orders/PartialFulfillmentDialog.tsx"
+        ]
       },
       {
         "id": "REQ-3",
-        "summary": "Ensure Admin and Staff portals reflect successful hallmark updates by refreshing orders and removing newly-updated \"given_to_hallmark\" orders from the \"Total Orders\" list after marking as hallmark.",
+        "summary": "Add an explicit, user-friendly, non-crashing error state on the Admin Dashboard for unexpected data-shape issues (e.g., orders missing required fields) so that the portal stays usable and provides a clear recovery path (such as clearing local cache and retrying).",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/hooks/useQueries.ts",
           "frontend/src/pages/admin/AdminDashboardPage.tsx",
-          "frontend/src/pages/staff/StaffDashboardPage.tsx"
+          "frontend/src/components/orders/OrdersDataWarningBanner.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/hooks/useQueries.ts"
+          "frontend/src/pages/admin/AdminDashboardPage.tsx",
+          "frontend/src/components/orders/OrdersDataWarningBanner.tsx"
         ]
       }
     ]
   },
   "changedFiles": [
-    "backend/main.mo",
-    "backend/migration.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/backend.d.ts",
-    "frontend/src/backend.ts",
-    "frontend/src/declarations/backend.did.d.ts",
-    "frontend/src/declarations/backend.did.js",
-    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/components/orders/OrdersDataWarningBanner.tsx",
+    "frontend/src/components/orders/PartialFulfillmentDialog.tsx",
+    "frontend/src/components/orders/RbSuppliedQtyEditDialog.tsx",
+    "frontend/src/pages/admin/AdminDashboardPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

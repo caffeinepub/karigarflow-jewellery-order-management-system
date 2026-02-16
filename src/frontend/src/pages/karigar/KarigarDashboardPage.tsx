@@ -1,166 +1,229 @@
-import { useMemo, useState } from 'react';
-import { useGetOrders, useGetCallerUserProfile, useBulkUpdateOrderStatus } from '../../hooks/useQueries';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Loader2, AlertCircle } from 'lucide-react';
+import { useGetActiveOrdersForKarigar, useIsCallerApproved, useRequestApproval, useBulkUpdateOrderStatus } from '../../hooks/useQueries';
 import { OrdersTable } from '../../components/orders/OrdersTable';
-import { InlineErrorState } from '../../components/errors/InlineErrorState';
-import { Package, Weight, Hash, CheckCircle, AlertCircle } from 'lucide-react';
-import { deriveMetrics } from '../../lib/orders/deriveMetrics';
+import { KarigarExportControls } from '../../components/exports/KarigarExportControls';
+import { KarigarOrderViewDialog } from '../../components/karigar/KarigarOrderViewDialog';
 import { sortOrdersDesignWise } from '../../lib/orders/sortOrdersDesignWise';
+import { downloadKarigarPDF, downloadKarigarJPEG } from '../../lib/exports/karigarOrdersDownloads';
+import { useCurrentUser } from '../../hooks/useCurrentUser';
 import { toast } from 'sonner';
+import type { PersistentOrder } from '../../backend';
 
 export function KarigarDashboardPage() {
-  const { data: orders = [], isLoading: ordersLoading, error: ordersError, refetch } = useGetOrders();
-  const { data: userProfile, isLoading: profileLoading } = useGetCallerUserProfile();
+  const { userProfile } = useCurrentUser();
+  const { data: isApproved, isLoading: checkingApproval } = useIsCallerApproved();
+  const { data: orders, isLoading: loadingOrders, isError, error } = useGetActiveOrdersForKarigar();
+  const requestApprovalMutation = useRequestApproval();
   const bulkUpdateMutation = useBulkUpdateOrderStatus();
-  
+
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
+  const [viewOrder, setViewOrder] = useState<PersistentOrder | null>(null);
 
-  // Filter out delivered orders from the default view
-  const activeOrders = useMemo(() => 
-    orders.filter(o => o.status !== 'delivered'),
-    [orders]
-  );
-
-  const sortedOrders = useMemo(() => sortOrdersDesignWise(activeOrders), [activeOrders]);
-  const metrics = useMemo(() => deriveMetrics(sortedOrders), [sortedOrders]);
-
-  const handleBulkMarkAsDelivered = async () => {
-    if (selectedOrders.size === 0) {
-      toast.error('Please select at least one order');
-      return;
+  const handleRequestApproval = async () => {
+    try {
+      await requestApprovalMutation.mutateAsync();
+      toast.success('Approval request submitted');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to request approval');
     }
+  };
+
+  const handleMarkAsDelivered = async () => {
+    if (selectedOrders.size === 0) return;
 
     try {
       await bulkUpdateMutation.mutateAsync({
         orderNos: Array.from(selectedOrders),
         newStatus: 'delivered',
       });
-      toast.success(`${selectedOrders.size} order(s) marked as delivered`);
+      toast.success(`Marked ${selectedOrders.size} orders as delivered`);
       setSelectedOrders(new Set());
-    } catch (error) {
-      console.error('Failed to update orders:', error);
-      toast.error('Failed to update order status');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update orders');
     }
   };
 
-  // Check if karigarName is missing
-  if (!profileLoading && userProfile && !userProfile.karigarName) {
+  const handleExport = async (format: 'pdf' | 'jpeg', filteredOrders: PersistentOrder[], scope: string) => {
+    if (!userProfile?.karigarName) {
+      toast.error('Karigar name not found');
+      return;
+    }
+
+    try {
+      if (format === 'pdf') {
+        downloadKarigarPDF({
+          karigarName: userProfile.karigarName,
+          orders: filteredOrders,
+          dateLabel: scope,
+          exportScope: 'daily',
+        });
+        toast.success('PDF export initiated');
+      } else {
+        await downloadKarigarJPEG({
+          karigarName: userProfile.karigarName,
+          orders: filteredOrders,
+          dateLabel: scope,
+          exportScope: 'daily',
+        });
+        toast.success('JPEG downloaded successfully');
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Export failed');
+    }
+  };
+
+  if (checkingApproval || loadingOrders) {
     return (
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">My Orders</h1>
-          <p className="text-muted-foreground">View and update your assigned orders</p>
+        <h1 className="text-3xl font-bold tracking-tight">My Orders</h1>
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Configuration Required</AlertTitle>
-          <AlertDescription>
-            Your profile is missing a Karigar name. Please contact your administrator to configure your account properly.
-          </AlertDescription>
-        </Alert>
       </div>
     );
   }
 
-  if (ordersError) {
+  if (!isApproved) {
     return (
-      <InlineErrorState
-        title="Failed to load orders"
-        message="Unable to fetch your assigned orders from the backend."
-        onRetry={() => refetch()}
-        error={ordersError}
-      />
+      <div className="space-y-6">
+        <h1 className="text-3xl font-bold tracking-tight">My Orders</h1>
+        <Card>
+          <CardHeader>
+            <CardTitle>Approval Required</CardTitle>
+            <CardDescription>
+              Your account is pending approval from an administrator
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Please request approval to access your orders. An administrator will review your request.
+              </AlertDescription>
+            </Alert>
+            <Button
+              onClick={handleRequestApproval}
+              disabled={requestApprovalMutation.isPending}
+            >
+              {requestApprovalMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Requesting...
+                </>
+              ) : (
+                'Request Approval'
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
+
+  if (isError) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-3xl font-bold tracking-tight">My Orders</h1>
+        <Card>
+          <CardContent className="pt-6">
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                {error instanceof Error ? error.message : 'Failed to load orders'}
+              </AlertDescription>
+            </Alert>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const sortedOrders = sortOrdersDesignWise(orders || []);
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">My Orders</h1>
-        <p className="text-muted-foreground">View and update your assigned orders</p>
+        <h1 className="text-3xl font-bold tracking-tight">My Orders</h1>
+        <p className="text-muted-foreground mt-2">
+          {sortedOrders.length} active orders
+        </p>
       </div>
 
-      {ordersLoading ? (
-        <div className="grid gap-4 md:grid-cols-3">
-          {[...Array(3)].map((_, i) => (
-            <Card key={i}>
-              <CardHeader className="pb-2">
-                <div className="h-4 w-24 bg-muted animate-pulse rounded" />
-              </CardHeader>
-              <CardContent>
-                <div className="h-8 w-16 bg-muted animate-pulse rounded" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <>
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
-                <Package className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{metrics.totalOrders}</div>
-              </CardContent>
-            </Card>
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Summary</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Total Orders:</span>
+                <span className="font-medium">{sortedOrders.length}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Selected:</span>
+                <span className="font-medium">{selectedOrders.size}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">Total Weight</CardTitle>
-                <Weight className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{metrics.totalWeight.toFixed(2)}g</div>
-              </CardContent>
-            </Card>
+        <KarigarExportControls
+          orders={sortedOrders}
+          onExport={handleExport}
+        />
+      </div>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">Total Quantity</CardTitle>
-                <Hash className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{metrics.totalQty}</div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Assigned Orders</CardTitle>
-              {selectedOrders.size > 0 && (
-                <Button 
-                  onClick={handleBulkMarkAsDelivered}
-                  disabled={bulkUpdateMutation.isPending}
-                >
-                  <CheckCircle className="mr-2 h-4 w-4" />
-                  Mark {selectedOrders.size} as Delivered
-                </Button>
-              )}
-            </CardHeader>
-            <CardContent>
-              {sortedOrders.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No active orders assigned to you</p>
-                </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Active Orders</CardTitle>
+          <CardDescription>
+            Select orders to mark as delivered
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex gap-2">
+            <Button
+              onClick={handleMarkAsDelivered}
+              disabled={selectedOrders.size === 0 || bulkUpdateMutation.isPending}
+            >
+              {bulkUpdateMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Updating...
+                </>
               ) : (
-                <OrdersTable 
-                  orders={sortedOrders}
-                  selectionMode
-                  selectedOrders={selectedOrders}
-                  onSelectionChange={setSelectedOrders}
-                  emptyMessage="No active orders assigned to you"
-                />
+                `Mark as Delivered (${selectedOrders.size})`
               )}
-            </CardContent>
-          </Card>
-        </>
-      )}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setSelectedOrders(new Set())}
+              disabled={selectedOrders.size === 0}
+            >
+              Clear Selection
+            </Button>
+          </div>
+          <OrdersTable
+            orders={sortedOrders}
+            selectionMode
+            selectedOrders={selectedOrders}
+            onSelectionChange={setSelectedOrders}
+            karigarMode
+            onViewOrder={setViewOrder}
+          />
+        </CardContent>
+      </Card>
+
+      <KarigarOrderViewDialog
+        order={viewOrder}
+        open={!!viewOrder}
+        onOpenChange={(open) => !open && setViewOrder(null)}
+      />
     </div>
   );
 }

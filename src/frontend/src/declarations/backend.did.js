@@ -8,10 +8,25 @@
 
 import { IDL } from '@icp-sdk/core/candid';
 
+export const _CaffeineStorageCreateCertificateResult = IDL.Record({
+  'method' : IDL.Text,
+  'blob_hash' : IDL.Text,
+});
+export const _CaffeineStorageRefillInformation = IDL.Record({
+  'proposed_top_up_amount' : IDL.Opt(IDL.Nat),
+});
+export const _CaffeineStorageRefillResult = IDL.Record({
+  'success' : IDL.Opt(IDL.Bool),
+  'topped_up_amount' : IDL.Opt(IDL.Nat),
+});
 export const UserRole = IDL.Variant({
   'admin' : IDL.Null,
   'user' : IDL.Null,
   'guest' : IDL.Null,
+});
+export const BlockUserRequest = IDL.Record({
+  'user' : IDL.Principal,
+  'reason' : IDL.Opt(IDL.Text),
 });
 export const BulkOrderUpdate = IDL.Record({
   'orderNos' : IDL.Vec(IDL.Text),
@@ -23,14 +38,10 @@ export const AppRole = IDL.Variant({
   'Karigar' : IDL.Null,
 });
 export const UserProfile = IDL.Record({
+  'isCreated' : IDL.Bool,
   'appRole' : AppRole,
   'name' : IDL.Text,
   'karigarName' : IDL.Opt(IDL.Text),
-});
-export const MasterDesignEntry = IDL.Record({
-  'isActive' : IDL.Bool,
-  'karigarName' : IDL.Text,
-  'genericName' : IDL.Text,
 });
 export const Time = IDL.Int;
 export const PersistentOrder = IDL.Record({
@@ -47,6 +58,25 @@ export const PersistentOrder = IDL.Record({
   'designCode' : IDL.Text,
   'uploadDate' : Time,
   'remarks' : IDL.Text,
+});
+export const ActivityLogEntry = IDL.Record({
+  'action' : IDL.Text,
+  'userId' : IDL.Principal,
+  'timestamp' : Time,
+  'details' : IDL.Text,
+});
+export const ExternalBlob = IDL.Vec(IDL.Nat8);
+export const DesignImageMapping = IDL.Record({
+  'createdAt' : Time,
+  'createdBy' : IDL.Principal,
+  'genericName' : IDL.Text,
+  'image' : ExternalBlob,
+  'designCode' : IDL.Text,
+});
+export const MasterDesignEntry = IDL.Record({
+  'isActive' : IDL.Bool,
+  'karigarName' : IDL.Text,
+  'genericName' : IDL.Text,
 });
 export const UnmappedOrderEntry = IDL.Record({
   'qty' : IDL.Nat,
@@ -73,20 +103,70 @@ export const UserApprovalInfo = IDL.Record({
   'status' : ApprovalStatus,
   'principal' : IDL.Principal,
 });
+export const PartialFulfillmentQty = IDL.Record({
+  'suppliedQty' : IDL.Nat,
+  'orderNo' : IDL.Text,
+});
+export const PartialFulfillmentRequest = IDL.Record({
+  'entries' : IDL.Vec(PartialFulfillmentQty),
+});
+export const UpdateOrderTotalSuppliedRequest = IDL.Record({
+  'orderNo' : IDL.Text,
+  'newTotalSupplied' : IDL.Nat,
+});
 
 export const idlService = IDL.Service({
+  '_caffeineStorageBlobIsLive' : IDL.Func(
+      [IDL.Vec(IDL.Nat8)],
+      [IDL.Bool],
+      ['query'],
+    ),
+  '_caffeineStorageBlobsToDelete' : IDL.Func(
+      [],
+      [IDL.Vec(IDL.Vec(IDL.Nat8))],
+      ['query'],
+    ),
+  '_caffeineStorageConfirmBlobDeletion' : IDL.Func(
+      [IDL.Vec(IDL.Vec(IDL.Nat8))],
+      [],
+      [],
+    ),
+  '_caffeineStorageCreateCertificate' : IDL.Func(
+      [IDL.Text],
+      [_CaffeineStorageCreateCertificateResult],
+      [],
+    ),
+  '_caffeineStorageRefillCashier' : IDL.Func(
+      [IDL.Opt(_CaffeineStorageRefillInformation)],
+      [_CaffeineStorageRefillResult],
+      [],
+    ),
+  '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+  'blockUser' : IDL.Func([BlockUserRequest], [], []),
   'bulkUpdateOrderStatus' : IDL.Func([BulkOrderUpdate], [], []),
   'createUserProfile' : IDL.Func([IDL.Principal, UserProfile], [], []),
+  'getActiveOrdersForKarigar' : IDL.Func([], [IDL.Vec(PersistentOrder)], []),
+  'getActivityLog' : IDL.Func([], [IDL.Vec(ActivityLogEntry)], ['query']),
+  'getAdminDesignImageMappings' : IDL.Func(
+      [],
+      [IDL.Vec(IDL.Tuple(DesignImageMapping, ExternalBlob))],
+      ['query'],
+    ),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+  'getDesignImageMappings' : IDL.Func(
+      [],
+      [IDL.Vec(DesignImageMapping)],
+      ['query'],
+    ),
   'getMasterDesigns' : IDL.Func(
       [],
       [IDL.Vec(IDL.Tuple(IDL.Text, MasterDesignEntry))],
       ['query'],
     ),
-  'getOrders' : IDL.Func([], [IDL.Vec(PersistentOrder)], ['query']),
+  'getOrders' : IDL.Func([], [IDL.Vec(PersistentOrder)], []),
   'getUnmappedDesignCodes' : IDL.Func(
       [],
       [IDL.Vec(UnmappedOrderEntry)],
@@ -100,9 +180,17 @@ export const idlService = IDL.Service({
   'healthCheck' : IDL.Func([], [HealthCheckResponse], ['query']),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'isCallerApproved' : IDL.Func([], [IDL.Bool], ['query']),
+  'isUserBlocked' : IDL.Func([IDL.Principal], [IDL.Bool], ['query']),
   'listApprovals' : IDL.Func([], [IDL.Vec(UserApprovalInfo)], ['query']),
+  'listUserProfiles' : IDL.Func([], [IDL.Vec(UserProfile)], ['query']),
+  'processPartialFulfillment' : IDL.Func([PartialFulfillmentRequest], [], []),
   'requestApproval' : IDL.Func([], [], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+  'saveDesignImageMappings' : IDL.Func(
+      [IDL.Vec(DesignImageMapping)],
+      [IDL.Vec(DesignImageMapping)],
+      [],
+    ),
   'saveMasterDesigns' : IDL.Func(
       [IDL.Vec(IDL.Tuple(IDL.Text, MasterDesignEntry))],
       [],
@@ -110,16 +198,37 @@ export const idlService = IDL.Service({
     ),
   'setActiveFlagForMasterDesign' : IDL.Func([IDL.Text, IDL.Bool], [], []),
   'setApproval' : IDL.Func([IDL.Principal, ApprovalStatus], [], []),
+  'unblockUser' : IDL.Func([IDL.Principal], [], []),
+  'updateOrderTotalSupplied' : IDL.Func(
+      [UpdateOrderTotalSuppliedRequest],
+      [],
+      [],
+    ),
   'uploadParsedOrders' : IDL.Func([IDL.Vec(PersistentOrder)], [], []),
 });
 
 export const idlInitArgs = [];
 
 export const idlFactory = ({ IDL }) => {
+  const _CaffeineStorageCreateCertificateResult = IDL.Record({
+    'method' : IDL.Text,
+    'blob_hash' : IDL.Text,
+  });
+  const _CaffeineStorageRefillInformation = IDL.Record({
+    'proposed_top_up_amount' : IDL.Opt(IDL.Nat),
+  });
+  const _CaffeineStorageRefillResult = IDL.Record({
+    'success' : IDL.Opt(IDL.Bool),
+    'topped_up_amount' : IDL.Opt(IDL.Nat),
+  });
   const UserRole = IDL.Variant({
     'admin' : IDL.Null,
     'user' : IDL.Null,
     'guest' : IDL.Null,
+  });
+  const BlockUserRequest = IDL.Record({
+    'user' : IDL.Principal,
+    'reason' : IDL.Opt(IDL.Text),
   });
   const BulkOrderUpdate = IDL.Record({
     'orderNos' : IDL.Vec(IDL.Text),
@@ -131,14 +240,10 @@ export const idlFactory = ({ IDL }) => {
     'Karigar' : IDL.Null,
   });
   const UserProfile = IDL.Record({
+    'isCreated' : IDL.Bool,
     'appRole' : AppRole,
     'name' : IDL.Text,
     'karigarName' : IDL.Opt(IDL.Text),
-  });
-  const MasterDesignEntry = IDL.Record({
-    'isActive' : IDL.Bool,
-    'karigarName' : IDL.Text,
-    'genericName' : IDL.Text,
   });
   const Time = IDL.Int;
   const PersistentOrder = IDL.Record({
@@ -155,6 +260,25 @@ export const idlFactory = ({ IDL }) => {
     'designCode' : IDL.Text,
     'uploadDate' : Time,
     'remarks' : IDL.Text,
+  });
+  const ActivityLogEntry = IDL.Record({
+    'action' : IDL.Text,
+    'userId' : IDL.Principal,
+    'timestamp' : Time,
+    'details' : IDL.Text,
+  });
+  const ExternalBlob = IDL.Vec(IDL.Nat8);
+  const DesignImageMapping = IDL.Record({
+    'createdAt' : Time,
+    'createdBy' : IDL.Principal,
+    'genericName' : IDL.Text,
+    'image' : ExternalBlob,
+    'designCode' : IDL.Text,
+  });
+  const MasterDesignEntry = IDL.Record({
+    'isActive' : IDL.Bool,
+    'karigarName' : IDL.Text,
+    'genericName' : IDL.Text,
   });
   const UnmappedOrderEntry = IDL.Record({
     'qty' : IDL.Nat,
@@ -181,20 +305,70 @@ export const idlFactory = ({ IDL }) => {
     'status' : ApprovalStatus,
     'principal' : IDL.Principal,
   });
+  const PartialFulfillmentQty = IDL.Record({
+    'suppliedQty' : IDL.Nat,
+    'orderNo' : IDL.Text,
+  });
+  const PartialFulfillmentRequest = IDL.Record({
+    'entries' : IDL.Vec(PartialFulfillmentQty),
+  });
+  const UpdateOrderTotalSuppliedRequest = IDL.Record({
+    'orderNo' : IDL.Text,
+    'newTotalSupplied' : IDL.Nat,
+  });
   
   return IDL.Service({
+    '_caffeineStorageBlobIsLive' : IDL.Func(
+        [IDL.Vec(IDL.Nat8)],
+        [IDL.Bool],
+        ['query'],
+      ),
+    '_caffeineStorageBlobsToDelete' : IDL.Func(
+        [],
+        [IDL.Vec(IDL.Vec(IDL.Nat8))],
+        ['query'],
+      ),
+    '_caffeineStorageConfirmBlobDeletion' : IDL.Func(
+        [IDL.Vec(IDL.Vec(IDL.Nat8))],
+        [],
+        [],
+      ),
+    '_caffeineStorageCreateCertificate' : IDL.Func(
+        [IDL.Text],
+        [_CaffeineStorageCreateCertificateResult],
+        [],
+      ),
+    '_caffeineStorageRefillCashier' : IDL.Func(
+        [IDL.Opt(_CaffeineStorageRefillInformation)],
+        [_CaffeineStorageRefillResult],
+        [],
+      ),
+    '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+    'blockUser' : IDL.Func([BlockUserRequest], [], []),
     'bulkUpdateOrderStatus' : IDL.Func([BulkOrderUpdate], [], []),
     'createUserProfile' : IDL.Func([IDL.Principal, UserProfile], [], []),
+    'getActiveOrdersForKarigar' : IDL.Func([], [IDL.Vec(PersistentOrder)], []),
+    'getActivityLog' : IDL.Func([], [IDL.Vec(ActivityLogEntry)], ['query']),
+    'getAdminDesignImageMappings' : IDL.Func(
+        [],
+        [IDL.Vec(IDL.Tuple(DesignImageMapping, ExternalBlob))],
+        ['query'],
+      ),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+    'getDesignImageMappings' : IDL.Func(
+        [],
+        [IDL.Vec(DesignImageMapping)],
+        ['query'],
+      ),
     'getMasterDesigns' : IDL.Func(
         [],
         [IDL.Vec(IDL.Tuple(IDL.Text, MasterDesignEntry))],
         ['query'],
       ),
-    'getOrders' : IDL.Func([], [IDL.Vec(PersistentOrder)], ['query']),
+    'getOrders' : IDL.Func([], [IDL.Vec(PersistentOrder)], []),
     'getUnmappedDesignCodes' : IDL.Func(
         [],
         [IDL.Vec(UnmappedOrderEntry)],
@@ -208,9 +382,17 @@ export const idlFactory = ({ IDL }) => {
     'healthCheck' : IDL.Func([], [HealthCheckResponse], ['query']),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'isCallerApproved' : IDL.Func([], [IDL.Bool], ['query']),
+    'isUserBlocked' : IDL.Func([IDL.Principal], [IDL.Bool], ['query']),
     'listApprovals' : IDL.Func([], [IDL.Vec(UserApprovalInfo)], ['query']),
+    'listUserProfiles' : IDL.Func([], [IDL.Vec(UserProfile)], ['query']),
+    'processPartialFulfillment' : IDL.Func([PartialFulfillmentRequest], [], []),
     'requestApproval' : IDL.Func([], [], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+    'saveDesignImageMappings' : IDL.Func(
+        [IDL.Vec(DesignImageMapping)],
+        [IDL.Vec(DesignImageMapping)],
+        [],
+      ),
     'saveMasterDesigns' : IDL.Func(
         [IDL.Vec(IDL.Tuple(IDL.Text, MasterDesignEntry))],
         [],
@@ -218,6 +400,12 @@ export const idlFactory = ({ IDL }) => {
       ),
     'setActiveFlagForMasterDesign' : IDL.Func([IDL.Text, IDL.Bool], [], []),
     'setApproval' : IDL.Func([IDL.Principal, ApprovalStatus], [], []),
+    'unblockUser' : IDL.Func([IDL.Principal], [], []),
+    'updateOrderTotalSupplied' : IDL.Func(
+        [UpdateOrderTotalSuppliedRequest],
+        [],
+        [],
+      ),
     'uploadParsedOrders' : IDL.Func([IDL.Vec(PersistentOrder)], [], []),
   });
 };

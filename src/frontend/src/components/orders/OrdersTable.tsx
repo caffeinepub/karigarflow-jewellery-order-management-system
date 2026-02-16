@@ -1,10 +1,13 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { formatKarigarName } from '../../lib/orders/formatKarigarName';
 import { getOrderTimestamp } from '../../lib/orders/getOrderTimestamp';
+import { sanitizeOrders } from '../../lib/orders/validatePersistentOrder';
 import type { PersistentOrder } from '../../backend';
 import { format } from 'date-fns';
+import { Edit, Eye } from 'lucide-react';
 
 interface OrdersTableProps {
   orders: PersistentOrder[];
@@ -12,6 +15,10 @@ interface OrdersTableProps {
   selectedOrders?: Set<string>;
   onSelectionChange?: (orderNos: Set<string>) => void;
   emptyMessage?: string;
+  onEditRbSupplied?: (order: PersistentOrder) => void;
+  onViewDesignImage?: (order: PersistentOrder) => void;
+  karigarMode?: boolean;
+  onViewOrder?: (order: PersistentOrder) => void;
 }
 
 export function OrdersTable({ 
@@ -19,9 +26,16 @@ export function OrdersTable({
   selectionMode = false,
   selectedOrders = new Set(),
   onSelectionChange,
-  emptyMessage = 'No orders found'
+  emptyMessage = 'No orders found',
+  onEditRbSupplied,
+  onViewDesignImage,
+  karigarMode = false,
+  onViewOrder,
 }: OrdersTableProps) {
-  if (orders.length === 0) {
+  // Sanitize orders as a last line of defense
+  const { validOrders } = sanitizeOrders(orders);
+  
+  if (validOrders.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
         {emptyMessage}
@@ -32,7 +46,7 @@ export function OrdersTable({
   const handleSelectAll = (checked: boolean) => {
     if (!onSelectionChange) return;
     if (checked) {
-      onSelectionChange(new Set(orders.map(o => o.orderNo)));
+      onSelectionChange(new Set(validOrders.map(o => o.orderNo)));
     } else {
       onSelectionChange(new Set());
     }
@@ -49,8 +63,31 @@ export function OrdersTable({
     onSelectionChange(newSelection);
   };
 
-  const allSelected = orders.length > 0 && orders.every(o => selectedOrders.has(o.orderNo));
-  const someSelected = orders.some(o => selectedOrders.has(o.orderNo)) && !allSelected;
+  const handleRowClick = (orderNo: string, e: React.MouseEvent) => {
+    // Don't toggle if clicking on interactive elements
+    const target = e.target as HTMLElement;
+    if (
+      target.tagName === 'INPUT' ||
+      target.tagName === 'BUTTON' ||
+      target.closest('button') ||
+      target.closest('[role="checkbox"]')
+    ) {
+      return;
+    }
+
+    if (!selectionMode || !onSelectionChange) return;
+    
+    const isSelected = selectedOrders.has(orderNo);
+    handleSelectOne(orderNo, !isSelected);
+  };
+
+  const isRbOrder = (order: PersistentOrder) => {
+    return order.orderType === 'RB' && !order.orderNo.endsWith('_hallmark');
+  };
+
+  const canEditRbSupplied = (order: PersistentOrder) => {
+    return isRbOrder(order) && order.status === 'pending';
+  };
 
   return (
     <div className="rounded-md border overflow-x-auto">
@@ -60,67 +97,94 @@ export function OrdersTable({
             {selectionMode && (
               <TableHead className="w-12">
                 <Checkbox
-                  checked={allSelected}
+                  checked={validOrders.length > 0 && validOrders.every(o => selectedOrders.has(o.orderNo))}
                   onCheckedChange={handleSelectAll}
-                  aria-label="Select all orders"
-                  className={someSelected ? 'data-[state=checked]:bg-primary/50' : ''}
                 />
               </TableHead>
             )}
             <TableHead>Order No</TableHead>
             <TableHead>Type</TableHead>
-            <TableHead>Design</TableHead>
-            <TableHead>Generic</TableHead>
-            <TableHead>Karigar</TableHead>
+            <TableHead>Design Code</TableHead>
+            <TableHead>Generic Name</TableHead>
+            {!karigarMode && <TableHead>Karigar</TableHead>}
+            <TableHead className="text-right">Qty</TableHead>
             <TableHead className="text-right">Weight</TableHead>
             <TableHead className="text-right">Size</TableHead>
-            <TableHead className="text-right">Qty</TableHead>
-            <TableHead>Remarks</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Date</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {orders.map((order) => (
-            <TableRow
-              key={order.orderNo}
-              className={order.isCustomerOrder ? 'bg-yellow-50 dark:bg-yellow-950/20' : ''}
-            >
-              {selectionMode && (
+          {validOrders.map((order) => {
+            const isSelected = selectedOrders.has(order.orderNo);
+            const orderDate = getOrderTimestamp(order);
+            
+            return (
+              <TableRow 
+                key={order.orderNo}
+                className={`${selectionMode ? 'cursor-pointer' : ''} ${isSelected ? 'bg-muted/50' : ''}`}
+                onClick={(e) => handleRowClick(order.orderNo, e)}
+              >
+                {selectionMode && (
+                  <TableCell>
+                    <Checkbox
+                      checked={isSelected}
+                      onCheckedChange={(checked) => handleSelectOne(order.orderNo, !!checked)}
+                    />
+                  </TableCell>
+                )}
+                <TableCell className="font-medium">{order.orderNo}</TableCell>
                 <TableCell>
-                  <Checkbox
-                    checked={selectedOrders.has(order.orderNo)}
-                    onCheckedChange={(checked) => handleSelectOne(order.orderNo, checked as boolean)}
-                    aria-label={`Select order ${order.orderNo}`}
-                  />
+                  <Badge variant={order.isCustomerOrder ? 'default' : 'secondary'}>
+                    {order.orderType}
+                  </Badge>
                 </TableCell>
-              )}
-              <TableCell className="font-medium">{order.orderNo}</TableCell>
-              <TableCell>
-                <div className="flex items-center gap-2">
-                  {order.orderType}
-                  {order.isCustomerOrder && (
-                    <Badge variant="outline" className="text-xs bg-yellow-100 dark:bg-yellow-900">
-                      CO
-                    </Badge>
-                  )}
-                </div>
-              </TableCell>
-              <TableCell className="font-mono text-sm">{order.designCode}</TableCell>
-              <TableCell>{order.genericName}</TableCell>
-              <TableCell>{formatKarigarName(order.karigarName)}</TableCell>
-              <TableCell className="text-right">{order.weight.toFixed(2)}g</TableCell>
-              <TableCell className="text-right">{order.size.toFixed(2)}</TableCell>
-              <TableCell className="text-right">{Number(order.qty)}</TableCell>
-              <TableCell className="max-w-[200px] truncate">{order.remarks}</TableCell>
-              <TableCell>
-                <Badge variant="outline">{order.status}</Badge>
-              </TableCell>
-              <TableCell className="text-sm text-muted-foreground">
-                {format(getOrderTimestamp(order), 'MMM d, yyyy')}
-              </TableCell>
-            </TableRow>
-          ))}
+                <TableCell>{order.designCode}</TableCell>
+                <TableCell>{order.genericName}</TableCell>
+                {!karigarMode && (
+                  <TableCell>{formatKarigarName(order.karigarName)}</TableCell>
+                )}
+                <TableCell className="text-right">{Number(order.qty)}</TableCell>
+                <TableCell className="text-right">{order.weight.toFixed(2)}</TableCell>
+                <TableCell className="text-right">{order.size.toFixed(2)}</TableCell>
+                <TableCell>
+                  <Badge variant={order.status === 'pending' ? 'outline' : 'default'}>
+                    {order.status}
+                  </Badge>
+                </TableCell>
+                <TableCell>{format(orderDate, 'MMM d, yyyy')}</TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-2">
+                    {onViewDesignImage && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onViewDesignImage(order);
+                        }}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {onEditRbSupplied && canEditRbSupplied(order) && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEditRbSupplied(order);
+                        }}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </div>

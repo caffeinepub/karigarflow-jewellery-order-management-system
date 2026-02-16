@@ -16,6 +16,7 @@ import {
   Users, 
   Menu,
   Gem,
+  Image,
   type LucideIcon
 } from 'lucide-react';
 import { AppRole } from '../../backend';
@@ -44,6 +45,7 @@ export function AppShell({ children }: AppShellProps) {
       navItems.push(
         { label: 'Dashboard', icon: LayoutDashboard, path: '/admin' },
         { label: 'Master Designs', icon: FileText, path: '/admin/master-designs' },
+        { label: 'Design Images', icon: Image, path: '/admin/design-images' },
         { label: 'Users', icon: Users, path: '/admin/users' },
         { label: 'Ingest Orders', icon: Upload, path: '/staff/ingest' },
         { label: 'Unmapped Codes', icon: AlertCircle, path: '/staff/unmapped' }

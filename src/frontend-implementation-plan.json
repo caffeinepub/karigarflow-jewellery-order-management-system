@@ -1,31 +1,67 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Refresh and reflect hallmark bulk updates in Admin/Staff dashboards",
+  "title": "Fix /admin crash via defensive rendering and safe dialog mounting",
   "requirements": [
     {
-      "id": "REQ-3",
-      "summary": "Ensure Admin and Staff dashboards correctly apply bulk hallmark status updates, refresh orders, and reflect moved orders across Total Orders and Hallmark tabs with proper error handling.",
+      "id": "REQ-1",
+      "summary": "Fix the initial /admin runtime crash so the Admin Dashboard renders reliably on fresh load.",
       "acceptanceCriteria": [
-        "After successfully marking selected orders as hallmark, the UI no longer shows those orders in the \"Total Orders\" tab/list (because Total Orders excludes status \"given_to_hallmark\").",
-        "After successfully marking selected orders as hallmark, the orders appear in the \"Hallmark\" tab/list.",
-        "If the bulk update fails, the UI shows an error message (toast) and does not clear the selection."
+        "Navigating to /admin no longer triggers a white screen or AppErrorBoundary for an admin user under normal conditions.",
+        "The admin dashboard renders its header, metrics cards, and tabs without requiring any user interaction."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/hooks/useQueries.ts",
+          "path": "frontend/src/pages/admin/AdminDashboardPage.tsx",
           "operation": "modify",
-          "description": "Fix useBulkUpdateOrderStatus to call the backend bulk update capability using the correct argument shape (BulkOrderUpdate object) and keep the existing post-mutation orders query invalidation/refetch so dashboards refresh and reflect status changes."
-        },
+          "description": "Eliminate initial-render crashes by removing unsafe prop passing and ensuring admin dialogs are only mounted when their required backing state exists; keep the dashboard shell (header/metrics/tabs) rendering even when optional UI state is empty."
+        }
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "summary": "Remove unsafe non-null assertions and ensure dialogs and dependent UI mount only with valid backing state.",
+      "acceptanceCriteria": [
+        "On initial load of AdminDashboardPage, no component receives a null value where it expects a non-null order object (e.g., eliminate patterns like passing rbEditOrder! when rbEditOrder is null).",
+        "The RB supplied quantity edit dialog and any other admin dialogs do not throw if their backing state is null; they either do not render/mount or render a safe no-op state until opened with valid data.",
+        "Admin dashboard remains stable when opening/closing dialogs repeatedly."
+      ],
+      "file_operations": [
         {
           "path": "frontend/src/pages/admin/AdminDashboardPage.tsx",
           "operation": "modify",
-          "description": "Update the Admin \"Mark as Hallmark\" action flow to rely on the corrected bulk update hook so that on success orders refresh and naturally move from the Total Orders list (status != given_to_hallmark) into the Hallmark tab; ensure failure shows a toast and keeps the current selection intact."
+          "description": "Remove all non-null assertions (e.g., rbEditOrder!) and refactor dialog wiring to conditionally render/mount RbSuppliedQtyEditDialog only when rbEditOrder is non-null; ensure selected-karigar drilldown branch follows the same safe pattern."
         },
         {
-          "path": "frontend/src/pages/staff/StaffDashboardPage.tsx",
+          "path": "frontend/src/components/orders/RbSuppliedQtyEditDialog.tsx",
           "operation": "modify",
-          "description": "Update the Staff \"Mark as Hallmark\" action flow to rely on the corrected bulk update hook so that on success orders refresh and move from Total Orders into Hallmark; ensure failure shows a toast and keeps the current selection intact."
+          "description": "Make the dialog defensive against null/invalid props by accepting a nullable order (or guarding render) and avoiding unconditional reads like order.orderNo during initial render; ensure it cleanly no-ops or returns null when not open or when order is missing."
+        },
+        {
+          "path": "frontend/src/components/orders/PartialFulfillmentDialog.tsx",
+          "operation": "modify",
+          "description": "Harden dialog initialization against edge cases (e.g., open with empty orders array) so it never throws during mount/open/close cycles and remains stable even if parent selection state changes rapidly."
+        }
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "summary": "Add a user-friendly, non-crashing Admin Dashboard error state for unexpected order data-shape issues with a clear recovery action.",
+      "acceptanceCriteria": [
+        "If corrupt/invalid orders exist (from backend or IndexedDB), the admin portal still loads and shows a non-blocking warning and/or inline error state rather than crashing.",
+        "The existing 'clear local cache and reload' action remains available and works without throwing.",
+        "Any displayed error text is in English and does not expose sensitive details."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/admin/AdminDashboardPage.tsx",
+          "operation": "modify",
+          "description": "Wrap order-derived computations (filtering/sorting/metrics derivation) in defensive guards/try-catch and render a non-blocking inline warning state (using existing error/presentation utilities) when encountering unexpected data-shape issues; keep the dashboard usable and provide a safe 'clear local cache and reload' recovery path."
+        },
+        {
+          "path": "frontend/src/components/orders/OrdersDataWarningBanner.tsx",
+          "operation": "modify",
+          "description": "Improve the banner copy to be explicitly user-friendly English and emphasize recovery steps (clear local cache + retry) without exposing sensitive/technical details; ensure the clear-cache action remains safe to click repeatedly."
         }
       ]
     }

@@ -1,13 +1,15 @@
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { CalendarIcon, X } from 'lucide-react';
+import { CalendarIcon, X, Search } from 'lucide-react';
 import { format } from 'date-fns';
 import type { PersistentOrder } from '../../backend';
 import { formatKarigarName } from '../../lib/orders/formatKarigarName';
+import { sanitizeOrders } from '../../lib/orders/validatePersistentOrder';
 
 interface OrdersFiltersBarProps {
   orders: PersistentOrder[];
@@ -17,24 +19,29 @@ interface OrdersFiltersBarProps {
     dateTo: Date | null;
     coOnly: boolean;
     status: string;
+    orderNoQuery?: string;
   };
   onFiltersChange: (filters: any) => void;
+  showOrderNoSearch?: boolean;
 }
 
 const ALL_KARIGARS_SENTINEL = '__all_karigars__';
 const ALL_STATUS_SENTINEL = '__all_status__';
 
-export function OrdersFiltersBar({ orders, filters, onFiltersChange }: OrdersFiltersBarProps) {
+export function OrdersFiltersBar({ orders, filters, onFiltersChange, showOrderNoSearch = false }: OrdersFiltersBarProps) {
+  // Sanitize orders before computing unique values
+  const { validOrders } = sanitizeOrders(orders);
+  
   // Use shared formatter to get unique karigar names - this ensures dropdown values match filter comparison
   const uniqueKarigars = Array.from(
-    new Set(orders.map((o) => formatKarigarName(o.karigarName)))
+    new Set(validOrders.map((o) => formatKarigarName(o.karigarName)))
   ).sort();
 
   const uniqueStatuses = Array.from(
-    new Set(orders.map((o) => o.status))
+    new Set(validOrders.map((o) => o.status))
   ).sort();
 
-  const hasActiveFilters = filters.karigar || filters.dateFrom || filters.dateTo || filters.coOnly || filters.status;
+  const hasActiveFilters = filters.karigar || filters.dateFrom || filters.dateTo || filters.coOnly || filters.status || (filters.orderNoQuery && filters.orderNoQuery.length > 0);
 
   const clearFilters = () => {
     onFiltersChange({
@@ -43,6 +50,7 @@ export function OrdersFiltersBar({ orders, filters, onFiltersChange }: OrdersFil
       dateTo: null,
       coOnly: false,
       status: '',
+      orderNoQuery: '',
     });
   };
 
@@ -63,6 +71,20 @@ export function OrdersFiltersBar({ orders, filters, onFiltersChange }: OrdersFil
 
   return (
     <div className="flex flex-wrap gap-4 items-center mt-4">
+      {showOrderNoSearch && (
+        <div className="flex-1 min-w-[200px]">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search order number..."
+              value={filters.orderNoQuery || ''}
+              onChange={(e) => onFiltersChange({ ...filters, orderNoQuery: e.target.value })}
+              className="pl-9"
+            />
+          </div>
+        </div>
+      )}
+
       <div className="flex-1 min-w-[200px]">
         <Select value={selectKarigarValue} onValueChange={handleKarigarChange}>
           <SelectTrigger>

@@ -10,16 +10,34 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
+export interface ActivityLogEntry {
+  'action' : string,
+  'userId' : Principal,
+  'timestamp' : Time,
+  'details' : string,
+}
 export type AppRole = { 'Staff' : null } |
   { 'Admin' : null } |
   { 'Karigar' : null };
 export type ApprovalStatus = { 'pending' : null } |
   { 'approved' : null } |
   { 'rejected' : null };
+export interface BlockUserRequest {
+  'user' : Principal,
+  'reason' : [] | [string],
+}
 export interface BulkOrderUpdate {
   'orderNos' : Array<string>,
   'newStatus' : string,
 }
+export interface DesignImageMapping {
+  'createdAt' : Time,
+  'createdBy' : Principal,
+  'genericName' : string,
+  'image' : ExternalBlob,
+  'designCode' : string,
+}
+export type ExternalBlob = Uint8Array;
 export interface HealthCheckResponse {
   'status' : string,
   'canisterId' : string,
@@ -28,6 +46,13 @@ export interface MasterDesignEntry {
   'isActive' : boolean,
   'karigarName' : string,
   'genericName' : string,
+}
+export interface PartialFulfillmentQty {
+  'suppliedQty' : bigint,
+  'orderNo' : string,
+}
+export interface PartialFulfillmentRequest {
+  'entries' : Array<PartialFulfillmentQty>,
 }
 export interface PersistentOrder {
   'qty' : bigint,
@@ -57,11 +82,16 @@ export interface UnmappedOrderEntry {
   'uploadDate' : Time,
   'remarks' : string,
 }
+export interface UpdateOrderTotalSuppliedRequest {
+  'orderNo' : string,
+  'newTotalSupplied' : bigint,
+}
 export interface UserApprovalInfo {
   'status' : ApprovalStatus,
   'principal' : Principal,
 }
 export interface UserProfile {
+  'isCreated' : boolean,
   'appRole' : AppRole,
   'name' : string,
   'karigarName' : [] | [string],
@@ -69,13 +99,47 @@ export interface UserProfile {
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };
+export interface _CaffeineStorageCreateCertificateResult {
+  'method' : string,
+  'blob_hash' : string,
+}
+export interface _CaffeineStorageRefillInformation {
+  'proposed_top_up_amount' : [] | [bigint],
+}
+export interface _CaffeineStorageRefillResult {
+  'success' : [] | [boolean],
+  'topped_up_amount' : [] | [bigint],
+}
 export interface _SERVICE {
+  '_caffeineStorageBlobIsLive' : ActorMethod<[Uint8Array], boolean>,
+  '_caffeineStorageBlobsToDelete' : ActorMethod<[], Array<Uint8Array>>,
+  '_caffeineStorageConfirmBlobDeletion' : ActorMethod<
+    [Array<Uint8Array>],
+    undefined
+  >,
+  '_caffeineStorageCreateCertificate' : ActorMethod<
+    [string],
+    _CaffeineStorageCreateCertificateResult
+  >,
+  '_caffeineStorageRefillCashier' : ActorMethod<
+    [[] | [_CaffeineStorageRefillInformation]],
+    _CaffeineStorageRefillResult
+  >,
+  '_caffeineStorageUpdateGatewayPrincipals' : ActorMethod<[], undefined>,
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
+  'blockUser' : ActorMethod<[BlockUserRequest], undefined>,
   'bulkUpdateOrderStatus' : ActorMethod<[BulkOrderUpdate], undefined>,
   'createUserProfile' : ActorMethod<[Principal, UserProfile], undefined>,
+  'getActiveOrdersForKarigar' : ActorMethod<[], Array<PersistentOrder>>,
+  'getActivityLog' : ActorMethod<[], Array<ActivityLogEntry>>,
+  'getAdminDesignImageMappings' : ActorMethod<
+    [],
+    Array<[DesignImageMapping, ExternalBlob]>
+  >,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
+  'getDesignImageMappings' : ActorMethod<[], Array<DesignImageMapping>>,
   'getMasterDesigns' : ActorMethod<[], Array<[string, MasterDesignEntry]>>,
   'getOrders' : ActorMethod<[], Array<PersistentOrder>>,
   'getUnmappedDesignCodes' : ActorMethod<[], Array<UnmappedOrderEntry>>,
@@ -83,15 +147,30 @@ export interface _SERVICE {
   'healthCheck' : ActorMethod<[], HealthCheckResponse>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'isCallerApproved' : ActorMethod<[], boolean>,
+  'isUserBlocked' : ActorMethod<[Principal], boolean>,
   'listApprovals' : ActorMethod<[], Array<UserApprovalInfo>>,
+  'listUserProfiles' : ActorMethod<[], Array<UserProfile>>,
+  'processPartialFulfillment' : ActorMethod<
+    [PartialFulfillmentRequest],
+    undefined
+  >,
   'requestApproval' : ActorMethod<[], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
+  'saveDesignImageMappings' : ActorMethod<
+    [Array<DesignImageMapping>],
+    Array<DesignImageMapping>
+  >,
   'saveMasterDesigns' : ActorMethod<
     [Array<[string, MasterDesignEntry]>],
     undefined
   >,
   'setActiveFlagForMasterDesign' : ActorMethod<[string, boolean], undefined>,
   'setApproval' : ActorMethod<[Principal, ApprovalStatus], undefined>,
+  'unblockUser' : ActorMethod<[Principal], undefined>,
+  'updateOrderTotalSupplied' : ActorMethod<
+    [UpdateOrderTotalSuppliedRequest],
+    undefined
+  >,
   'uploadParsedOrders' : ActorMethod<[Array<PersistentOrder>], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;

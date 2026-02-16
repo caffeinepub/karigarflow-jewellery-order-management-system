@@ -1,7 +1,7 @@
 import { RouterProvider, createRouter, createRoute, createRootRoute, Outlet, useNavigate } from '@tanstack/react-router';
 import { useInternetIdentity } from './hooks/useInternetIdentity';
 import { useCurrentUser } from './hooks/useCurrentUser';
-import { useIsCallerAdmin } from './hooks/useQueries';
+import { useIsCallerAdmin, useCheckUserBlocked } from './hooks/useQueries';
 import { useEffectiveAppRole } from './hooks/useEffectiveAppRole';
 import { useSafeActor } from './hooks/useSafeActor';
 import { ThemeProvider } from 'next-themes';
@@ -9,12 +9,14 @@ import { Toaster } from '@/components/ui/sonner';
 import { AppShell } from './components/layout/AppShell';
 import { ProfileSetupModal } from './components/auth/ProfileSetupModal';
 import { NoProfileBlockedScreen } from './components/auth/NoProfileBlockedScreen';
+import { BlockedUserScreen } from './components/auth/BlockedUserScreen';
 import { BootstrapErrorScreen } from './components/auth/BootstrapErrorScreen';
 import { LoginPage } from './pages/LoginPage';
 import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
 import { StaffDashboardPage } from './pages/staff/StaffDashboardPage';
 import { KarigarDashboardPage } from './pages/karigar/KarigarDashboardPage';
 import { MasterDesignsPage } from './pages/admin/MasterDesignsPage';
+import { DesignImagesPage } from './pages/admin/DesignImagesPage';
 import { IngestOrdersPage } from './pages/staff/IngestOrdersPage';
 import { UnmappedDesignCodesPage } from './pages/staff/UnmappedDesignCodesPage';
 import { UserManagementPage } from './pages/admin/UserManagementPage';
@@ -29,6 +31,7 @@ function Layout() {
   const { actor: safeActor, isError: actorError, error: actorErrorObj, refetch: refetchActor } = useSafeActor();
   const { userProfile, isLoading: profileLoading, isFetched: profileFetched, isError: profileError, error: profileErrorObj, refetch: refetchProfile } = useCurrentUser();
   const { data: isAdmin, isLoading: isCheckingAdmin, isFetched: adminCheckFetched, isError: adminCheckError, error: adminCheckErrorObj, refetch: refetchAdmin } = useIsCallerAdmin();
+  const { data: isBlocked, isLoading: checkingBlocked, isFetched: blockedCheckFetched } = useCheckUserBlocked();
   const isAuthenticated = !!identity;
 
   if (!isAuthenticated) {
@@ -53,7 +56,7 @@ function Layout() {
   }
 
   // Show loading only when actively fetching and not yet resolved
-  const isBootstrapping = (profileLoading && !profileFetched) || (isCheckingAdmin && !adminCheckFetched);
+  const isBootstrapping = (profileLoading && !profileFetched) || (isCheckingAdmin && !adminCheckFetched) || (checkingBlocked && !blockedCheckFetched);
   
   if (isBootstrapping) {
     return (
@@ -64,6 +67,11 @@ function Layout() {
         </div>
       </div>
     );
+  }
+
+  // Check if user is blocked (non-admin users only)
+  if (isBlocked && !isAdmin) {
+    return <BlockedUserScreen />;
   }
 
   // If user has no profile
@@ -174,6 +182,16 @@ const masterDesignsRoute = createRoute({
   ),
 });
 
+const designImagesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/admin/design-images',
+  component: () => (
+    <RoleGate allowedRoles={[AppRole.Admin]}>
+      <DesignImagesPage />
+    </RoleGate>
+  ),
+});
+
 const userManagementRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/admin/users',
@@ -234,6 +252,7 @@ const routeTree = rootRoute.addChildren([
   indexRoute,
   adminDashboardRoute,
   masterDesignsRoute,
+  designImagesRoute,
   userManagementRoute,
   staffDashboardRoute,
   ingestOrdersRoute,

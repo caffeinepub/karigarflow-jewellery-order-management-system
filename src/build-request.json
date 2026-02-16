@@ -1,73 +1,71 @@
 {
   "kind": "build_request",
-  "title": "Fix hallmark status update and staff portal orders loading",
+  "title": "Fix admin portal crash on open (defensive rendering + error-proof dialogs)",
+  "projectName": "KarigarFlow",
   "priority": "high",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Implement backend support for bulk order status updates so that the Admin/Staff \"Mark as Hallmark\" action can update selected order lines to status \"given_to_hallmark\".",
-      "target": "backend",
+      "text": "Identify and fix the runtime crash that occurs when opening the admin portal route (/admin), ensuring the page renders successfully even on a fresh load with no dialogs opened.",
+      "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-6"
         ],
         "quotes": [
-          "While selecting order line and clicking on *mark as hallmark* , it failed to update order status."
+          "Fix this admin portal. It’s crashing with same error while opening. Please completely recheck totally without any flaw. It’s the last chance to make this app successful"
         ]
       },
       "acceptanceCriteria": [
-        "Backend exposes a shared method for bulk status updates (e.g., bulkUpdateOrderStatus(orderNos, newStatus)).",
-        "Method updates the stored status for each existing orderNo in ordersMap.",
-        "Method enforces authorization: only Admin or Staff callers can update order statuses; unauthorized callers are rejected with a clear error/trap.",
-        "When called with newStatus = \"given_to_hallmark\" and valid orderNos, subsequent getOrders() returns those orders with status \"given_to_hallmark\".",
-        "Frontend call path in frontend/src/hooks/useQueries.ts (useBulkUpdateOrderStatus) succeeds without throwing the \"Backend does not support bulk status updates yet\" error."
+        "Navigating to /admin no longer triggers a white screen or AppErrorBoundary for an admin user under normal conditions.",
+        "The admin dashboard renders its header, metrics cards, and tabs without requiring any user interaction."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Fix backend authorization/approval logic so Staff users can fetch orders in the staff portal (getOrders) without being blocked by the approval gate immediately after profile creation.",
-      "target": "backend",
+      "text": "Remove all unsafe non-null assertions and/or unconditional rendering patterns that can crash the Admin Dashboard during initial render, especially where components receive props derived from nullable state (e.g., rbEditOrder). Ensure dialogs and dependent UI render safely when their backing state is null/empty and only mount when needed.",
+      "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-6"
         ],
         "quotes": [
-          "Also on staff portal, order are still not fetched to view and update the status."
+          "Fix this admin portal. It’s crashing with same error while opening."
         ]
       },
       "acceptanceCriteria": [
-        "A caller with an existing UserProfile.appRole = #Staff and the required authenticated permission can successfully call getOrders() even if they are not marked approved in the approval state.",
-        "StaffDashboardPage no longer shows the \"Failed to load orders\" empty/error state when backend is online and orders exist, for a Staff user with a created profile.",
-        "Karigar users remain subject to approval requirements (i.e., this change does not grant Karigar users access without approval)."
+        "On initial load of AdminDashboardPage, no component receives a null value where it expects a non-null order object (e.g., eliminate patterns like passing rbEditOrder! when rbEditOrder is null).",
+        "The RB supplied quantity edit dialog and any other admin dialogs do not throw if their backing state is null; they either do not render/mount or render a safe no-op state until opened with valid data.",
+        "Admin dashboard remains stable when opening/closing dialogs repeatedly."
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Ensure Admin and Staff portals reflect successful hallmark updates by refreshing orders and removing newly-updated \"given_to_hallmark\" orders from the \"Total Orders\" list after marking as hallmark.",
+      "text": "Add an explicit, user-friendly, non-crashing error state on the Admin Dashboard for unexpected data-shape issues (e.g., orders missing required fields) so that the portal stays usable and provides a clear recovery path (such as clearing local cache and retrying).",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-6"
         ],
         "quotes": [
-          "While selecting order line and clicking on *mark as hallmark* , it failed to update order status. Kindly check and rectify it."
+          "Please completely recheck totally without any flaw."
         ]
       },
       "acceptanceCriteria": [
-        "After successfully marking selected orders as hallmark, the UI no longer shows those orders in the \"Total Orders\" tab/list (because Total Orders excludes status \"given_to_hallmark\").",
-        "After successfully marking selected orders as hallmark, the orders appear in the \"Hallmark\" tab/list.",
-        "If the bulk update fails, the UI shows an error message (toast) and does not clear the selection."
+        "If corrupt/invalid orders exist (from backend or IndexedDB), the admin portal still loads and shows a non-blocking warning and/or inline error state rather than crashing.",
+        "The existing 'clear local cache and reload' action remains available and works without throwing.",
+        "Any displayed error text is in English and does not expose sensitive details."
       ]
     }
   ],
   "constraints": [
-    "Backend must remain a single Motoko actor in backend/main.mo (no additional backend services).",
-    "Do not edit any files under frontend/src/components/ui or any other frontend immutablePaths listed in SYSTEM_CONTEXT."
+    "Do not edit files under frontend/src/components/ui (Shadcn components are read-only).",
+    "Do not edit immutable hook/bootstrapping files listed in SYSTEM_CONTEXT.frontend.immutablePaths; compose around them if changes are needed."
   ],
   "nonGoals": [
-    "Implementing new third-party authentication methods beyond Internet Identity.",
-    "Adding new order-status workflow states beyond what is required to fix \"given_to_hallmark\" updates and staff order fetching.",
-    "Introducing external databases or off-chain storage."
+    "Adding new admin features unrelated to crash prevention (e.g., new exports, new tables, new roles).",
+    "Changing authentication providers (Internet Identity remains the only auth).",
+    "Backend schema redesign or migrations unless a frontend-only fix is proven impossible."
   ],
   "imageRequirements": {
     "required": [],

@@ -1,18 +1,24 @@
 import Map "mo:core/Map";
 import Text "mo:core/Text";
 import Runtime "mo:core/Runtime";
-import Array "mo:core/Array";
 import Iter "mo:core/Iter";
 import Time "mo:core/Time";
 import Nat "mo:core/Nat";
 import Principal "mo:core/Principal";
+import Array "mo:core/Array";
+import Float "mo:core/Float";
+import List "mo:core/List";
+
+
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
 import UserApproval "user-approval/approval";
-import Migration "migration";
+import BlobStorage "blob-storage/Storage";
+import MixinStorage "blob-storage/Mixin";
 
-(with migration = Migration.run)
+
 actor {
+  // Types
   type PersistentOrder = {
     orderNo : Text;
     orderType : Text;
@@ -27,6 +33,15 @@ actor {
     isCustomerOrder : Bool;
     uploadDate : Time.Time;
     createdAt : Time.Time;
+  };
+
+  type PartialFulfillmentQty = {
+    orderNo : Text;
+    suppliedQty : Nat;
+  };
+
+  public type PartialFulfillmentRequest = {
+    entries : [PartialFulfillmentQty];
   };
 
   public type HealthCheckResponse = { status : Text; canisterId : Text };
@@ -62,6 +77,25 @@ actor {
     name : Text;
     appRole : AppRole;
     karigarName : ?Text;
+    isCreated : Bool;
+  };
+
+  public type ActivityLogEntry = {
+    userId : Principal;
+    timestamp : Time.Time;
+    action : Text;
+    details : Text;
+  };
+
+  public type BlockedUserInfo = {
+    isBlocked : Bool;
+    lastBlocked : ?Time.Time;
+    reason : ?Text;
+  };
+
+  public type BlockUserRequest = {
+    user : Principal;
+    reason : ?Text;
   };
 
   public type BulkOrderUpdate = {
@@ -69,25 +103,40 @@ actor {
     newStatus : Text;
   };
 
-  // Health Check
-  public query ({ caller }) func healthCheck() : async HealthCheckResponse {
-    {
-      status = "OK";
-      canisterId = "unknown";
-    };
+  public type UpdateOrderTotalSuppliedRequest = {
+    orderNo : Text;
+    newTotalSupplied : Nat;
   };
 
-  // Initialize Authorization & Approval
+  public type DesignImage = {
+    imageName : Text;
+    blob : BlobStorage.ExternalBlob;
+  };
+
+  public type DesignImageMapping = {
+    designCode : Text;
+    genericName : Text;
+    image : BlobStorage.ExternalBlob;
+    createdBy : Principal;
+    createdAt : Time.Time;
+  };
+
+  // Actor state
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
+  include MixinStorage();
 
   let approvalState = UserApproval.initState(accessControlState);
 
-  // Persistent State Maps
-  let userProfiles = Map.empty<Principal, UserProfile>();
-  let masterDesignsMap = Map.empty<Text, MasterDesignEntry>();
-  let ordersMap = Map.empty<Text, PersistentOrder>();
-  let unmappedDesignCodesMap = Map.empty<Text, UnmappedOrderEntry>();
+  var userProfiles = Map.empty<Principal, UserProfile>();
+  var masterDesignsMap = Map.empty<Text, MasterDesignEntry>();
+  var ordersMap = Map.empty<Text, PersistentOrder>();
+  var unmappedDesignCodesMap = Map.empty<Text, UnmappedOrderEntry>();
+  var activityLog = List.empty<ActivityLogEntry>();
+
+  var blockedUsers = Map.empty<Principal, BlockedUserInfo>();
+  var designImageMappings = Map.empty<Text, DesignImageMapping>();
+  var designImages = Map.empty<Text, DesignImage>();
 
   // Helper Functions
   func validateOrder(order : PersistentOrder) : Bool {
@@ -137,7 +186,37 @@ actor {
     trimmed.replace(#text("  "), " ");
   };
 
+  func isBlockedUser(user : Principal) : Bool {
+    switch (blockedUsers.get(user)) {
+      case (null) { false };
+      case (?info) { info.isBlocked };
+    };
+  };
+
+  func checkBlockedUser(caller : Principal) {
+    if (isBlockedUser(caller) and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Access Denied: Your user is currently blocked. Please contact admin");
+    };
+  };
+
+  func recordActivity(userId : Principal, action : Text, details : Text) {
+    let entry : ActivityLogEntry = {
+      userId = userId;
+      timestamp = Time.now();
+      action;
+      details : Text;
+    };
+    activityLog.add(entry);
+  };
+
   // State Queries
+  public query ({ caller }) func healthCheck() : async HealthCheckResponse {
+    {
+      status = "OK";
+      canisterId = "unknown";
+    };
+  };
+
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
     if (not (AccessControl.isAdmin(accessControlState, caller) or AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only authenticated users can view profiles");
@@ -152,19 +231,29 @@ actor {
     userProfiles.get(user);
   };
 
+  public query ({ caller }) func listUserProfiles() : async [UserProfile] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can perform this action");
+    };
+    userProfiles.values().toArray();
+  };
+
   public shared ({ caller }) func saveCallerUserProfile(profile : UserProfile) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can save profiles");
     };
+    checkBlockedUser(caller);
     userProfiles.add(caller, profile);
+    recordActivity(caller, "saveCallerUserProfile", "User: " # caller.toText());
   };
 
-  public query ({ caller }) func getOrders() : async [PersistentOrder] {
+  public shared ({ caller }) func getOrders() : async [PersistentOrder] {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only authenticated users can view orders");
     };
 
-    // Only karigar users need to be approved to view orders, admins and staff are exempt
+    checkBlockedUser(caller);
+
     switch (getAppRole(caller)) {
       case (?#Karigar) {
         if (not AccessControl.isAdmin(accessControlState, caller) and not UserApproval.isApproved(approvalState, caller)) {
@@ -178,6 +267,7 @@ actor {
 
     switch (getAppRole(caller)) {
       case (?#Admin) {
+        recordActivity(caller, "getOrders", "Admin retrieved all orders");
         allOrders.sort(
           func(a, b) {
             switch (Text.compare(a.designCode, b.designCode)) {
@@ -188,6 +278,7 @@ actor {
         );
       };
       case (?#Staff) {
+        recordActivity(caller, "getOrders", "Staff retrieved all orders");
         allOrders.sort(
           func(a, b) {
             switch (Text.compare(a.designCode, b.designCode)) {
@@ -198,6 +289,7 @@ actor {
         );
       };
       case (?#Karigar) {
+        recordActivity(caller, "getOrders", "Karigar retrieved orders");
         switch (getKarigarName(caller)) {
           case (?karigarName) {
             let filtered = allOrders.filter(
@@ -219,6 +311,49 @@ actor {
     };
   };
 
+  public shared ({ caller }) func getActiveOrdersForKarigar() : async [PersistentOrder] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only authenticated users can view active orders");
+    };
+
+    checkBlockedUser(caller);
+
+    switch (getAppRole(caller)) {
+      case (?#Karigar) {
+        if (not AccessControl.isAdmin(accessControlState, caller) and not UserApproval.isApproved(approvalState, caller)) {
+          Runtime.trap("Unauthorized: Karigar users must be approved to view active orders");
+        };
+      };
+      case (_) {};
+    };
+
+    let allOrders = ordersMap.values().toArray();
+    switch (getAppRole(caller)) {
+      case (?#Karigar) {
+        switch (getKarigarName(caller)) {
+          case (?karigarName) {
+            let filtered = allOrders.filter(
+              func(order) {
+                order.karigarName == karigarName and order.status == "pending" and not order.designCode.endsWith(#text "hallmark")
+              }
+            );
+            recordActivity(caller, "getActiveOrdersForKarigar", "Karigar retrieved active orders");
+            filtered.sort(
+              func(a, b) {
+                switch (Text.compare(a.designCode, b.designCode)) {
+                  case (#equal) { Nat.compare(a.qty, b.qty) };
+                  case (order) { order };
+                };
+              }
+            );
+          };
+          case null { Runtime.trap("Karigar profile missing karigarName") };
+        };
+      };
+      case _ { Runtime.trap("Function restricted to #Karigar users") };
+    };
+  };
+
   public query ({ caller }) func getUnmappedDesignCodes() : async [UnmappedOrderEntry] {
     if (not isAdminOrStaff(caller)) {
       Runtime.trap("Unauthorized: Only Admin or Staff can view unmapped design codes");
@@ -233,11 +368,11 @@ actor {
     masterDesignsMap.toArray();
   };
 
-  // Bulk Order Update Function
   public shared ({ caller }) func bulkUpdateOrderStatus(bulkUpdate : BulkOrderUpdate) : async () {
     if (not isAdminOrStaff(caller)) {
       Runtime.trap("Unauthorized: Only Admin and Staff can update order status in bulk");
     };
+    checkBlockedUser(caller);
 
     for (orderNo in bulkUpdate.orderNos.values()) {
       switch (ordersMap.get(orderNo)) {
@@ -252,10 +387,68 @@ actor {
     };
   };
 
+  public shared ({ caller }) func processPartialFulfillment(request : PartialFulfillmentRequest) : async () {
+    if (not isAdminOrStaff(caller)) {
+      Runtime.trap("Unauthorized: Only Admin and Staff can process partial fulfillment");
+    };
+    checkBlockedUser(caller);
+
+    for (fulfillment in request.entries.values()) {
+      switch (ordersMap.get(fulfillment.orderNo)) {
+        case (?order) {
+          if (order.orderType == "RB" and order.status == "pending" and fulfillment.suppliedQty < order.qty) {
+            updateOrderForPartialFulfillment(caller, order, fulfillment.suppliedQty);
+          } else if (fulfillment.suppliedQty == order.qty) {
+            updateOrderStatus(caller, fulfillment.orderNo, "given_to_hallmark");
+          };
+        };
+        case null { Runtime.trap("Order with orderNo " # fulfillment.orderNo # " not found") };
+      };
+    };
+  };
+
+  func updateOrderForPartialFulfillment(caller : Principal, order : PersistentOrder, suppliedQty : Nat) {
+    let remainingOrder : PersistentOrder = {
+      order with qty = order.qty - suppliedQty
+    };
+    let hallmarkOrder : PersistentOrder = {
+      order with qty = suppliedQty;
+      status = "given_to_hallmark";
+    };
+
+    ordersMap.add(order.orderNo, remainingOrder);
+    ordersMap.add(order.orderNo # "_hallmark", hallmarkOrder);
+
+    recordActivity(
+      caller,
+      "updateOrderForPartialFulfillment",
+      "Order " # order.orderNo # " split into remaining and hallmark orders"
+    );
+  };
+
+  func updateOrderStatus(caller : Principal, orderNo : Text, newStatus : Text) {
+    switch (ordersMap.get(orderNo)) {
+      case (?order) {
+        let updatedOrder : PersistentOrder = {
+          order with status = newStatus
+        };
+        ordersMap.add(orderNo, updatedOrder);
+
+        recordActivity(
+          caller,
+          "updateOrderStatus",
+          "Order " # orderNo # " status updated to " # newStatus
+        );
+      };
+      case null { Runtime.trap("Order with orderNo " # orderNo # " not found") };
+    };
+  };
+
   public shared ({ caller }) func uploadParsedOrders(parsedOrders : [PersistentOrder]) : async () {
     if (not isAdminOrStaff(caller)) {
       Runtime.trap("Unauthorized: Only Admin or Staff can upload orders");
     };
+    checkBlockedUser(caller);
 
     for (order in parsedOrders.values()) {
       let normalizedDesignCode = normalizeDesignCode(order.designCode);
@@ -315,13 +508,14 @@ actor {
         };
       };
     };
+    recordActivity(caller, "uploadParsedOrders", "Parsed orders uploaded");
   };
 
-  // Master Designs Management
   public shared ({ caller }) func saveMasterDesigns(masterDesigns : [(Text, MasterDesignEntry)]) : async () {
     if (not AccessControl.isAdmin(accessControlState, caller)) {
       Runtime.trap("Unauthorized: Only Admin can save master designs");
     };
+    checkBlockedUser(caller);
 
     for (entry in masterDesigns.values()) {
       if (not validateDesignCode(entry.0)) {
@@ -335,12 +529,14 @@ actor {
     };
 
     processUnmappedOrders();
+    recordActivity(caller, "saveMasterDesigns", "Master designs saved");
   };
 
   public shared ({ caller }) func setActiveFlagForMasterDesign(designCode : Text, isActive : Bool) : async () {
     if (not AccessControl.isAdmin(accessControlState, caller)) {
       Runtime.trap("Unauthorized: Only admins can set active flag");
     };
+    checkBlockedUser(caller);
 
     let normalizedDesignCode = normalizeDesignCode(designCode);
     let existingEntry = masterDesignsMap.get(normalizedDesignCode);
@@ -356,53 +552,9 @@ actor {
       };
     };
     masterDesignsMap.add(normalizedDesignCode, updatedEntry);
+    recordActivity(caller, "setActiveFlagForMasterDesign", "Master design flag updated");
   };
 
-  // Approval Functions
-  public query ({ caller }) func isCallerApproved() : async Bool {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only authenticated users can check approval status");
-    };
-    AccessControl.hasPermission(accessControlState, caller, #admin) or UserApproval.isApproved(approvalState, caller);
-  };
-
-  public shared ({ caller }) func setApproval(user : Principal, status : UserApproval.ApprovalStatus) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
-      Runtime.trap("Unauthorized: Only admins can perform this action");
-    };
-    UserApproval.setApproval(approvalState, user, status);
-  };
-
-  public query ({ caller }) func listApprovals() : async [UserApproval.UserApprovalInfo] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
-      Runtime.trap("Unauthorized: Only admins can perform this action");
-    };
-    UserApproval.listApprovals(approvalState);
-  };
-
-  public shared ({ caller }) func requestApproval() : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only authenticated users can request approval");
-    };
-    UserApproval.setApproval(approvalState, caller, #pending);
-  };
-
-  public shared ({ caller }) func createUserProfile(user : Principal, profile : UserProfile) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can create user profiles");
-    };
-
-    let accessRole : AccessControl.UserRole = switch (profile.appRole) {
-      case (#Admin) { #admin };
-      case (#Staff) { #user };
-      case (#Karigar) { #user };
-    };
-
-    AccessControl.assignRole(accessControlState, caller, user, accessRole);
-    userProfiles.add(user, profile);
-  };
-
-  // Internal Process Unmapped Orders
   func processUnmappedOrders() {
     let unmappedEntries = unmappedDesignCodesMap.toArray();
 
@@ -431,5 +583,184 @@ actor {
         case null {};
       };
     };
+  };
+
+  public query ({ caller }) func getActivityLog() : async [ActivityLogEntry] {
+    if (not isAdminOrStaff(caller)) {
+      Runtime.trap("Unauthorized: Only Admin or Staff can access activity log");
+    };
+    activityLog.toArray();
+  };
+
+  // Approval Functions
+  public query ({ caller }) func isCallerApproved() : async Bool {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only authenticated users can check approval status");
+    };
+    AccessControl.hasPermission(accessControlState, caller, #admin) or UserApproval.isApproved(approvalState, caller);
+  };
+
+  public shared ({ caller }) func setApproval(user : Principal, status : UserApproval.ApprovalStatus) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can perform this action");
+    };
+    UserApproval.setApproval(approvalState, user, status);
+    recordActivity(caller, "setApproval", "Approval changed for user: " # user.toText());
+  };
+
+  public query ({ caller }) func listApprovals() : async [UserApproval.UserApprovalInfo] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can perform this action");
+    };
+    UserApproval.listApprovals(approvalState);
+  };
+
+  public shared ({ caller }) func requestApproval() : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only authenticated users can request approval");
+    };
+    checkBlockedUser(caller);
+    UserApproval.setApproval(approvalState, caller, #pending);
+    recordActivity(caller, "requestApproval", "Approval requested");
+  };
+
+  public shared ({ caller }) func createUserProfile(user : Principal, profile : UserProfile) : async () {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admins can create user profiles");
+    };
+
+    let accessRole : AccessControl.UserRole = switch (profile.appRole) {
+      case (#Admin) { #admin };
+      case (#Staff) { #user };
+      case (#Karigar) { #user };
+    };
+
+    let createdProfile : UserProfile = {
+      name = profile.name;
+      appRole = profile.appRole;
+      karigarName = profile.karigarName;
+      isCreated = true;
+    };
+
+    AccessControl.assignRole(accessControlState, caller, user, accessRole);
+    userProfiles.add(user, createdProfile);
+    recordActivity(caller, "createUserProfile", "User profile created for " # user.toText());
+  };
+
+  // Blocked User Functions
+  public shared ({ caller }) func blockUser(request : BlockUserRequest) : async () {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admins can block users");
+    };
+
+    let blockInfo : BlockedUserInfo = {
+      isBlocked = true;
+      lastBlocked = ?Time.now();
+      reason = request.reason;
+    };
+    blockedUsers.add(request.user, blockInfo);
+    recordActivity(caller, "blockUser", "User " # request.user.toText() # " blocked");
+  };
+
+  public shared ({ caller }) func unblockUser(user : Principal) : async () {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admins can unblock users");
+    };
+
+    blockedUsers.add(
+      user,
+      {
+        isBlocked = false;
+        lastBlocked = ?Time.now();
+        reason = null;
+      },
+    );
+    recordActivity(caller, "unblockUser", "User " # user.toText() # " unblocked");
+  };
+
+  public query ({ caller }) func isUserBlocked(user : Principal) : async Bool {
+    switch (blockedUsers.get(user)) {
+      case (null) { false };
+      case (?info) { info.isBlocked };
+    };
+  };
+
+  public shared ({ caller }) func updateOrderTotalSupplied(request : UpdateOrderTotalSuppliedRequest) : async () {
+    if (not isAdminOrStaff(caller)) {
+      Runtime.trap("Unauthorized: Only Admin and Staff can update total supplied quantity");
+    };
+    checkBlockedUser(caller);
+
+    if (request.orderNo.endsWith(#text "hallmark")) {
+      Runtime.trap("Cannot update hallmark orders");
+    };
+
+    switch (ordersMap.get(request.orderNo)) {
+      case (?originalOrder) {
+        let originalTotal = originalOrder.qty;
+        let updatedOrder = { originalOrder with qty = request.newTotalSupplied };
+
+        ordersMap.add(request.orderNo, updatedOrder);
+        switch (ordersMap.get(request.orderNo # "_hallmark")) {
+          case (?hallmarkOrder) {
+            let remainingQty = switch (originalTotal >= request.newTotalSupplied) {
+              case (true) { request.newTotalSupplied };
+              case (false) { originalTotal };
+            };
+
+            let updatedHallmark = {
+              hallmarkOrder with qty = remainingQty;
+              status = "given_to_hallmark";
+            };
+            ordersMap.add(request.orderNo # "_hallmark", updatedHallmark);
+          };
+          case null {};
+        };
+        recordActivity(caller, "updateOrderTotalSupplied", "Order " # request.orderNo # " updated");
+      };
+      case null { Runtime.trap("Order not found") };
+    };
+  };
+
+  // Design-to-Image Mapping
+  public query ({ caller }) func getAdminDesignImageMappings() : async [(DesignImageMapping, BlobStorage.ExternalBlob)] {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admins can retrieve design image mappings");
+    };
+
+    let validMappings = designImageMappings.toArray();
+
+    validMappings.map(
+      func((key, mapping)) {
+        (mapping, mapping.image);
+      }
+    );
+  };
+
+  public query ({ caller }) func getDesignImageMappings() : async [DesignImageMapping] {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admins can retrieve design image mappings");
+    };
+    designImageMappings.values().toArray();
+  };
+
+  public shared ({ caller }) func saveDesignImageMappings(parsedMappings : [DesignImageMapping]) : async [DesignImageMapping] {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admins can save design image mappings");
+    };
+
+    let validatedMappings = parsedMappings.filter(
+      func(mapping) {
+        mapping.designCode != "" and
+        mapping.genericName != "" and
+        mapping.createdBy.isAnonymous() == false
+      }
+    );
+
+    for (mapping in validatedMappings.values()) {
+      designImageMappings.add(mapping.designCode, mapping);
+    };
+
+    validatedMappings;
   };
 };

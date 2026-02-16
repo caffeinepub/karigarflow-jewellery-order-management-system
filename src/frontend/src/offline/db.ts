@@ -91,6 +91,44 @@ export async function getCachedOrders(): Promise<OfflineOrder[]> {
   });
 }
 
+export async function clearOrdersCache(): Promise<void> {
+  const db = await getDB();
+  const transaction = db.transaction(['orders'], 'readwrite');
+  const store = transaction.objectStore('orders');
+
+  return new Promise((resolve, reject) => {
+    const request = store.clear();
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+}
+
+export async function replaceOrdersCache(orders: OfflineOrder[]): Promise<void> {
+  const db = await getDB();
+  const transaction = db.transaction(['orders'], 'readwrite');
+  const store = transaction.objectStore('orders');
+
+  return new Promise((resolve, reject) => {
+    // Clear first
+    const clearRequest = store.clear();
+    clearRequest.onerror = () => reject(clearRequest.error);
+    clearRequest.onsuccess = () => {
+      // Then add all valid orders
+      const promises = orders.map((order) => {
+        return new Promise<void>((res, rej) => {
+          const request = store.add(order);
+          request.onsuccess = () => res();
+          request.onerror = () => rej(request.error);
+        });
+      });
+
+      Promise.all(promises)
+        .then(() => resolve())
+        .catch(reject);
+    };
+  });
+}
+
 export async function queueIngestion(batch: Omit<QueueItem, 'id'>): Promise<void> {
   const db = await getDB();
   const transaction = db.transaction(['queue'], 'readwrite');

@@ -1,64 +1,27 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-16T11:59:33.637Z",
-  "summary": "Frontend appears to have been updated to call a bulk status update API using a single BulkOrderUpdate object and to adjust Admin/Staff dashboards for hallmark workflow, but the diff summary does not provide evidence that the backend actually implements the required bulkUpdateOrderStatus method or the Staff getOrders authorization/approval-gate fix. Several additional frontend features (offline caching, new auth/role-gating UI, connectivity/error UX) were implemented beyond the stated requirements.",
+  "generatedAt": "2026-02-16T18:52:41.480Z",
+  "summary": "Diff adds defensive guards around admin dialogs, introduces an orders data-quality warning banner, and sanitizes orders before use in AdminDashboardPage. However, the diff evidence is insufficient to पुष्टि that all unsafe non-null assertions/unconditional dialog mounts (e.g., passing rbEditOrder! when null) were removed across the Admin Dashboard initial render path.",
   "missing_requirements": [
     {
-      "id": "REQ-1",
-      "requirement": "Backend exposes a shared method for bulk order status updates (e.g., bulkUpdateOrderStatus(orderNos, newStatus)) that updates ordersMap and authorizes only Admin/Staff; calling it with newStatus = \"given_to_hallmark\" must be reflected in subsequent getOrders().",
-      "reason": "The frontend hook was adjusted to send a BulkOrderUpdate object, but the backend diff excerpt does not show any newly-added shared bulk update method implementation, any ordersMap status mutation logic for a bulk update, or the required Admin/Staff authorization/trap behavior for that method.",
-      "evidence": [
-        "backend/main.mo (truncated; shows type BulkOrderUpdate but no bulk update shared method visible)",
-        "frontend/src/hooks/useQueries.ts (truncated; updated call shape implies backend support is needed)"
-      ]
-    },
-    {
       "id": "REQ-2",
-      "requirement": "Fix backend authorization/approval logic so Staff users can successfully call getOrders() even if not approved, while Karigar users remain subject to approval requirements.",
-      "reason": "The diff summary does not show changes to backend getOrders authorization logic or any approval-gate adjustments; backend/main.mo is truncated before any getOrders implementation and provides no evidence of the required role-specific approval behavior.",
+      "requirement": "Remove all unsafe non-null assertions and/or unconditional rendering patterns that can crash the Admin Dashboard during initial render (e.g., eliminate passing rbEditOrder! when rbEditOrder is null) and ensure dialogs only mount/render with valid backing state.",
+      "reason": "While dialog components now defensively return null when given invalid props, the diff excerpt for AdminDashboardPage is truncated before showing how these dialogs are instantiated. There is no explicit diff evidence that the dashboard stopped passing nullable state via non-null assertions (e.g., rbEditOrder!) or that dialogs are conditionally mounted only when backing state is non-null.",
       "evidence": [
-        "backend/main.mo (truncated; no visible getOrders implementation/authorization changes)"
+        "frontend/src/pages/admin/AdminDashboardPage.tsx",
+        "frontend/src/components/orders/RbSuppliedQtyEditDialog.tsx"
       ]
     }
   ],
-  "hallucinated_features": [
-    {
-      "description": "Offline persistence of fetched orders into IndexedDB in the orders query hook.",
-      "reason": "REQ-1/2/3 do not request offline caching/IndexedDB persistence; this is additional functionality unrelated to hallmark status updates and Staff getOrders authorization.",
-      "evidence": [
-        "frontend/src/hooks/useQueries.ts (writes orders to IndexedDB via getDB(), clears/adds records)"
-      ]
-    },
-    {
-      "description": "Large set of new/expanded authentication/role-gating UI and routing behavior (AccessDeniedScreen, RoleGate, ProfileSetupModal changes, AppShell navigation gating, App bootstrap changes).",
-      "reason": "The request explicitly focuses on hallmark bulk status updates and Staff order fetching; it also lists non-goals around adding new auth methods, and does not ask for major UI/auth/routing refactors.",
-      "evidence": [
-        "frontend-file-summaries.txt (frontend/src/App.tsx, frontend/src/components/auth/AccessDeniedScreen.tsx, RoleGate.tsx, ProfileSetupModal.tsx, LoginButton.tsx, AppShell.tsx)"
-      ]
-    },
-    {
-      "description": "New connectivity/status bar and expanded error boundary/inline error presentation UX.",
-      "reason": "Not requested by REQ-1/2/3; these changes go beyond fixing hallmark updates and Staff portal order loading.",
-      "evidence": [
-        "frontend-file-summaries.txt (frontend/src/components/status/ConnectivityStatusBar.tsx, frontend/src/components/errors/AppErrorBoundary.tsx, InlineErrorState.tsx)"
-      ]
-    },
-    {
-      "description": "Added backend/migration.mo migration module and corresponding actor migration wiring.",
-      "reason": "Not requested by REQ-1/2/3; while not necessarily harmful, it is extra backend work not specified in the BuildRequest.",
-      "evidence": [
-        "backend/migration.mo (new file)",
-        "backend/main.mo (\"with migration = Migration.run\")"
-      ]
-    }
-  ],
+  "hallucinated_features": [],
   "confidence": 0.63,
   "changed_files": [
-    "backend/main.mo",
-    "backend/migration.mo",
     "frontend-file-summaries.txt",
-    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/components/orders/OrdersDataWarningBanner.tsx",
+    "frontend/src/components/orders/PartialFulfillmentDialog.tsx",
+    "frontend/src/components/orders/RbSuppliedQtyEditDialog.tsx",
+    "frontend/src/pages/admin/AdminDashboardPage.tsx",
     "project_state.json"
   ]
 }

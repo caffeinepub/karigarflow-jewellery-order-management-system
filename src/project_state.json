@@ -4,39 +4,37 @@
   "summary": "New project",
   "architectural_notes": [],
   "known_issues": [
-    "Mark as hallmark action fails to update the order status when selecting an order line.",
-    "Staff portal is not fetching/displaying orders for viewing and status updates."
+    "Admin portal crashes with the same error when opening (regression persists after deployment)."
   ],
   "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-ensure-admin-and-staff-portals-reflect-successful-hallmark-updates-by-refreshing-orders-and-removing-newly-updated-given-to-hallmark-orders-from-the-total-orders-list-after-marking-as-hallmark",
-      "title": "Ensure Admin and Staff portals reflect successful hallmark updates by refreshing orders and removing newly-updated \"given_to_hallmark\" orders from the \"Total Orders\" list after marking as hallmark.",
+      "id": "feature-identify-and-fix-the-runtime-crash-that-occurs-when-opening-the-admin-portal-route-admin-ensuring-the-page-renders-successfully-even-on-a-fresh-load-with-no-dialogs-opened",
+      "title": "Identify and fix the runtime crash that occurs when opening the admin portal route (/admin), ensuring the page renders successfully even on a fresh load with no dialogs opened.",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-remove-all-unsafe-non-null-assertions-and-or-unconditional-rendering-patterns-that-can-crash-the-admin-dashboard-during-initial-render-especially-where-components-receive-props-derived-from-nullable-state-e-g-rbeditorder-ensure-dialogs-and-dependent-ui-render-safely-when-their-backing-state-is-null-empty-and-only-mount-when-needed",
+      "title": "Remove all unsafe non-null assertions and/or unconditional rendering patterns that can crash the Admin Dashboard during initial render, especially where components receive props derived from nullable state (e.g., rbEditOrder). Ensure dialogs and dependent UI render safely when their backing state is null/empty and only mount when needed.",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-an-explicit-user-friendly-non-crashing-error-state-on-the-admin-dashboard-for-unexpected-data-shape-issues-e-g-orders-missing-required-fields-so-that-the-portal-stays-usable-and-provides-a-clear-recovery-path-such-as-clearing-local-cache-and-retrying",
+      "title": "Add an explicit, user-friendly, non-crashing error state on the Admin Dashboard for unexpected data-shape issues (e.g., orders missing required fields) so that the portal stays usable and provides a clear recovery path (such as clearing local cache and retrying).",
       "reqIds": [
         "REQ-3"
       ],
       "version": 1
     }
   ],
-  "new_feature_requests": [
-    {
-      "id": "AR-1",
-      "summary": "Implement backend support for bulk order status updates so that the Admin/Staff \"Mark as Hallmark\" action can update selected order lines to status \"given_to_hallmark\".",
-      "reqIds": [
-        "REQ-1"
-      ],
-      "status": "pending"
-    },
-    {
-      "id": "AR-2",
-      "summary": "Fix backend authorization/approval logic so Staff users can fetch orders in the staff portal (getOrders) without being blocked by the approval gate immediately after profile creation.",
-      "reqIds": [
-        "REQ-2"
-      ],
-      "status": "pending"
-    }
-  ],
-  "projectName": "Fix hallmark status update and staff portal orders loading",
+  "new_feature_requests": [],
+  "projectName": "KarigarFlow",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

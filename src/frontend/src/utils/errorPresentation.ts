@@ -8,11 +8,28 @@ export interface ErrorPresentation {
 }
 
 /**
+ * Decode URL-encoded error messages to display them properly
+ */
+function decodeErrorMessage(message: string): string {
+  try {
+    // Check if the message contains URL-encoded characters
+    if (message.includes('%20') || message.includes('%3A')) {
+      return decodeURIComponent(message);
+    }
+    return message;
+  } catch {
+    // If decoding fails, return original
+    return message;
+  }
+}
+
+/**
  * Present an error to the user with a friendly message and optional technical details.
  * Reuses bootstrap error classification for stopped-canister and network error detection.
  */
 export function presentError(error: unknown): ErrorPresentation {
   const rawErrorString = getSafeErrorString(error);
+  const decodedError = decodeErrorMessage(rawErrorString);
   const classification = classifyBootstrapError(error);
 
   let friendlyMessage = 'An unexpected error occurred. Please try again.';
@@ -23,10 +40,12 @@ export function presentError(error: unknown): ErrorPresentation {
     friendlyMessage = 'Network error. Please check your connection and try again.';
   } else {
     // Try to extract user-friendly messages from backend errors
-    const lowerError = rawErrorString.toLowerCase();
+    const lowerError = decodedError.toLowerCase();
     
     if (lowerError.includes('unauthorized')) {
-      friendlyMessage = 'You do not have permission to perform this action.';
+      friendlyMessage = decodeErrorMessage('You do not have permission to perform this action.');
+    } else if (lowerError.includes('blocked') || lowerError.includes('access denied')) {
+      friendlyMessage = decodeErrorMessage(decodedError);
     } else if (lowerError.includes('not found')) {
       friendlyMessage = 'The requested resource was not found.';
     } else if (lowerError.includes('invalid')) {
@@ -35,25 +54,25 @@ export function presentError(error: unknown): ErrorPresentation {
       friendlyMessage = 'This item already exists.';
     } else if (lowerError.includes('actor not available')) {
       friendlyMessage = 'Backend connection not ready. Please wait a moment and try again.';
-    } else if (rawErrorString.includes('batch') && rawErrorString.includes('failed')) {
+    } else if (decodedError.includes('batch') && decodedError.includes('failed')) {
       // Extract batch-specific error messages
-      friendlyMessage = rawErrorString;
+      friendlyMessage = decodedError;
     } else {
       // Use the raw error if it looks like a user-facing message (not too technical)
-      const isTechnical = rawErrorString.includes('IC0') || 
-                          rawErrorString.includes('canister') ||
-                          rawErrorString.includes('agent') ||
-                          rawErrorString.length > 200;
+      const isTechnical = decodedError.includes('IC0') || 
+                          decodedError.includes('canister') ||
+                          decodedError.includes('agent') ||
+                          decodedError.length > 200;
       
-      if (!isTechnical && rawErrorString.length > 0) {
-        friendlyMessage = rawErrorString;
+      if (!isTechnical && decodedError.length > 0) {
+        friendlyMessage = decodedError;
       }
     }
   }
 
   return {
-    friendlyMessage,
-    rawErrorString,
+    friendlyMessage: decodeErrorMessage(friendlyMessage),
+    rawErrorString: decodedError,
     isStoppedCanister: classification.isStoppedCanister,
     isNetworkError: classification.isNetworkError,
   };

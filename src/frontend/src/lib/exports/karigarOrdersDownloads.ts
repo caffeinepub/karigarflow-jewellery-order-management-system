@@ -11,7 +11,15 @@ interface KarigarDownloadOptions {
 }
 
 /**
+ * Detect if running on iOS
+ */
+function isIOS(): boolean {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+}
+
+/**
  * Generate and trigger browser print dialog for Karigar orders (PDF export)
+ * iOS-compatible version with fallback
  */
 export function downloadKarigarPDF({ karigarName, orders, selectedDate, dateLabel, exportScope = 'total' }: KarigarDownloadOptions): void {
   if (orders.length === 0) {
@@ -20,22 +28,6 @@ export function downloadKarigarPDF({ karigarName, orders, selectedDate, dateLabe
 
   const today = format(new Date(), 'yyyy-MM-dd');
   const poCode = generateKarigarPOCode(karigarName);
-
-  // Create a hidden iframe for printing
-  const iframe = document.createElement('iframe');
-  iframe.style.position = 'absolute';
-  iframe.style.width = '0';
-  iframe.style.height = '0';
-  iframe.style.border = 'none';
-  document.body.appendChild(iframe);
-
-  const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-  if (!iframeDoc) {
-    document.body.removeChild(iframe);
-    throw new Error('Failed to create print document');
-  }
-
-  // Build HTML content
   const dateStr = dateLabel || (selectedDate ? format(selectedDate, 'MMMM do, yyyy') : 'All Dates');
   const totalWeight = orders.reduce((sum, o) => sum + o.weight, 0);
   const totalQty = orders.reduce((sum, o) => sum + Number(o.qty), 0);
@@ -150,20 +142,53 @@ export function downloadKarigarPDF({ karigarName, orders, selectedDate, dateLabe
     </html>
   `;
 
-  iframeDoc.open();
-  iframeDoc.write(html);
-  iframeDoc.close();
+  // iOS-specific handling
+  if (isIOS()) {
+    // Open in new window and trigger print
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(html);
+      printWindow.document.close();
+      
+      // Wait for content to load, then print
+      printWindow.onload = () => {
+        setTimeout(() => {
+          printWindow.print();
+        }, 500);
+      };
+    } else {
+      throw new Error('Failed to open print window. Please allow popups for this site.');
+    }
+  } else {
+    // Desktop: use hidden iframe
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'absolute';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = 'none';
+    document.body.appendChild(iframe);
 
-  // Wait for content to load, then print
-  iframe.onload = () => {
-    setTimeout(() => {
-      iframe.contentWindow?.print();
-      // Clean up after a delay
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (!iframeDoc) {
+      document.body.removeChild(iframe);
+      throw new Error('Failed to create print document');
+    }
+
+    iframeDoc.open();
+    iframeDoc.write(html);
+    iframeDoc.close();
+
+    // Wait for content to load, then print
+    iframe.onload = () => {
       setTimeout(() => {
-        document.body.removeChild(iframe);
-      }, 1000);
-    }, 250);
-  };
+        iframe.contentWindow?.print();
+        // Clean up after a delay
+        setTimeout(() => {
+          document.body.removeChild(iframe);
+        }, 1000);
+      }, 250);
+    };
+  }
 }
 
 /**

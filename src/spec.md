@@ -1,12 +1,11 @@
 # Specification
 
 ## Summary
-**Goal:** Fix hallmark bulk status updates and ensure Staff users can load and manage orders in the staff portal.
+**Goal:** Fix the Admin Portal (/admin) runtime crash on initial load by making the dashboard and its dialogs defensively render without unsafe assumptions, and by providing a non-crashing error state for unexpected data issues.
 
 **Planned changes:**
-- Add backend support for bulk order status updates so Admin/Staff “Mark as Hallmark” updates selected order lines to status `given_to_hallmark`.
-- Enforce backend authorization so only Admin/Staff can bulk-update order statuses, with clear errors for unauthorized callers.
-- Adjust backend order-fetch authorization so Staff users can successfully call `getOrders()` after profile creation (without being blocked by approval), while keeping Karigar users subject to approval.
-- Update frontend hallmark action flow to refresh/reload orders after a successful bulk update, moving updated items out of “Total Orders” and into the “Hallmark” list; show an error toast and keep selection if the update fails.
+- Identify and resolve the crash triggered when navigating to `/admin`, ensuring AdminDashboardPage can render on a fresh load without any dialogs opened.
+- Remove unsafe non-null assertions and unconditional rendering patterns in the admin dashboard (e.g., props derived from nullable state), and ensure dialogs only mount/render when their backing state is valid.
+- Add a user-friendly, non-blocking error/warning state for invalid/corrupt order data (from backend or local cache), including a safe “clear local cache and reload” recovery path.
 
-**User-visible outcome:** Admin and Staff can mark selected orders as “Hallmark” successfully, see those orders move to the Hallmark tab, and Staff users can load orders in the Staff Dashboard without the “Failed to load orders” state (when backend is online and orders exist).
+**User-visible outcome:** Admin users can open `/admin` without a white screen; the dashboard header/metrics/tabs render immediately, dialogs can be opened/closed repeatedly without crashes, and invalid data shows a clear warning with a working cache-clear recovery option.

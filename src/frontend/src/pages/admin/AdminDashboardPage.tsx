@@ -1,329 +1,302 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useOrdersCache } from '../../hooks/useOrdersCache';
-import { useBulkUpdateOrderStatus } from '../../hooks/useQueries';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Skeleton } from '@/components/ui/skeleton';
+import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, Eye } from 'lucide-react';
+import { useGetOrders } from '../../hooks/useQueries';
+import { useOrdersCache } from '../../hooks/useOrdersCache';
 import { OrdersTable } from '../../components/orders/OrdersTable';
 import { OrdersFiltersBar } from '../../components/orders/OrdersFiltersBar';
+import { ExportActions } from '../../components/exports/ExportActions';
 import { KarigarDrilldownExportBar } from '../../components/exports/KarigarDrilldownExportBar';
+import { PartialFulfillmentDialog } from '../../components/orders/PartialFulfillmentDialog';
+import { RbSuppliedQtyEditDialog } from '../../components/orders/RbSuppliedQtyEditDialog';
+import { DesignImageViewerDialog } from '../../components/designImages/DesignImageViewerDialog';
+import { OrdersDataWarningBanner } from '../../components/orders/OrdersDataWarningBanner';
 import { deriveMetrics } from '../../lib/orders/deriveMetrics';
-import { getOrderTimestamp } from '../../lib/orders/getOrderTimestamp';
-import { formatKarigarName } from '../../lib/orders/formatKarigarName';
 import { sortOrdersDesignWise } from '../../lib/orders/sortOrdersDesignWise';
 import { sortOrdersKarigarWise } from '../../lib/orders/sortOrdersKarigarWise';
-import { CalendarIcon, Package, ArrowLeft, Send } from 'lucide-react';
+import { formatKarigarName } from '../../lib/orders/formatKarigarName';
+import { getOrderTimestamp } from '../../lib/orders/getOrderTimestamp';
+import { sanitizeOrders } from '../../lib/orders/validatePersistentOrder';
+import type { PersistentOrder } from '../../backend';
 import { format, startOfDay, endOfDay } from 'date-fns';
 import { toast } from 'sonner';
-import type { PersistentOrder } from '../../backend';
 
-type SortOption = 'default' | 'design' | 'karigar';
-type HallmarkViewMode = 'all' | 'daywise';
+type ActiveTab = 'total' | 'hallmark' | 'co' | 'karigars';
 
 export function AdminDashboardPage() {
-  const { orders, isLoading, error } = useOrdersCache();
-  const bulkUpdateMutation = useBulkUpdateOrderStatus();
+  const { data: fetchedOrders, isLoading: fetchingOrders, isError, error } = useGetOrders();
+  const { 
+    orders: cachedOrders, 
+    isLoading: loadingCache, 
+    invalidOrdersSkippedCount,
+    clearLocalOrdersCacheAndReload 
+  } = useOrdersCache();
   
-  // Initialize selectedDate from sessionStorage or default to today
-  const [selectedDate, setSelectedDate] = useState<Date>(() => {
-    const stored = sessionStorage.getItem('adminDashboardSelectedDate');
-    if (stored) {
-      try {
-        const parsed = new Date(stored);
-        if (!isNaN(parsed.getTime())) {
-          return parsed;
-        }
-      } catch {
-        // Fall through to default
-      }
-    }
-    return new Date();
-  });
-
-  const [sortOption, setSortOption] = useState<SortOption>('default');
+  const [activeTab, setActiveTab] = useState<ActiveTab>('total');
   const [selectedKarigar, setSelectedKarigar] = useState<string | null>(null);
-  const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
-  const [hallmarkViewMode, setHallmarkViewMode] = useState<HallmarkViewMode>('all');
-  const [hallmarkDate, setHallmarkDate] = useState<Date>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [isClearing, setIsClearing] = useState(false);
   
-  const [filters, setFilters] = useState({
-    karigar: '',
-    dateFrom: null as Date | null,
-    dateTo: null as Date | null,
-    coOnly: false,
-    status: '',
-  });
+  // Filters state per tab
+  const [totalFilters, setTotalFilters] = useState({ karigar: '', status: '', dateFrom: null as Date | null, dateTo: null as Date | null, orderNoQuery: '', coOnly: false });
+  const [hallmarkFilters, setHallmarkFilters] = useState({ karigar: '', status: '', dateFrom: null as Date | null, dateTo: null as Date | null, orderNoQuery: '', coOnly: false });
+  const [coFilters, setCoFilters] = useState({ karigar: '', status: '', dateFrom: null as Date | null, dateTo: null as Date | null, orderNoQuery: '', coOnly: false });
+  const [karigarFilters, setKarigarFilters] = useState({ karigar: '', status: '', dateFrom: null as Date | null, dateTo: null as Date | null, orderNoQuery: '', coOnly: false });
+  
+  const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
+  const [partialFulfillmentDialogOpen, setPartialFulfillmentDialogOpen] = useState(false);
+  const [rbEditOrder, setRbEditOrder] = useState<PersistentOrder | null>(null);
+  const [imageViewerDesignCode, setImageViewerDesignCode] = useState<string>('');
+  const [imageViewerOpen, setImageViewerOpen] = useState(false);
 
-  // Persist selectedDate to sessionStorage whenever it changes
-  useEffect(() => {
-    const dateKey = format(selectedDate, 'yyyy-MM-dd');
-    sessionStorage.setItem('adminDashboardSelectedDate', dateKey);
-  }, [selectedDate]);
+  const isLoading = fetchingOrders || loadingCache;
+  
+  // Sanitize orders as a last line of defense
+  const rawOrders = fetchedOrders || cachedOrders || [];
+  const { validOrders: orders } = sanitizeOrders(rawOrders);
 
-  const filteredOrders = useMemo(() => {
-    const start = startOfDay(selectedDate);
-    const end = endOfDay(selectedDate);
-    
-    return orders.filter((order) => {
-      const orderDate = getOrderTimestamp(order);
-      return orderDate >= start && orderDate <= end;
-    });
-  }, [orders, selectedDate]);
-
-  const sortedOrders = useMemo(() => {
-    switch (sortOption) {
-      case 'design':
-        return sortOrdersDesignWise(filteredOrders);
-      case 'karigar':
-        return sortOrdersKarigarWise(filteredOrders);
-      default:
-        return filteredOrders;
-    }
-  }, [filteredOrders, sortOption]);
-
-  // Filter orders for Total Orders tab (exclude given_to_hallmark)
-  const totalOrders = useMemo(() => {
-    let result = sortedOrders.filter(o => o.status !== 'given_to_hallmark');
-    
-    // Apply filters
-    if (filters.karigar) {
-      result = result.filter((order) => {
-        const formattedName = formatKarigarName(order.karigarName);
-        return formattedName === filters.karigar;
-      });
-    }
-
-    if (filters.dateFrom || filters.dateTo) {
-      result = result.filter((order) => {
-        const orderDate = getOrderTimestamp(order);
-        const fromMatch = !filters.dateFrom || orderDate >= filters.dateFrom;
-        const toMatch = !filters.dateTo || orderDate <= filters.dateTo;
-        return fromMatch && toMatch;
-      });
-    }
-
-    if (filters.coOnly) {
-      result = result.filter((order) => order.isCustomerOrder);
-    }
-
-    if (filters.status) {
-      result = result.filter((order) => order.status === filters.status);
-    }
-
-    return result;
-  }, [sortedOrders, filters]);
-
-  // Hallmark orders
-  const hallmarkOrders = useMemo(() => {
-    let result = orders.filter(o => o.status === 'given_to_hallmark');
-    
-    if (hallmarkViewMode === 'daywise') {
-      const start = startOfDay(hallmarkDate);
-      const end = endOfDay(hallmarkDate);
-      result = result.filter((order) => {
-        const orderDate = getOrderTimestamp(order);
-        return orderDate >= start && orderDate <= end;
-      });
-    }
-    
-    return sortOrdersDesignWise(result);
-  }, [orders, hallmarkViewMode, hallmarkDate]);
-
-  const customerOrders = useMemo(() => 
-    sortedOrders.filter(order => order.isCustomerOrder),
-    [sortedOrders]
-  );
-
-  const metrics = useMemo(() => deriveMetrics(sortedOrders), [sortedOrders]);
-
-  const karigarNames = useMemo(() => {
-    const names = Array.from(
-      new Set(sortedOrders.map(o => formatKarigarName(o.karigarName)))
-    ).sort();
-    return names;
-  }, [sortedOrders]);
-
-  const selectedKarigarOrders = useMemo(() => {
-    if (!selectedKarigar) return [];
-    return sortedOrders.filter(o => formatKarigarName(o.karigarName) === selectedKarigar);
-  }, [sortedOrders, selectedKarigar]);
-
-  const handleBulkMarkAsHallmark = async () => {
-    if (selectedOrders.size === 0) {
-      toast.error('Please select at least one order');
-      return;
-    }
-
+  const handleClearCache = async () => {
+    setIsClearing(true);
     try {
-      await bulkUpdateMutation.mutateAsync({
-        orderNos: Array.from(selectedOrders),
-        newStatus: 'given_to_hallmark',
-      });
-      toast.success(`${selectedOrders.size} order(s) marked as given to hallmark`);
-      setSelectedOrders(new Set());
+      await clearLocalOrdersCacheAndReload();
+      toast.success('Local cache cleared successfully');
     } catch (error) {
-      console.error('Failed to update orders:', error);
-      toast.error('Failed to update order status');
+      console.error('Failed to clear cache:', error);
+      toast.error('Failed to clear local cache');
+    } finally {
+      setIsClearing(false);
     }
   };
+
+  const applyFilters = (ordersList: PersistentOrder[], filters: typeof totalFilters) => {
+    return ordersList.filter(order => {
+      if (filters.karigar && formatKarigarName(order.karigarName) !== filters.karigar) {
+        return false;
+      }
+      if (filters.status && order.status !== filters.status) {
+        return false;
+      }
+      if (filters.orderNoQuery && !order.orderNo.toLowerCase().includes(filters.orderNoQuery.toLowerCase())) {
+        return false;
+      }
+      if (filters.coOnly && !order.isCustomerOrder) {
+        return false;
+      }
+      if (filters.dateFrom || filters.dateTo) {
+        const orderDate = getOrderTimestamp(order);
+        if (filters.dateFrom && orderDate < startOfDay(filters.dateFrom)) {
+          return false;
+        }
+        if (filters.dateTo && orderDate > endOfDay(filters.dateTo)) {
+          return false;
+        }
+      }
+      return true;
+    });
+  };
+
+  const totalOrders = applyFilters(orders, totalFilters);
+  const hallmarkOrders = applyFilters(
+    orders.filter(o => o.designCode.toLowerCase().includes('hallmark') || o.orderNo.endsWith('_hallmark')),
+    hallmarkFilters
+  );
+  const customerOrders = applyFilters(
+    orders.filter(o => o.isCustomerOrder),
+    coFilters
+  );
+
+  const activeOrders = orders.filter(o => o.status === 'pending' && !o.designCode.toLowerCase().includes('hallmark') && !o.orderNo.endsWith('_hallmark'));
+  const filteredKarigarOrders = applyFilters(activeOrders, karigarFilters);
+
+  const metrics = deriveMetrics(orders);
+  const karigarNames = Object.keys(metrics.byKarigar).sort();
+
+  const handleViewDesignImage = (order: PersistentOrder) => {
+    setImageViewerDesignCode(order.designCode);
+    setImageViewerOpen(true);
+  };
+
+  const handleEditRbSupplied = (order: PersistentOrder) => {
+    setRbEditOrder(order);
+  };
+
+  if (isError) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center text-red-600">
+              Error loading orders: {error instanceof Error ? error.message : 'Unknown error'}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-          <p className="text-muted-foreground">Overview of all orders and operations</p>
-        </div>
-        <div className="grid gap-4 md:grid-cols-4">
-          {[...Array(4)].map((_, i) => (
-            <Card key={i}>
-              <CardHeader className="pb-2">
-                <Skeleton className="h-4 w-24" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-8 w-16" />
-              </CardContent>
-            </Card>
-          ))}
+        <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       </div>
     );
   }
 
-  if (error) {
+  if (selectedKarigar) {
+    const karigarOrders = filteredKarigarOrders.filter(o => formatKarigarName(o.karigarName) === selectedKarigar);
+    const sortedKarigarOrders = sortOrdersDesignWise(karigarOrders);
+
     return (
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-          <p className="text-muted-foreground">Overview of all orders and operations</p>
+        <OrdersDataWarningBanner 
+          skippedCount={invalidOrdersSkippedCount} 
+          onClearCache={handleClearCache}
+          isClearing={isClearing}
+        />
+        
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Orders for {selectedKarigar}</h1>
+            <p className="text-muted-foreground mt-1">{sortedKarigarOrders.length} active orders</p>
+          </div>
+          <Button variant="outline" onClick={() => setSelectedKarigar(null)}>
+            Back to Dashboard
+          </Button>
         </div>
-        <Alert variant="destructive">
-          <AlertTitle>Error Loading Orders</AlertTitle>
-          <AlertDescription>
-            {error instanceof Error ? error.message : 'An unknown error occurred'}
-          </AlertDescription>
-        </Alert>
+
+        <KarigarDrilldownExportBar 
+          karigarName={selectedKarigar} 
+          allOrders={sortedKarigarOrders}
+          selectedDate={selectedDate}
+        />
+
+        <Card>
+          <CardContent className="pt-6">
+            <OrdersTable 
+              orders={sortedKarigarOrders} 
+              onEditRbSupplied={handleEditRbSupplied}
+              onViewDesignImage={handleViewDesignImage}
+            />
+          </CardContent>
+        </Card>
+
+        {rbEditOrder && (
+          <RbSuppliedQtyEditDialog
+            order={rbEditOrder}
+            open={true}
+            onOpenChange={(open) => !open && setRbEditOrder(null)}
+          />
+        )}
+
+        <DesignImageViewerDialog
+          designCode={imageViewerDesignCode}
+          open={imageViewerOpen}
+          onOpenChange={setImageViewerOpen}
+        />
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-          <p className="text-muted-foreground">Overview of all orders and operations</p>
-        </div>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline">
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {format(selectedDate, 'MMM d, yyyy')}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="end">
-            <Calendar
-              mode="single"
-              selected={selectedDate}
-              onSelect={(date) => date && setSelectedDate(date)}
-            />
-          </PopoverContent>
-        </Popover>
+      <OrdersDataWarningBanner 
+        skippedCount={invalidOrdersSkippedCount} 
+        onClearCache={handleClearCache}
+        isClearing={isClearing}
+      />
+      
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
+        <ExportActions filteredOrders={orders} selectedDate={selectedDate} />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{metrics.totalOrders}</div>
           </CardContent>
         </Card>
-
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total Weight</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{metrics.totalWeight.toFixed(2)}g</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total Quantity</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{metrics.totalQty}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Customer Orders</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{metrics.customerOrdersCount}</div>
           </CardContent>
         </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Karigars</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{karigarNames.length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending Orders</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {orders.filter(o => o.status === 'pending').length}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      <Tabs defaultValue="total-orders" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="total-orders">Total Orders</TabsTrigger>
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ActiveTab)}>
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="total">Total Orders</TabsTrigger>
           <TabsTrigger value="hallmark">Hallmark</TabsTrigger>
-          <TabsTrigger value="total-weight">Total Weight</TabsTrigger>
-          <TabsTrigger value="total-quantity">Total Quantity</TabsTrigger>
-          <TabsTrigger value="customer-orders">Customer Orders</TabsTrigger>
+          <TabsTrigger value="co">Customer Orders</TabsTrigger>
           <TabsTrigger value="karigars">Karigars</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="total-orders" className="space-y-4">
+        <TabsContent value="total" className="space-y-4">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div className="space-y-1">
-                <CardTitle>Total Orders</CardTitle>
-                <div className="flex items-center gap-2">
-                  <Select value={sortOption} onValueChange={(v) => setSortOption(v as SortOption)}>
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="default">Default</SelectItem>
-                      <SelectItem value="design">Design-wise</SelectItem>
-                      <SelectItem value="karigar">Karigar-wise</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              {selectedOrders.size > 0 && (
-                <Button 
-                  onClick={handleBulkMarkAsHallmark}
-                  disabled={bulkUpdateMutation.isPending}
-                >
-                  <Send className="mr-2 h-4 w-4" />
-                  Mark {selectedOrders.size} as Hallmark
-                </Button>
-              )}
+            <CardHeader>
+              <CardTitle>All Orders</CardTitle>
+              <CardDescription>{totalOrders.length} orders</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <OrdersFiltersBar
                 orders={orders}
-                filters={filters}
-                onFiltersChange={setFilters}
+                filters={totalFilters}
+                onFiltersChange={setTotalFilters}
+                showOrderNoSearch
               />
-              <OrdersTable 
-                orders={totalOrders}
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => setPartialFulfillmentDialogOpen(true)}
+                  disabled={selectedOrders.size === 0}
+                >
+                  Mark as Delivered ({selectedOrders.size})
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setSelectedOrders(new Set())}
+                  disabled={selectedOrders.size === 0}
+                >
+                  Clear Selection
+                </Button>
+              </div>
+              <OrdersTable
+                orders={sortOrdersDesignWise(totalOrders)}
                 selectionMode
                 selectedOrders={selectedOrders}
                 onSelectionChange={setSelectedOrders}
+                onEditRbSupplied={handleEditRbSupplied}
+                onViewDesignImage={handleViewDesignImage}
               />
             </CardContent>
           </Card>
@@ -331,147 +304,123 @@ export function AdminDashboardPage() {
 
         <TabsContent value="hallmark" className="space-y-4">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader>
               <CardTitle>Hallmark Orders</CardTitle>
-              <div className="flex items-center gap-2">
-                <Select value={hallmarkViewMode} onValueChange={(v) => setHallmarkViewMode(v as HallmarkViewMode)}>
-                  <SelectTrigger className="w-[140px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="daywise">Day-wise</SelectItem>
-                  </SelectContent>
-                </Select>
-                {hallmarkViewMode === 'daywise' && (
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline">
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {format(hallmarkDate, 'MMM d, yyyy')}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="end">
-                      <Calendar
-                        mode="single"
-                        selected={hallmarkDate}
-                        onSelect={(date) => date && setHallmarkDate(date)}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                )}
-              </div>
+              <CardDescription>{hallmarkOrders.length} orders</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
+              <OrdersFiltersBar
+                orders={orders}
+                filters={hallmarkFilters}
+                onFiltersChange={setHallmarkFilters}
+                showOrderNoSearch
+              />
               <OrdersTable 
-                orders={hallmarkOrders}
-                emptyMessage="No orders marked as given to hallmark"
+                orders={sortOrdersDesignWise(hallmarkOrders)} 
+                onViewDesignImage={handleViewDesignImage}
               />
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="total-weight" className="space-y-4">
+        <TabsContent value="co" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Total Weight: {metrics.totalWeight.toFixed(2)}g</CardTitle>
+              <CardTitle>Customer Orders</CardTitle>
+              <CardDescription>{customerOrders.length} orders</CardDescription>
             </CardHeader>
-            <CardContent>
-              <OrdersTable orders={sortedOrders} />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="total-quantity" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Total Quantity: {metrics.totalQty}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <OrdersTable orders={sortedOrders} />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="customer-orders" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Customer Orders ({customerOrders.length})</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <OrdersTable orders={customerOrders} />
+            <CardContent className="space-y-4">
+              <OrdersFiltersBar
+                orders={orders}
+                filters={coFilters}
+                onFiltersChange={setCoFilters}
+                showOrderNoSearch
+              />
+              <OrdersTable 
+                orders={sortOrdersDesignWise(customerOrders)} 
+                onEditRbSupplied={handleEditRbSupplied}
+                onViewDesignImage={handleViewDesignImage}
+              />
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="karigars" className="space-y-4">
-          {selectedKarigar ? (
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div className="space-y-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setSelectedKarigar(null)}
-                    className="mb-2"
-                  >
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Back to All Karigars
-                  </Button>
-                  <CardTitle>{selectedKarigar} Orders</CardTitle>
-                </div>
-                <KarigarDrilldownExportBar
-                  karigarName={selectedKarigar}
-                  allOrders={selectedKarigarOrders}
-                  selectedDate={selectedDate}
-                />
-              </CardHeader>
-              <CardContent>
-                <OrdersTable orders={selectedKarigarOrders} />
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {karigarNames.map((karigarName) => {
-                const karigarOrders = sortedOrders.filter(
-                  o => formatKarigarName(o.karigarName) === karigarName
-                );
-                const karigarMetrics = deriveMetrics(karigarOrders);
-
-                return (
-                  <Card
-                    key={karigarName}
-                    className="cursor-pointer hover:bg-accent transition-colors"
-                    onClick={() => setSelectedKarigar(karigarName)}
-                  >
-                    <CardHeader>
-                      <CardTitle className="text-lg">{karigarName}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Orders:</span>
-                        <span className="font-medium">{karigarMetrics.totalOrders}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Weight:</span>
-                        <span className="font-medium">{karigarMetrics.totalWeight.toFixed(2)}g</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Quantity:</span>
-                        <span className="font-medium">{karigarMetrics.totalQty}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">CO:</span>
-                        <span className="font-medium">{karigarMetrics.customerOrdersCount}</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
+          <Card>
+            <CardHeader>
+              <CardTitle>Active Orders by Karigar</CardTitle>
+              <CardDescription>{filteredKarigarOrders.length} active orders</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <OrdersFiltersBar
+                orders={orders}
+                filters={karigarFilters}
+                onFiltersChange={setKarigarFilters}
+                showOrderNoSearch
+              />
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {karigarNames
+                  .filter(karigarName => {
+                    const matchesFilter = !karigarFilters.karigar || karigarName === karigarFilters.karigar;
+                    const hasActiveOrders = filteredKarigarOrders.some(o => 
+                      formatKarigarName(o.karigarName) === karigarName
+                    );
+                    return matchesFilter && hasActiveOrders;
+                  })
+                  .map((karigarName) => {
+                    const count = filteredKarigarOrders.filter(o => formatKarigarName(o.karigarName) === karigarName).length;
+                    return (
+                      <Card key={karigarName} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelectedKarigar(karigarName)}>
+                        <CardHeader>
+                          <CardTitle className="text-lg">{karigarName}</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-2">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Active Orders:</span>
+                              <Badge>{count}</Badge>
+                            </div>
+                            <Button variant="outline" size="sm" className="w-full">
+                              <Eye className="mr-2 h-4 w-4" />
+                              View Orders
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
+
+      {partialFulfillmentDialogOpen && selectedOrders.size > 0 && (
+        <PartialFulfillmentDialog
+          orders={orders.filter(o => selectedOrders.has(o.orderNo))}
+          open={partialFulfillmentDialogOpen}
+          onOpenChange={setPartialFulfillmentDialogOpen}
+          onConfirm={() => {
+            setSelectedOrders(new Set());
+            setPartialFulfillmentDialogOpen(false);
+          }}
+          isSubmitting={false}
+        />
+      )}
+
+      {rbEditOrder && (
+        <RbSuppliedQtyEditDialog
+          order={rbEditOrder}
+          open={true}
+          onOpenChange={(open) => !open && setRbEditOrder(null)}
+        />
+      )}
+
+      <DesignImageViewerDialog
+        designCode={imageViewerDesignCode}
+        open={imageViewerOpen}
+        onOpenChange={setImageViewerOpen}
+      />
     </div>
   );
 }

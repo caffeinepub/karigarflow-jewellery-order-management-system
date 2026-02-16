@@ -1,13 +1,17 @@
 import type { PersistentOrder } from '../../backend';
 import { formatKarigarName } from './formatKarigarName';
 import { normalizeDesignCode } from '../mapping/normalizeDesignCode';
+import { sanitizeOrders } from './validatePersistentOrder';
 
 /**
  * Sort orders karigar-wise (primary by formatted karigar name, secondary by normalized design code, tertiary by orderNo)
  * to group orders by karigar with consistent design grouping within each karigar.
  */
 export function sortOrdersKarigarWise(orders: PersistentOrder[]): PersistentOrder[] {
-  return [...orders].sort((a, b) => {
+  // Sanitize orders before sorting
+  const { validOrders } = sanitizeOrders(orders);
+  
+  return [...validOrders].sort((a, b) => {
     const karigarA = formatKarigarName(a.karigarName);
     const karigarB = formatKarigarName(b.karigarName);
     
