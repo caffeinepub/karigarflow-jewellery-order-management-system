@@ -147,6 +147,7 @@ export interface backendInterface {
     isUserBlocked(user: Principal): Promise<boolean>;
     listApprovals(): Promise<Array<UserApprovalInfo>>;
     listKarigars(): Promise<Array<Karigar>>;
+    listKarigarsNames(): Promise<Array<string>>;
     listUserProfiles(): Promise<Array<UserProfile>>;
     markOrderAsDelivered(orderNo: string): Promise<void>;
     processPartialFulfillment(request: PartialFulfillmentRequest): Promise<void>;

@@ -1,48 +1,73 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Master Designs: enforce Karigar dropdown + resilient edit flow states",
+  "title": "Karigar dropdown completeness and legacy-safe editing in Master Design Mapping dialog",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Ensure Master Design add/edit dialog uses a backend-fetched Karigar dropdown (no free-text) for selecting an existing karigar during edits.",
+      "summary": "Show the full Karigar list (including names present in saved master designs) in the Karigar dropdown for both Add and Edit Design Mapping dialogs.",
       "acceptanceCriteria": [
-        "When editing an existing design mapping in Master Designs, the Karigar Name field renders as a dropdown populated with existing karigars returned by the backend.",
-        "The user can change the selected karigar by selecting a different existing karigar from the dropdown and saving successfully.",
-        "The edit flow does not require typing a new karigar name to change the mapping."
+        "After importing/mapping master designs from Excel, opening Edit Design Mapping shows a dropdown containing all unique karigar names present in saved master designs (including the expected 19 names).",
+        "The dropdown list is consistent between “Add Design Mapping” and “Edit Design Mapping” dialogs.",
+        "The list is not limited to only manually-created karigars; it includes karigar names coming from existing master design mappings."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx",
+          "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Audit and enforce that the Karigar Name control is always the existing Select-based dropdown driven by the fetched karigar list (no fallback to free-text), including ensuring edit-mode prefill uses a dropdown value and save submits the selected dropdown value only."
+          "description": "Extend the karigar aggregation used by useListKarigars() to also merge in distinct karigarName values from the already-saved master designs (fetched via existing backend capabilities), deduplicate, filter empty/whitespace-only, and keep alphabetical sorting. Verify the component's usage instructions before implementing."
         },
         {
           "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Harden the karigar list query used by the dialog (useListKarigars) to consistently fetch and return the current backend karigar list for dropdown population (ensure stable caching/refresh behavior suitable for edit dialogs)."
+          "description": "Update useSaveMasterDesigns() success handling to also invalidate/refetch the ['karigars'] query so the dropdown updates immediately after master design imports/edits. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx",
+          "operation": "modify",
+          "description": "Ensure the dialog uses the aggregated karigar list from useListKarigars() consistently for both Add Mapping and Edit Design Mapping (no separate/partial sources). Verify the component's usage instructions before implementing."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "Add explicit loading/error/empty states (with Retry) for the Karigar dropdown and block saving until valid; warn and require user action if the currently assigned karigar is missing from the fetched list.",
+      "summary": "Stop incorrectly blocking save in Edit Design Mapping when the current karigar exists in the available list; ensure selected value resolves correctly and unchanged saves work.",
       "acceptanceCriteria": [
-        "While karigars are loading, the dialog shows a clear loading state for the Karigar field and prevents saving until the list is available.",
-        "If loading karigars fails, the dialog shows an error state and provides a Retry control that refetches karigars.",
-        "If there are zero karigars, the dialog informs the user that no karigars are available and prevents saving until one exists.",
-        "When editing a mapping whose existing karigar is not in the dropdown list, the dialog displays a warning telling the user to choose an existing karigar from the dropdown before saving."
+        "If the currently assigned karigar name matches one of the karigar names available from the backend (including those derived from master designs), the warning is not shown and the Save button is enabled (subject to other normal validation).",
+        "The dropdown’s selected value correctly resolves to the current karigar when editing an existing design mapping.",
+        "Saving an unchanged mapping (code/generic/karigar unchanged) succeeds without requiring re-selection."
       ],
       "file_operations": [
         {
           "path": "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx",
           "operation": "modify",
-          "description": "Ensure the dialog explicitly renders loading, error (with Retry), and empty states for the Karigar field; disable Save while these states are present; and when editing with an original karigar not present in the fetched list, show a warning and additionally disable Save until the user selects a valid karigar from the dropdown (i.e., a value present in the fetched list)."
+          "description": "Normalize karigar name comparisons when determining whether the original/selected karigar exists in the fetched list (e.g., trim and collapse whitespace for comparisons) and, on edit-open, resolve the initial Select value to the matching option from the list when a normalized match exists. Verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/hooks/useQueries.ts",
+          "path": "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx",
           "operation": "modify",
-          "description": "Adjust useListKarigars query options to support the dialog’s resilience requirements (e.g., predictable retry behavior, enabling manual refetch via Retry, and ensuring loading/error states propagate cleanly to the UI)."
+          "description": "Adjust Save-button disabling logic so it only blocks when truly invalid (missing required fields/loading/error), not when the current karigar is actually present in the aggregated list. Verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "summary": "Provide a legacy/unknown karigar fallback option in Edit Design Mapping when the current karigar is not in the standard list, while allowing save without forcing changes.",
+      "acceptanceCriteria": [
+        "When editing a design mapping whose current karigar name is not present in the fetched karigar list, the dropdown includes an extra option for that exact name so the current value can remain selected.",
+        "The UI continues to display a warning that the current karigar is not in the standard list, but Save is not blocked if the legacy option remains selected and all other required fields are valid.",
+        "Switching from the legacy option to a known karigar works and saving performs the existing reassignment behavior."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx",
+          "operation": "modify",
+          "description": "When editing and the original karigar is not found in the fetched karigar options, inject an additional Select option for the exact original value labeled as legacy/unknown (English text), keep it selected by default, and update the warning copy to indicate it is not in the standard list while not blocking Save. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx",
+          "operation": "modify",
+          "description": "Update validation so Save is allowed when the legacy/unknown option remains selected (and other required fields are valid), while still allowing users to switch to a known karigar and save with existing reassignment messaging/behavior. Verify the component's usage instructions before implementing."
         }
       ]
     }

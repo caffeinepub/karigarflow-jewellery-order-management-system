@@ -1,20 +1,20 @@
+import Nat "mo:core/Nat";
+import Array "mo:core/Array";
 import Map "mo:core/Map";
 import Text "mo:core/Text";
-import Runtime "mo:core/Runtime";
-import Iter "mo:core/Iter";
 import Time "mo:core/Time";
 import List "mo:core/List";
-import Array "mo:core/Array";
-import Nat "mo:core/Nat";
+import Iter "mo:core/Iter";
+import Runtime "mo:core/Runtime";
 import Principal "mo:core/Principal";
+import Migration "migration";
 import BlobStorage "blob-storage/Storage";
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
-
 import UserApproval "user-approval/approval";
 import MixinStorage "blob-storage/Mixin";
 
-
+(with migration = Migration.run)
 actor {
   type PartialFulfillmentQty = {
     orderNo : Text;
@@ -1034,5 +1034,16 @@ actor {
 
     validatedMappings;
   };
-};
 
+  // Returns all karigars from all sources as [Text]
+  public query ({ caller }) func listKarigarsNames() : async [Text] {
+    if (not isAdminOrStaff(caller)) {
+      Runtime.trap("Unauthorized: Only Admin or Staff can list karigars");
+    };
+
+    let masterKarigars = masterDesignsMap.toArray().map(
+      func((_, entry)) { entry.karigarName }
+    );
+    masterKarigars;
+  };
+};

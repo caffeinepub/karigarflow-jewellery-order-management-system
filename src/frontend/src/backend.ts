@@ -240,6 +240,7 @@ export interface backendInterface {
     isUserBlocked(user: Principal): Promise<boolean>;
     listApprovals(): Promise<Array<UserApprovalInfo>>;
     listKarigars(): Promise<Array<Karigar>>;
+    listKarigarsNames(): Promise<Array<string>>;
     listUserProfiles(): Promise<Array<UserProfile>>;
     markOrderAsDelivered(orderNo: string): Promise<void>;
     processPartialFulfillment(request: PartialFulfillmentRequest): Promise<void>;
@@ -687,6 +688,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.listKarigars();
+            return result;
+        }
+    }
+    async listKarigarsNames(): Promise<Array<string>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.listKarigarsNames();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.listKarigarsNames();
             return result;
         }
     }

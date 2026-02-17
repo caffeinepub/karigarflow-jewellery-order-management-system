@@ -109,10 +109,17 @@ export function useSaveMasterDesigns() {
       return actor.saveMasterDesigns(masterDesigns);
     },
     onSuccess: () => {
+      // Invalidate and refetch all related queries immediately
       queryClient.invalidateQueries({ queryKey: ['masterDesigns'] });
       queryClient.invalidateQueries({ queryKey: ['orders'] });
       queryClient.invalidateQueries({ queryKey: ['unmappedDesignCodes'] });
       queryClient.invalidateQueries({ queryKey: ['activeOrdersForKarigar'] });
+      queryClient.invalidateQueries({ queryKey: ['karigars'] });
+      
+      // Force refetch to ensure UI updates immediately
+      queryClient.refetchQueries({ queryKey: ['orders'] });
+      queryClient.refetchQueries({ queryKey: ['activeOrdersForKarigar'] });
+      queryClient.refetchQueries({ queryKey: ['karigars'] });
     },
   });
 }
@@ -411,6 +418,11 @@ export function useGetDesignImageForCode(designCode: string) {
   });
 }
 
+// Helper function to normalize karigar names for comparison
+function normalizeKarigarName(name: string): string {
+  return name.trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
 // Karigar management hooks
 export function useListKarigars() {
   const { actor, isFetching } = useActor();
@@ -419,10 +431,42 @@ export function useListKarigars() {
     queryKey: ['karigars'],
     queryFn: async () => {
       if (!actor) return [];
-      return actor.listKarigars();
+      
+      // Fetch both Karigar objects and karigar names from existing data
+      const [karigarObjects, karigarNames] = await Promise.all([
+        actor.listKarigars(),
+        actor.listKarigarsNames(),
+      ]);
+
+      // Create a map to deduplicate and merge (use normalized keys for comparison)
+      const karigarMap = new Map<string, Karigar>();
+
+      // First, add all Karigar objects from karigarStorage
+      for (const karigar of karigarObjects) {
+        const normalizedKey = normalizeKarigarName(karigar.name);
+        karigarMap.set(normalizedKey, karigar);
+      }
+
+      // Then, add any names from existing data that aren't already in the map
+      // These are treated as active karigars since they're in use
+      for (const name of karigarNames) {
+        const trimmedName = name.trim();
+        // Skip empty or whitespace-only names
+        if (!trimmedName) continue;
+        
+        const normalizedKey = normalizeKarigarName(trimmedName);
+        if (!karigarMap.has(normalizedKey)) {
+          karigarMap.set(normalizedKey, { name: trimmedName, isActive: true });
+        }
+      }
+
+      // Convert map to array and sort alphabetically
+      return Array.from(karigarMap.values()).sort((a, b) => 
+        a.name.localeCompare(b.name)
+      );
     },
     enabled: !!actor && !isFetching,
-    staleTime: 1000 * 60 * 5, // 5 minutes - karigars don't change frequently
+    staleTime: 0, // Always fetch fresh data - karigars can be added frequently
     retry: 2, // Retry failed requests twice
   });
 }
@@ -437,7 +481,9 @@ export function useCreateKarigar() {
       return actor.createKarigar(karigar);
     },
     onSuccess: () => {
+      // Invalidate and immediately refetch to ensure dropdown updates
       queryClient.invalidateQueries({ queryKey: ['karigars'] });
+      queryClient.refetchQueries({ queryKey: ['karigars'] });
     },
   });
 }

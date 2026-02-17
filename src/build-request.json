@@ -1,54 +1,91 @@
 {
   "kind": "build_request",
-  "title": "Fix Master Design edit flow to use existing Karigar dropdown (changes not reflected in production)",
-  "projectName": "Master Design Admin",
+  "title": "Show full mapped Karigar list in Master Design edit dropdown and unblock saving when current Karigar is missing",
+  "projectName": "KarigarFlow",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "In the Master Designs add/edit dialog, ensure the “Karigar Name” field is a dropdown (not a free-text input) that lists existing Karigars fetched from the backend so admins/staff can select an existing Karigar when editing a design mapping, instead of being prompted to add a new karigar name.",
-      "target": "frontend",
+      "text": "Ensure the Karigar dropdown in the “Edit Design Mapping” dialog shows the full Karigar list derived from the mapped Master Designs Excel (currently 19 karigars), so admins/staff can select any of those existing karigars when editing a design mapping.",
+      "target": "both",
       "source": {
         "messageIds": [
-          "msg-1"
+          "user-1"
         ],
         "quotes": [
-          "Changes hasn’t been made as I had asked for"
+          "Now that the excel for master design is mapped then we have a list for 19 karigars already. those have to be seen in a dropbox for changes to be updated"
         ]
       },
       "acceptanceCriteria": [
-        "When editing an existing design mapping in Master Designs, the Karigar Name field renders as a dropdown populated with existing karigars returned by the backend.",
-        "The user can change the selected karigar by selecting a different existing karigar from the dropdown and saving successfully.",
-        "The edit flow does not require typing a new karigar name to change the mapping."
+        "After importing/mapping master designs from Excel, opening Edit Design Mapping shows a dropdown containing all unique karigar names present in saved master designs (including the expected 19 names).",
+        "The dropdown list is consistent between “Add Design Mapping” and “Edit Design Mapping” dialogs.",
+        "The list is not limited to only manually-created karigars; it includes karigar names coming from existing master design mappings."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Make the Karigar dropdown in the Master Design add/edit dialog resilient and user-friendly in edit flows by handling loading, error, and empty states explicitly (including a Retry action on error), and by warning the user if the design’s currently assigned karigar is not present in the fetched karigar list.",
+      "text": "Fix the “Current karigar not found” blocking behavior in the “Edit Design Mapping” dialog so an existing design mapping whose current karigar (e.g., \"RAJU SANJAY\") is present in master-design-derived karigar names is treated as valid and can be saved without forcing the user to change the karigar.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "user-1"
         ],
         "quotes": [
-          "Changes hasn’t been made as I had asked for"
+          "under karigar name, Current karigar not found\n\nThe current karigar \"RAJU SANJAY\" is not in the list. Please select an existing karigar from the dropdown before saving."
         ]
       },
       "acceptanceCriteria": [
-        "While karigars are loading, the dialog shows a clear loading state for the Karigar field and prevents saving until the list is available.",
-        "If loading karigars fails, the dialog shows an error state and provides a Retry control that refetches karigars.",
-        "If there are zero karigars, the dialog informs the user that no karigars are available and prevents saving until one exists.",
-        "When editing a mapping whose existing karigar is not in the dropdown list, the dialog displays a warning telling the user to choose an existing karigar from the dropdown before saving."
+        "If the currently assigned karigar name matches one of the karigar names available from the backend (including those derived from master designs), the warning is not shown and the Save button is enabled (subject to other normal validation).",
+        "The dropdown’s selected value correctly resolves to the current karigar when editing an existing design mapping.",
+        "Saving an unchanged mapping (code/generic/karigar unchanged) succeeds without requiring re-selection."
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Add a safe fallback for legacy data: if an edited design mapping’s current karigar name is not returned by the backend karigar list, show it in the dropdown as an additional selectable option labeled as a legacy/unknown value, so the user can keep it unchanged and still save (or intentionally switch to a known karigar).",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "user-1"
+        ],
+        "quotes": [
+          "The current karigar \"RAJU SANJAY\" is not in the list. Please select an existing karigar from the dropdown before saving."
+        ]
+      },
+      "acceptanceCriteria": [
+        "When editing a design mapping whose current karigar name is not present in the fetched karigar list, the dropdown includes an extra option for that exact name so the current value can remain selected.",
+        "The UI continues to display a warning that the current karigar is not in the standard list, but Save is not blocked if the legacy option remains selected and all other required fields are valid.",
+        "Switching from the legacy option to a known karigar works and saving performs the existing reassignment behavior."
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Update/extend the backend-provided karigar-name aggregation used by the frontend to include unique karigar names from saved master design mappings, in addition to any existing karigar storage and/or orders-derived sources, so the frontend can reliably fetch the complete list without relying on client-side inference.",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "user-1"
+        ],
+        "quotes": [
+          "Now that the excel for master design is mapped then we have a list for 19 karigars already."
+        ]
+      },
+      "acceptanceCriteria": [
+        "The backend exposes (or updates the existing) method used by the frontend karigar dropdown (currently via `useListKarigars()` calling `actor.listKarigarsNames()`) to include distinct `karigarName` values from `masterDesignsMap`.",
+        "The returned list does not contain empty strings and is deduplicated.",
+        "No authorization is loosened compared to existing behavior (Admin/Staff only, consistent with current listKarigars access patterns)."
       ]
     }
   ],
   "constraints": [
-    "Do not edit files under frontend/src/components/ui (read-only shadcn components).",
-    "Do not edit frontend/src/hooks/useInternetIdentity.ts or other paths listed as immutable in SYSTEM_CONTEXT."
+    "Backend must remain a single Motoko actor in backend/main.mo; only add migration logic if state changes require it.",
+    "Do not edit files under frontend/src/components/ui or other immutable paths listed in SYSTEM_CONTEXT.",
+    "Use English for any user-facing text."
   ],
   "nonGoals": [
-    "Adding third-party authentication providers (only Internet Identity is supported).",
-    "Introducing external databases or additional backend services."
+    "Do not change the Excel parsing/mapping logic for master designs beyond what is necessary to surface the already-saved karigar names in the dropdown.",
+    "Do not implement new authentication providers (Internet Identity only).",
+    "Do not add real-time/WebSocket behavior."
   ],
   "imageRequirements": {
     "required": [],

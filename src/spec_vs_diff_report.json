@@ -1,29 +1,57 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-17T07:57:03.925Z",
-  "summary": "Diff shows work toward using a fetched Karigar list in the Master Design add/edit dialog (useListKarigars hook, warning/validation logic, save-disable conditions), but the truncated diff does not provide direct evidence that the UI actually renders the Karigar field as a dropdown with explicit loading/error/empty UI and a Retry control.",
+  "generatedAt": "2026-02-17T11:01:59.848Z",
+  "summary": "Frontend changes improve karigar name matching/selection in the master design edit dialog and add query invalidation/refetch for karigar lists. However, the diff does not provide evidence that the backend `listKarigarsNames()` now aggregates names from `masterDesignsMap` as required, and the legacy/unknown dropdown option behavior is not clearly implemented in the provided truncated UI diff.",
   "missing_requirements": [
     {
       "id": "REQ-1",
-      "requirement": "In the Master Designs add/edit dialog, the “Karigar Name” field must be a dropdown (not free-text) populated with existing karigars fetched from the backend, allowing selection changes during edit and saving successfully.",
-      "reason": "MasterDesignFormDialog.tsx shows karigar list fetching (useListKarigars) and state/validation for karigarName, but the provided truncated content does not include the Karigar field’s rendered control, so it’s not verifiable from the diff summary that the Input was replaced by a dropdown populated with backend karigars.",
+      "requirement": "Ensure the Karigar dropdown in the “Edit Design Mapping” dialog shows the full Karigar list derived from the mapped Master Designs Excel and is consistent with the Add dialog.",
+      "reason": "The diff shows the edit dialog refetching and matching karigars, but does not show that the dropdown options are populated from the full unique karigar set derived from saved master designs, nor that Add and Edit dialogs use the same complete list. The `frontend-file-summaries.txt` claims client-side merging, but the actual dropdown rendering/options list is truncated and does not explicitly demonstrate inclusion of all unique master-design-derived names.",
       "evidence": [
-        "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx (truncated; shows Select imports and karigar state but not the karigar field JSX)"
+        "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx (truncated)",
+        "frontend-file-summaries.txt"
       ]
     },
     {
-      "id": "REQ-2",
-      "requirement": "Handle loading, error (with Retry), and empty states for the Karigar dropdown; prevent saving until list is available; warn when the existing assigned karigar is missing from fetched list and require reselection before saving.",
-      "reason": "Logic exists for warning and disabling save based on loading/error/empty/missing-karigar conditions, and refetchKarigars is present, but the truncated diff does not show the explicit UI states (loading/error/empty messaging) nor a visible Retry control wired to refetchKarigars.",
+      "id": "REQ-3",
+      "requirement": "If an edited mapping’s current karigar is not returned by backend list, show it as an additional dropdown option labeled legacy/unknown; keep warning but do not block Save if legacy option remains selected.",
+      "reason": "The dialog code shows keeping `karigarName` as the original value when no match is found, and mentions warning logic, but the truncated diff does not show adding an explicit extra SelectItem labeled as legacy/unknown, nor does it show that Save is unblocked specifically when the legacy option remains selected.",
       "evidence": [
-        "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx (truncated; includes karigarsLoading/karigarsError/refetchKarigars and disable/warning flags but no rendered states/Retry control shown)"
+        "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx (truncated)"
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "requirement": "Update backend `listKarigarsNames()` (used by `useListKarigars`) to include distinct non-empty `karigarName` values from `masterDesignsMap`, deduped, with unchanged Admin/Staff authorization.",
+      "reason": "No evidence in the provided `backend/main.mo` snippet shows an updated `listKarigarsNames()` implementation or any aggregation over `masterDesignsMap`. Instead, the summary indicates `useListKarigars` merges sources on the frontend, which does not satisfy the requirement that the backend provide the complete list.",
+      "evidence": [
+        "backend/main.mo (truncated)",
+        "frontend-file-summaries.txt"
       ]
     }
   ],
-  "hallucinated_features": [],
-  "confidence": 0.56,
+  "hallucinated_features": [
+    {
+      "description": "Added a Motoko migration module copying only `karigarStorage` state.",
+      "reason": "The BuildRequest constrains migrations to be added only if state changes require it. The diff adds `backend/migration.mo` and wires migration into `backend/main.mo`, but the diff summary does not show any state schema change necessitating migration for this feature.",
+      "evidence": [
+        "backend/migration.mo",
+        "backend/main.mo (truncated) (\"with migration = Migration.run\")"
+      ]
+    },
+    {
+      "description": "Frontend-side aggregation/merging of karigar names from `karigarStorage` and `masterDesignsMap` inside `useListKarigars`.",
+      "reason": "REQ-4 explicitly requires backend aggregation so the frontend can reliably fetch the complete list without client-side inference. The summary claims this merging is done in the frontend hook.",
+      "evidence": [
+        "frontend-file-summaries.txt"
+      ]
+    }
+  ],
+  "confidence": 0.62,
   "changed_files": [
+    "backend/main.mo",
+    "backend/migration.mo",
     "frontend-file-summaries.txt",
     "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx",
     "frontend/src/hooks/useQueries.ts",

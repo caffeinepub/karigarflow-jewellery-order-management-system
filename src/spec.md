@@ -1,11 +1,12 @@
 # Specification
 
 ## Summary
-**Goal:** Ensure the Master Designs add/edit dialog uses the existing Karigar dropdown (backed by fetched karigar data) so edits reflect correctly without requiring free-text karigar entry.
+**Goal:** Make the “Edit Design Mapping” Karigar dropdown use the complete karigar list (including names derived from mapped Master Designs) and prevent “current karigar not found” from blocking saves.
 
 **Planned changes:**
-- Replace the “Karigar Name” free-text input in the Master Design add/edit dialog with a dropdown populated from the backend’s existing karigar list.
-- Add explicit loading, error (with Retry), and empty states for fetching karigars, and prevent saving until a valid selection is available.
-- When editing a mapping whose currently assigned karigar is not in the fetched list, show a warning and require the user to choose an existing karigar before saving.
+- Update backend karigar-name aggregation used by the frontend to include distinct, non-empty `karigarName` values from saved master design mappings (deduplicated), without loosening existing access rules.
+- In the “Edit Design Mapping” dialog, populate the Karigar dropdown from the same complete backend list as “Add Design Mapping,” ensuring all mapped Excel karigars (e.g., the expected 19) are selectable.
+- Fix edit-mode selection/validation so if the current karigar matches a backend-provided name, it is treated as valid, pre-selected correctly, and saving an unchanged mapping is allowed.
+- Add a legacy-safe fallback in edit-mode: if the current karigar is not in the backend list, include it as an extra selectable dropdown option (labeled as legacy/unknown) and allow saving while still showing a warning.
 
-**User-visible outcome:** Admins/staff can edit a Master Design mapping by selecting an existing Karigar from a dropdown, with clear feedback for loading/errors/no-data and a warning if the previously assigned karigar is unavailable.
+**User-visible outcome:** Admin/Staff can open “Edit Design Mapping,” see and select from the full mapped karigar list, and save existing mappings even when the current karigar name isn’t in the standard list (via a legacy/unknown option), without being forced to change it.

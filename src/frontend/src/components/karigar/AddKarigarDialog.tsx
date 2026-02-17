@@ -9,9 +9,10 @@ import { toast } from 'sonner';
 interface AddKarigarDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
 }
 
-export function AddKarigarDialog({ open, onOpenChange }: AddKarigarDialogProps) {
+export function AddKarigarDialog({ open, onOpenChange, onSuccess }: AddKarigarDialogProps) {
   const createMutation = useCreateKarigar();
   const [karigarName, setKarigarName] = useState('');
 
@@ -27,6 +28,11 @@ export function AddKarigarDialog({ open, onOpenChange }: AddKarigarDialogProps) 
       toast.success('Karigar added successfully');
       setKarigarName('');
       onOpenChange(false);
+      
+      // Call onSuccess callback if provided
+      if (onSuccess) {
+        onSuccess();
+      }
     } catch (error: any) {
       console.error('Failed to add karigar:', error);
       toast.error(error?.message || 'Failed to add karigar');
@@ -48,6 +54,7 @@ export function AddKarigarDialog({ open, onOpenChange }: AddKarigarDialogProps) 
               onChange={(e) => setKarigarName(e.target.value)}
               placeholder="Enter karigar name"
               disabled={createMutation.isPending}
+              autoFocus
             />
           </div>
           <DialogFooter>

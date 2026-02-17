@@ -162,6 +162,7 @@ export interface _SERVICE {
   'isUserBlocked' : ActorMethod<[Principal], boolean>,
   'listApprovals' : ActorMethod<[], Array<UserApprovalInfo>>,
   'listKarigars' : ActorMethod<[], Array<Karigar>>,
+  'listKarigarsNames' : ActorMethod<[], Array<string>>,
   'listUserProfiles' : ActorMethod<[], Array<UserProfile>>,
   'markOrderAsDelivered' : ActorMethod<[string], undefined>,
   'processPartialFulfillment' : ActorMethod<
