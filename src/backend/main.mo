@@ -10,11 +10,11 @@ import Principal "mo:core/Principal";
 import BlobStorage "blob-storage/Storage";
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
-import Migration "migration";
+
 import UserApproval "user-approval/approval";
 import MixinStorage "blob-storage/Mixin";
 
-(with migration = Migration.run)
+
 actor {
   type PartialFulfillmentQty = {
     orderNo : Text;

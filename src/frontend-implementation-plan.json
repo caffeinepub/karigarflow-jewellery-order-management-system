@@ -1,65 +1,48 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Karigar directory + selection for Master Design assignments (frontend)",
+  "title": "Master Designs: enforce Karigar dropdown + resilient edit flow states",
   "requirements": [
     {
-      "id": "REQ-3",
-      "summary": "Add an “Add Karigar” action on Master Designs page to create a saved Karigar name via dialog.",
+      "id": "REQ-1",
+      "summary": "Ensure Master Design add/edit dialog uses a backend-fetched Karigar dropdown (no free-text) for selecting an existing karigar during edits.",
       "acceptanceCriteria": [
-        "Master Designs page shows a new button near “Add Mapping” to open an “Add Karigar” dialog.",
-        "The dialog allows entering a Karigar name and saving it; on success it shows a success toast and closes.",
-        "The Karigar list is refreshed after adding so it is immediately available for selection in the edit mapping flow.",
-        "User-facing text is in English."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/components/karigar/AddKarigarDialog.tsx",
-          "operation": "create",
-          "description": "Create an Add Karigar dialog component (name input + Save/Cancel) that uses the React Query mutation hook to add a Karigar, disables Save while pending, and shows success/error toasts. Use the shadcn-ui component library (Dialog, Button, Input/Label) for consistent UI; verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/pages/admin/MasterDesignsPage.tsx",
-          "operation": "modify",
-          "description": "Add a top-level “Add Karigar” button near the existing “Add Mapping” button, wire state to open/close AddKarigarDialog, and ensure the dialog is mounted so successful add closes and the karigar list can refresh for downstream selection. Use shadcn-ui Button styling for parity with existing actions; verify the component's usage instructions before implementing."
-        }
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "summary": "Replace free-text Karigar Name input in Master Design add/edit dialog with a selectable list sourced from saved Karigars.",
-      "acceptanceCriteria": [
-        "When adding or editing a master design mapping, the Karigar field is a selectable list populated from the saved Karigar names.",
-        "Saving the form persists the selected Karigar name into the MasterDesignEntry.karigarName value.",
-        "Editing an existing mapping pre-selects the currently saved karigarName (or shows an empty/unselected state if it does not exist in the saved list).",
-        "User-facing text is in English."
+        "When editing an existing design mapping in Master Designs, the Karigar Name field renders as a dropdown populated with existing karigars returned by the backend.",
+        "The user can change the selected karigar by selecting a different existing karigar from the dropdown and saving successfully.",
+        "The edit flow does not require typing a new karigar name to change the mapping."
       ],
       "file_operations": [
         {
           "path": "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx",
           "operation": "modify",
-          "description": "Replace the karigarName text input with a selection control bound to the saved Karigar list (fetched via a React Query hook). Ensure edit mode pre-selects the existing mapping karigarName when present; otherwise show an empty/unselected state. On save, persist the selected value into MasterDesignEntry.karigarName, keep Save disabled while the master design save mutation is pending, and handle loading/error states for the karigar list (e.g., disable selection and show an inline message/toast). Use shadcn-ui form primitives where available for consistent styling; verify the component's usage instructions before implementing."
+          "description": "Audit and enforce that the Karigar Name control is always the existing Select-based dropdown driven by the fetched karigar list (no fallback to free-text), including ensuring edit-mode prefill uses a dropdown value and save submits the selected dropdown value only."
+        },
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Harden the karigar list query used by the dialog (useListKarigars) to consistently fetch and return the current backend karigar list for dropdown population (ensure stable caching/refresh behavior suitable for edit dialogs)."
         }
       ]
     },
     {
-      "id": "REQ-5",
-      "summary": "Add React Query hooks to fetch and add Karigars and integrate them into Master Designs UI with proper loading/error handling.",
+      "id": "REQ-2",
+      "summary": "Add explicit loading/error/empty states (with Retry) for the Karigar dropdown and block saving until valid; warn and require user action if the currently assigned karigar is missing from the fetched list.",
       "acceptanceCriteria": [
-        "A query hook exists to fetch the Karigar list and cache it with React Query.",
-        "A mutation hook exists to add a Karigar and invalidates/refetches the Karigar list on success.",
-        "Master Designs UI uses these hooks and handles loading/error states (e.g., disable save while pending, show toast/error state on failure)."
+        "While karigars are loading, the dialog shows a clear loading state for the Karigar field and prevents saving until the list is available.",
+        "If loading karigars fails, the dialog shows an error state and provides a Retry control that refetches karigars.",
+        "If there are zero karigars, the dialog informs the user that no karigars are available and prevents saving until one exists.",
+        "When editing a mapping whose existing karigar is not in the dropdown list, the dialog displays a warning telling the user to choose an existing karigar from the dropdown before saving."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/hooks/useQueries.ts",
+          "path": "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx",
           "operation": "modify",
-          "description": "Add React Query hooks for Karigar list management: a list query hook that calls the backend actor’s listKarigars() and a create mutation hook that calls createKarigar(...), with invalidation/refetch of the karigar list query on success. Ensure hooks respect actor availability (useActor) and are safe under auth/authorization failures returned by the backend (surface errors for UI to present)."
+          "description": "Ensure the dialog explicitly renders loading, error (with Retry), and empty states for the Karigar field; disable Save while these states are present; and when editing with an original karigar not present in the fetched list, show a warning and additionally disable Save until the user selects a valid karigar from the dropdown (i.e., a value present in the fetched list)."
         },
         {
-          "path": "frontend/src/pages/admin/MasterDesignsPage.tsx",
+          "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Wire Master Designs page and its dialogs to use the new Karigar hooks (directly or via child components) so the list is available for the mapping dialog selection and is refreshed after Add Karigar succeeds (via query invalidation). Verify RoleGate / authorization behavior remains consistent with existing admin/staff access patterns from the authorization component; verify the component's usage instructions before implementing."
+          "description": "Adjust useListKarigars query options to support the dialog’s resilience requirements (e.g., predictable retry behavior, enabling manual refetch via Retry, and ensuring loading/error states propagate cleanly to the UI)."
         }
       ]
     }

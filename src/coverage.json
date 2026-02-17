@@ -1,90 +1,50 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-17T07:05:39.153Z",
+  "generatedAt": "2026-02-17T07:57:03.929Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 6,
-    "implemented": 3,
+    "total": 2,
+    "implemented": 2,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Add backend support for maintaining a reusable list of Karigar names that can be assigned to master design mappings (create/read).",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
+        "summary": "In the Master Designs add/edit dialog, ensure the “Karigar Name” field is a dropdown (not a free-text input) that lists existing Karigars fetched from the backend so admins/staff can select an existing Karigar when editing a design mapping, instead of being prompted to add a new karigar name.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx",
+          "frontend/src/hooks/useQueries.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx",
+          "frontend/src/hooks/useQueries.ts"
+        ]
       },
       {
         "id": "REQ-2",
-        "summary": "Update backend master design editing so that when a master design mapping’s karigarName is changed, existing stored orders for that design code are reassigned to the updated karigarName.",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
-      },
-      {
-        "id": "REQ-3",
-        "summary": "In the Admin Portal Master Designs page, add a top-level action near the existing “Add Mapping” button to add a Karigar name into the saved Karigar list.",
+        "summary": "Make the Karigar dropdown in the Master Design add/edit dialog resilient and user-friendly in edit flows by handling loading, error, and empty states explicitly (including a Retry action on error), and by warning the user if the design’s currently assigned karigar is not present in the fetched karigar list.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/karigar/AddKarigarDialog.tsx",
-          "frontend/src/pages/admin/MasterDesignsPage.tsx"
+          "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx",
+          "frontend/src/hooks/useQueries.ts"
         ],
         "matchedFiles": [
-          "frontend/src/components/karigar/AddKarigarDialog.tsx",
-          "frontend/src/pages/admin/MasterDesignsPage.tsx"
+          "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx",
+          "frontend/src/hooks/useQueries.ts"
         ]
-      },
-      {
-        "id": "REQ-4",
-        "summary": "In the Master Design add/edit dialog, replace the free-text Karigar Name input with a selection control that lets admins/staff choose from the previously added Karigars, and saves the selected Karigar as the mapping’s karigarName.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx"
-        ]
-      },
-      {
-        "id": "REQ-5",
-        "summary": "Add React Query hooks needed to fetch and mutate the Karigar list from the frontend admin portal.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/pages/admin/MasterDesignsPage.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/pages/admin/MasterDesignsPage.tsx"
-        ]
-      },
-      {
-        "id": "REQ-6",
-        "summary": "If the backend state schema changes to add persistent Karigar storage, implement a safe conditional upgrade migration so existing deployments upgrade without trapping and initialize the new Karigar storage to an empty state.",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
       }
     ]
   },
   "changedFiles": [
-    "backend/main.mo",
-    "backend/migration.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/backend.d.ts",
-    "frontend/src/backend.ts",
-    "frontend/src/components/karigar/AddKarigarDialog.tsx",
     "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx",
-    "frontend/src/declarations/backend.did.d.ts",
-    "frontend/src/declarations/backend.did.js",
     "frontend/src/hooks/useQueries.ts",
-    "frontend/src/pages/admin/MasterDesignsPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

@@ -1,74 +1,31 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Admin portal: enhance Master Design order assignment to support managing and assigning Karigars (add new Karigar and reassign orders to existing Karigars).",
+  "summary": "New project",
   "architectural_notes": [],
-  "known_issues": [],
-  "isFixRequest": false,
+  "known_issues": [
+    "Deployed Version 48 does not include the requested changes (user reports changes were not made as asked)."
+  ],
+  "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-in-the-admin-portal-master-designs-page-add-a-top-level-action-near-the-existing-add-mapping-button-to-add-a-karigar-name-into-the-saved-karigar-list",
-      "title": "In the Admin Portal Master Designs page, add a top-level action near the existing “Add Mapping” button to add a Karigar name into the saved Karigar list.",
-      "reqIds": [
-        "REQ-3"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-in-the-master-design-add-edit-dialog-replace-the-free-text-karigar-name-input-with-a-selection-control-that-lets-admins-staff-choose-from-the-previously-added-karigars-and-saves-the-selected-karigar-as-the-mapping-s-karigarname",
-      "title": "In the Master Design add/edit dialog, replace the free-text Karigar Name input with a selection control that lets admins/staff choose from the previously added Karigars, and saves the selected Karigar as the mapping’s karigarName.",
-      "reqIds": [
-        "REQ-4"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-add-react-query-hooks-needed-to-fetch-and-mutate-the-karigar-list-from-the-frontend-admin-portal",
-      "title": "Add React Query hooks needed to fetch and mutate the Karigar list from the frontend admin portal.",
-      "reqIds": [
-        "REQ-5"
-      ],
-      "version": 1
-    }
-  ],
-  "new_feature_requests": [
-    {
-      "id": "AR-1",
-      "summary": "In Master Design admin portal, during edit of a design order (generic name / karigar name action), allow selecting a Karigar from previously added Karigars and assign the order to the selected Karigar.",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-2",
-      "summary": "In Master Design admin portal, add a top-level option near 'Add Mapping' to add a Karigar name so orders can be assigned to that Karigar.",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-3",
-      "summary": "Add backend support for maintaining a reusable list of Karigar names that can be assigned to master design mappings (create/read).",
+      "id": "feature-in-the-master-designs-add-edit-dialog-ensure-the-karigar-name-field-is-a-dropdown-not-a-free-text-input-that-lists-existing-karigars-fetched-from-the-backend-so-admins-staff-can-select-an-existing-karigar-when-editing-a-design-mapping-instead-of-being-prompted-to-add-a-new-karigar-name",
+      "title": "In the Master Designs add/edit dialog, ensure the “Karigar Name” field is a dropdown (not a free-text input) that lists existing Karigars fetched from the backend so admins/staff can select an existing Karigar when editing a design mapping, instead of being prompted to add a new karigar name.",
       "reqIds": [
         "REQ-1"
       ],
-      "status": "pending"
+      "version": 1
     },
     {
-      "id": "AR-4",
-      "summary": "Update backend master design editing so that when a master design mapping’s karigarName is changed, existing stored orders for that design code are reassigned to the updated karigarName.",
+      "id": "feature-make-the-karigar-dropdown-in-the-master-design-add-edit-dialog-resilient-and-user-friendly-in-edit-flows-by-handling-loading-error-and-empty-states-explicitly-including-a-retry-action-on-error-and-by-warning-the-user-if-the-design-s-currently-assigned-karigar-is-not-present-in-the-fetched-karigar-list",
+      "title": "Make the Karigar dropdown in the Master Design add/edit dialog resilient and user-friendly in edit flows by handling loading, error, and empty states explicitly (including a Retry action on error), and by warning the user if the design’s currently assigned karigar is not present in the fetched karigar list.",
       "reqIds": [
         "REQ-2"
       ],
-      "status": "pending"
-    },
-    {
-      "id": "AR-8",
-      "summary": "If the backend state schema changes to add persistent Karigar storage, implement a safe conditional upgrade migration so existing deployments upgrade without trapping and initialize the new Karigar storage to an empty state.",
-      "reqIds": [
-        "REQ-6"
-      ],
-      "status": "pending"
+      "version": 1
     }
   ],
+  "new_feature_requests": [],
   "projectName": "Master Design Admin",
   "clarification_mode": "instant",
   "clarification_rounds": 0

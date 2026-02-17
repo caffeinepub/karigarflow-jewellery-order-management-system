@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useSaveMasterDesigns, useListKarigars } from '../../hooks/useQueries';
 import { toast } from 'sonner';
+import { AlertCircle } from 'lucide-react';
 import type { MasterDesignEntry } from '../../backend';
 
 interface MasterDesignFormDialogProps {
@@ -16,20 +17,24 @@ interface MasterDesignFormDialogProps {
 
 export function MasterDesignFormDialog({ open, onOpenChange, editingDesign }: MasterDesignFormDialogProps) {
   const saveMutation = useSaveMasterDesigns();
-  const { data: karigars = [], isLoading: karigarsLoading, error: karigarsError } = useListKarigars();
+  const { data: karigars = [], isLoading: karigarsLoading, error: karigarsError, refetch: refetchKarigars } = useListKarigars();
   const [designCode, setDesignCode] = useState('');
   const [genericName, setGenericName] = useState('');
   const [karigarName, setKarigarName] = useState('');
+  const [originalKarigarName, setOriginalKarigarName] = useState('');
 
   useEffect(() => {
     if (editingDesign) {
       setDesignCode(editingDesign.code);
       setGenericName(editingDesign.entry?.genericName || '');
-      setKarigarName(editingDesign.entry?.karigarName || '');
+      const existingKarigar = editingDesign.entry?.karigarName || '';
+      setOriginalKarigarName(existingKarigar);
+      setKarigarName(existingKarigar);
     } else {
       setDesignCode('');
       setGenericName('');
       setKarigarName('');
+      setOriginalKarigarName('');
     }
   }, [editingDesign, open]);
 
@@ -52,6 +57,25 @@ export function MasterDesignFormDialog({ open, onOpenChange, editingDesign }: Ma
       toast.error(error?.message || 'Failed to save design');
     }
   };
+
+  // Check if the original karigar exists in the current list
+  const originalKarigarExists = originalKarigarName && karigars.some(k => k.name === originalKarigarName);
+  const showKarigarNotFoundWarning = editingDesign && originalKarigarName && !originalKarigarExists && !karigarsLoading;
+  
+  // Check if the currently selected karigar is valid (exists in the list)
+  const selectedKarigarIsValid = karigarName && karigars.some(k => k.name === karigarName);
+
+  // Determine if save should be disabled - ensure it's always a boolean
+  const isSaveDisabled: boolean = 
+    !designCode.trim() ||
+    !genericName.trim() ||
+    !karigarName.trim() ||
+    saveMutation.isPending ||
+    karigarsLoading ||
+    karigars.length === 0 ||
+    Boolean(karigarsError) ||
+    // CRITICAL: When editing with missing original karigar, require a valid selection from the list
+    Boolean(showKarigarNotFoundWarning && !selectedKarigarIsValid);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -83,28 +107,57 @@ export function MasterDesignFormDialog({ open, onOpenChange, editingDesign }: Ma
           <div className="space-y-2">
             <Label htmlFor="karigarName">Karigar Name</Label>
             {karigarsLoading ? (
-              <div className="text-sm text-muted-foreground">Loading karigars...</div>
+              <div className="text-sm text-muted-foreground py-2">Loading karigars...</div>
             ) : karigarsError ? (
-              <div className="text-sm text-destructive">Failed to load karigars. Please try again.</div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm text-destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <span>Failed to load karigars</span>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => refetchKarigars()}
+                  className="w-full"
+                >
+                  Retry
+                </Button>
+              </div>
             ) : karigars.length === 0 ? (
-              <div className="text-sm text-muted-foreground">No karigars available. Please add a karigar first.</div>
+              <div className="text-sm text-muted-foreground py-2">
+                No karigars available. Please add a karigar first.
+              </div>
             ) : (
-              <Select
-                value={karigarName}
-                onValueChange={setKarigarName}
-                disabled={saveMutation.isPending || karigarsLoading}
-              >
-                <SelectTrigger id="karigarName">
-                  <SelectValue placeholder="Select a karigar" />
-                </SelectTrigger>
-                <SelectContent>
-                  {karigars.map((karigar) => (
-                    <SelectItem key={karigar.name} value={karigar.name}>
-                      {karigar.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <>
+                {showKarigarNotFoundWarning && (
+                  <div className="flex items-start gap-2 p-3 mb-2 text-sm bg-amber-50 dark:bg-amber-950/20 text-amber-900 dark:text-amber-200 rounded-md border border-amber-200 dark:border-amber-800">
+                    <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-medium">Current karigar not found</p>
+                      <p className="text-xs mt-1">
+                        The current karigar "{originalKarigarName}" is not in the list. Please select an existing karigar from the dropdown before saving.
+                      </p>
+                    </div>
+                  </div>
+                )}
+                <Select
+                  value={karigarName}
+                  onValueChange={setKarigarName}
+                  disabled={saveMutation.isPending || karigarsLoading}
+                >
+                  <SelectTrigger id="karigarName">
+                    <SelectValue placeholder="Select a karigar" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {karigars.map((karigar) => (
+                      <SelectItem key={karigar.name} value={karigar.name}>
+                        {karigar.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </>
             )}
           </div>
           <DialogFooter>
@@ -118,14 +171,7 @@ export function MasterDesignFormDialog({ open, onOpenChange, editingDesign }: Ma
             </Button>
             <Button
               type="submit"
-              disabled={
-                !designCode.trim() ||
-                !genericName.trim() ||
-                !karigarName.trim() ||
-                saveMutation.isPending ||
-                karigarsLoading ||
-                karigars.length === 0
-              }
+              disabled={isSaveDisabled}
             >
               {saveMutation.isPending ? 'Saving...' : 'Save'}
             </Button>

@@ -422,6 +422,8 @@ export function useListKarigars() {
       return actor.listKarigars();
     },
     enabled: !!actor && !isFetching,
+    staleTime: 1000 * 60 * 5, // 5 minutes - karigars don't change frequently
+    retry: 2, // Retry failed requests twice
   });
 }
 

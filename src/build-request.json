@@ -1,129 +1,54 @@
 {
   "kind": "build_request",
-  "title": "Add Karigar directory and selection for Master Design assignments",
+  "title": "Fix Master Design edit flow to use existing Karigar dropdown (changes not reflected in production)",
   "projectName": "Master Design Admin",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Add backend support for maintaining a reusable list of Karigar names that can be assigned to master design mappings (create/read).",
-      "target": "backend",
+      "text": "In the Master Designs add/edit dialog, ensure the “Karigar Name” field is a dropdown (not a free-text input) that lists existing Karigars fetched from the backend so admins/staff can select an existing Karigar when editing a design mapping, instead of being prompted to add a new karigar name.",
+      "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-user-1"
+          "msg-1"
         ],
         "quotes": [
-          "Also overall add an option in the top near add mapping, to add a karigar name that order can be assigned to."
+          "Changes hasn’t been made as I had asked for"
         ]
       },
       "acceptanceCriteria": [
-        "Backend exposes an authenticated (Admin/Staff) query to list all saved Karigar names.",
-        "Backend exposes an authenticated (Admin/Staff) method to add a Karigar name, rejecting empty/whitespace-only names.",
-        "Karigar names are stored persistently in canister state and remain available after upgrade/restart."
+        "When editing an existing design mapping in Master Designs, the Karigar Name field renders as a dropdown populated with existing karigars returned by the backend.",
+        "The user can change the selected karigar by selecting a different existing karigar from the dropdown and saving successfully.",
+        "The edit flow does not require typing a new karigar name to change the mapping."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Update backend master design editing so that when a master design mapping’s karigarName is changed, existing stored orders for that design code are reassigned to the updated karigarName.",
-      "target": "backend",
-      "source": {
-        "messageIds": [
-          "msg-user-1"
-        ],
-        "quotes": [
-          "Under the action where we are able to edit generic name and karigar name. Add option to select karigar from the previously added karigars and thereafter assign that design order to the changed karigar name."
-        ]
-      },
-      "acceptanceCriteria": [
-        "When a master design mapping is updated for a design code, orders already stored in the backend with the same designCode are updated to use the mapping’s latest karigarName.",
-        "The reassignment is performed only for callers authorized as Admin/Staff (same as master design management).",
-        "After updating a mapping, subsequent calls to getOrders()/getActiveOrdersForKarigar() reflect the new karigar assignment for affected orders."
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "text": "In the Admin Portal Master Designs page, add a top-level action near the existing “Add Mapping” button to add a Karigar name into the saved Karigar list.",
+      "text": "Make the Karigar dropdown in the Master Design add/edit dialog resilient and user-friendly in edit flows by handling loading, error, and empty states explicitly (including a Retry action on error), and by warning the user if the design’s currently assigned karigar is not present in the fetched karigar list.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-user-1"
+          "msg-1"
         ],
         "quotes": [
-          "Also overall add an option in the top near add mapping, to add a karigar name that order can be assigned to."
+          "Changes hasn’t been made as I had asked for"
         ]
       },
       "acceptanceCriteria": [
-        "Master Designs page shows a new button near “Add Mapping” to open an “Add Karigar” dialog.",
-        "The dialog allows entering a Karigar name and saving it; on success it shows a success toast and closes.",
-        "The Karigar list is refreshed after adding so it is immediately available for selection in the edit mapping flow.",
-        "User-facing text is in English."
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "text": "In the Master Design add/edit dialog, replace the free-text Karigar Name input with a selection control that lets admins/staff choose from the previously added Karigars, and saves the selected Karigar as the mapping’s karigarName.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-user-1"
-        ],
-        "quotes": [
-          "Add option to select karigar from the previously added karigars and thereafter assign that design order to the changed karigar name."
-        ]
-      },
-      "acceptanceCriteria": [
-        "When adding or editing a master design mapping, the Karigar field is a selectable list populated from the saved Karigar names.",
-        "Saving the form persists the selected Karigar name into the MasterDesignEntry.karigarName value.",
-        "Editing an existing mapping pre-selects the currently saved karigarName (or shows an empty/unselected state if it does not exist in the saved list).",
-        "User-facing text is in English."
-      ]
-    },
-    {
-      "id": "REQ-5",
-      "text": "Add React Query hooks needed to fetch and mutate the Karigar list from the frontend admin portal.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-user-1"
-        ],
-        "quotes": [
-          "Add option to select karigar from the previously added karigars"
-        ]
-      },
-      "acceptanceCriteria": [
-        "A query hook exists to fetch the Karigar list and cache it with React Query.",
-        "A mutation hook exists to add a Karigar and invalidates/refetches the Karigar list on success.",
-        "Master Designs UI uses these hooks and handles loading/error states (e.g., disable save while pending, show toast/error state on failure)."
-      ]
-    },
-    {
-      "id": "REQ-6",
-      "text": "If the backend state schema changes to add persistent Karigar storage, implement a safe conditional upgrade migration so existing deployments upgrade without trapping and initialize the new Karigar storage to an empty state.",
-      "target": "backend",
-      "source": {
-        "messageIds": [
-          "msg-user-1"
-        ],
-        "quotes": [
-          "Yes do what’s required"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Upgrading from the current deployed state does not trap.",
-        "After upgrade, the Karigar list exists and defaults to empty if no prior data existed.",
-        "Existing orders and master designs remain intact after upgrade."
+        "While karigars are loading, the dialog shows a clear loading state for the Karigar field and prevents saving until the list is available.",
+        "If loading karigars fails, the dialog shows an error state and provides a Retry control that refetches karigars.",
+        "If there are zero karigars, the dialog informs the user that no karigars are available and prevents saving until one exists.",
+        "When editing a mapping whose existing karigar is not in the dropdown list, the dialog displays a warning telling the user to choose an existing karigar from the dropdown before saving."
       ]
     }
   ],
   "constraints": [
-    "Backend must remain a single Motoko actor with all logic in backend/main.mo.",
-    "Do not edit frontend files under the immutable paths listed in SYSTEM_CONTEXT (compose existing UI components instead).",
-    "Use English for all user-facing text."
+    "Do not edit files under frontend/src/components/ui (read-only shadcn components).",
+    "Do not edit frontend/src/hooks/useInternetIdentity.ts or other paths listed as immutable in SYSTEM_CONTEXT."
   ],
   "nonGoals": [
-    "Do not add third-party authentication providers (only Internet Identity is supported).",
-    "Do not add external databases or off-chain storage for Karigar lists.",
-    "Do not implement real-time updates (no WebSockets)."
+    "Adding third-party authentication providers (only Internet Identity is supported).",
+    "Introducing external databases or additional backend services."
   ],
   "imageRequirements": {
     "required": [],

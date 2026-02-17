@@ -2,11 +2,11 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-in-the-admin-portal-master-designs-page-add-a-top-level-action-near-the-existing-add-mapping-button-to-add-a-karigar-name-into-the-saved-karigar-list",
-      "featureTitle": "In the Admin Portal Master Designs page, add a top-level action near the existing “Add Mapping” button to add a Karigar name into the saved Karigar list.",
+      "featureId": "feature-in-the-master-designs-add-edit-dialog-ensure-the-karigar-name-field-is-a-dropdown-not-a-free-text-input-that-lists-existing-karigars-fetched-from-the-backend-so-admins-staff-can-select-an-existing-karigar-when-editing-a-design-mapping-instead-of-being-prompted-to-add-a-new-karigar-name",
+      "featureTitle": "In the Master Designs add/edit dialog, ensure the “Karigar Name” field is a dropdown (not a free-text input) that lists existing Karigars fetched from the backend so admins/staff can select an existing Karigar when editing a design mapping, instead of being prompted to add a new karigar name.",
       "files": [
-        "frontend/src/components/karigar/AddKarigarDialog.tsx",
-        "frontend/src/pages/admin/MasterDesignsPage.tsx"
+        "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx",
+        "frontend/src/hooks/useQueries.ts"
       ],
       "components": [
         "authorization@4.0.0",
@@ -19,15 +19,16 @@
         "blob-storage@4.0.0"
       ],
       "testIds": [
-        "REQ-3"
+        "REQ-1"
       ],
       "confidence": "high"
     },
     {
-      "featureId": "feature-in-the-master-design-add-edit-dialog-replace-the-free-text-karigar-name-input-with-a-selection-control-that-lets-admins-staff-choose-from-the-previously-added-karigars-and-saves-the-selected-karigar-as-the-mapping-s-karigarname",
-      "featureTitle": "In the Master Design add/edit dialog, replace the free-text Karigar Name input with a selection control that lets admins/staff choose from the previously added Karigars, and saves the selected Karigar as the mapping’s karigarName.",
+      "featureId": "feature-make-the-karigar-dropdown-in-the-master-design-add-edit-dialog-resilient-and-user-friendly-in-edit-flows-by-handling-loading-error-and-empty-states-explicitly-including-a-retry-action-on-error-and-by-warning-the-user-if-the-design-s-currently-assigned-karigar-is-not-present-in-the-fetched-karigar-list",
+      "featureTitle": "Make the Karigar dropdown in the Master Design add/edit dialog resilient and user-friendly in edit flows by handling loading, error, and empty states explicitly (including a Retry action on error), and by warning the user if the design’s currently assigned karigar is not present in the fetched karigar list.",
       "files": [
-        "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx"
+        "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx",
+        "frontend/src/hooks/useQueries.ts"
       ],
       "components": [
         "authorization@4.0.0",
@@ -40,29 +41,7 @@
         "blob-storage@4.0.0"
       ],
       "testIds": [
-        "REQ-4"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-add-react-query-hooks-needed-to-fetch-and-mutate-the-karigar-list-from-the-frontend-admin-portal",
-      "featureTitle": "Add React Query hooks needed to fetch and mutate the Karigar list from the frontend admin portal.",
-      "files": [
-        "frontend/src/hooks/useQueries.ts",
-        "frontend/src/pages/admin/MasterDesignsPage.tsx"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0",
-        "user-approval@3.0.0",
-        "blob-storage@4.0.0"
-      ],
-      "testIds": [
-        "REQ-5"
+        "REQ-2"
       ],
       "confidence": "high"
     }
