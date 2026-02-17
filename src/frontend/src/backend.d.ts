@@ -51,6 +51,10 @@ export interface UnmappedOrderEntry {
     uploadDate: Time;
     remarks: string;
 }
+export interface PersistentKarigar {
+    name: string;
+    isActive: boolean;
+}
 export interface ActivityLogEntry {
     action: string;
     userId: Principal;
@@ -146,7 +150,8 @@ export interface backendInterface {
     isCallerApproved(): Promise<boolean>;
     isUserBlocked(user: Principal): Promise<boolean>;
     listApprovals(): Promise<Array<UserApprovalInfo>>;
-    listKarigars(): Promise<Array<Karigar>>;
+    listDistinctKarigars(): Promise<Array<PersistentKarigar>>;
+    listKarigars(): Promise<Array<PersistentKarigar>>;
     listKarigarsNames(): Promise<Array<string>>;
     listUserProfiles(): Promise<Array<UserProfile>>;
     markOrderAsDelivered(orderNo: string): Promise<void>;
@@ -159,5 +164,6 @@ export interface backendInterface {
     setApproval(user: Principal, status: ApprovalStatus): Promise<void>;
     unblockUser(user: Principal): Promise<void>;
     updateOrderTotalSupplied(request: UpdateOrderTotalSuppliedRequest): Promise<void>;
+    updateOrdersForNewKarigar(designCode: string, newKarigarName: string): Promise<void>;
     uploadParsedOrders(parsedOrders: Array<PersistentOrder>): Promise<void>;
 }

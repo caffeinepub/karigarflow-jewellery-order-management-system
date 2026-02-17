@@ -7,8 +7,9 @@ import { MasterDesignFormDialog } from '../../components/masterDesigns/MasterDes
 import { MasterDesignImportDialog } from '../../components/masterDesigns/MasterDesignImportDialog';
 import { MasterDesignsTable } from '../../components/masterDesigns/MasterDesignsTable';
 import { AddKarigarDialog } from '../../components/karigar/AddKarigarDialog';
+import { TotalKarigarListDialog } from '../../components/karigar/TotalKarigarListDialog';
 import { InlineErrorState } from '../../components/errors/InlineErrorState';
-import { Plus, Upload, Search, UserPlus } from 'lucide-react';
+import { Plus, Upload, Search, UserPlus, Users } from 'lucide-react';
 
 export function MasterDesignsPage() {
   const { data: masterDesigns = [], isLoading, error, refetch } = useGetMasterDesigns();
@@ -16,6 +17,7 @@ export function MasterDesignsPage() {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [showAddKarigarDialog, setShowAddKarigarDialog] = useState(false);
+  const [showTotalKarigarListDialog, setShowTotalKarigarListDialog] = useState(false);
   const [editingDesign, setEditingDesign] = useState<{ code: string; entry: any } | null>(null);
 
   const filteredDesigns = masterDesigns.filter(([code, entry]) => {
@@ -45,7 +47,15 @@ export function MasterDesignsPage() {
           <h1 className="text-3xl font-bold">Master Designs</h1>
           <p className="text-muted-foreground">Manage design code mappings</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <Button 
+            variant="outline" 
+            onClick={() => setShowTotalKarigarListDialog(true)}
+            className="border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-100 hover:bg-amber-50 dark:hover:bg-amber-950/20"
+          >
+            <Users className="mr-2 h-4 w-4" />
+            Total Karigar List
+          </Button>
           <Button variant="outline" onClick={() => setShowAddKarigarDialog(true)}>
             <UserPlus className="mr-2 h-4 w-4" />
             Add Karigar
@@ -107,6 +117,11 @@ export function MasterDesignsPage() {
       <AddKarigarDialog
         open={showAddKarigarDialog}
         onOpenChange={setShowAddKarigarDialog}
+      />
+
+      <TotalKarigarListDialog
+        open={showTotalKarigarListDialog}
+        onOpenChange={setShowTotalKarigarListDialog}
       />
     </div>
   );

@@ -8,24 +8,20 @@ import Iter "mo:core/Iter";
 import Runtime "mo:core/Runtime";
 import Principal "mo:core/Principal";
 import Migration "migration";
+
 import BlobStorage "blob-storage/Storage";
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
 import UserApproval "user-approval/approval";
 import MixinStorage "blob-storage/Mixin";
 
+// Apply migration on upgrade via with-clause
 (with migration = Migration.run)
 actor {
   type PartialFulfillmentQty = {
     orderNo : Text;
     suppliedQty : Nat;
   };
-
-  public type PartialFulfillmentRequest = {
-    entries : [PartialFulfillmentQty];
-  };
-
-  public type HealthCheckResponse = { status : Text; canisterId : Text };
 
   type PersistentOrder = {
     orderNo : Text;
@@ -83,12 +79,21 @@ actor {
     details : Text;
   };
 
+  public type HealthCheckResponse = {
+    status : Text;
+    canisterId : Text;
+  };
+
   public type HallmarkReturnRequest = {
     orderNos : [Text];
     actionType : {
       #return_hallmark;
       #update_status;
     };
+  };
+
+  public type PartialFulfillmentRequest = {
+    entries : [PartialFulfillmentQty];
   };
 
   public type BlockedUserInfo = {
@@ -126,6 +131,11 @@ actor {
     createdAt : Time.Time;
   };
 
+  public type PersistentKarigar = {
+    name : Text;
+    isActive : Bool;
+  };
+
   public type Karigar = {
     name : Text;
     isActive : Bool;
@@ -146,7 +156,7 @@ actor {
   var designImageMappings = Map.empty<Text, DesignImageMapping>();
   var designImages = Map.empty<Text, DesignImage>();
 
-  let karigarStorage = Map.empty<Text, Karigar>();
+  let karigarStorage = Map.empty<Text, PersistentKarigar>();
   var maintenanceMode = false;
 
   // Helper Functions
@@ -229,16 +239,32 @@ actor {
       Runtime.trap("Karigar name cannot be empty");
     };
     if (karigarStorage.containsKey(karigar.name)) {
-      Runtime.trap("Karigar with name " # karigar.name # " already exists. Please enter a unique new name.");
+      Runtime.trap("Karigar already exists. Please enter a unique new name for " # karigar.name);
     };
     karigarStorage.add(karigar.name, karigar);
   };
 
-  public query ({ caller }) func listKarigars() : async [Karigar] {
-    if (not isAdminOrStaff(caller)) {
-      Runtime.trap("Unauthorized: Only Admin or Staff can list karigars");
+  public shared ({ caller }) func updateOrdersForNewKarigar(designCode : Text, newKarigarName : Text) : async () {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only Admin can update karigar names for design code");
     };
-    karigarStorage.values().toArray();
+
+    let normalizedDesignCode = normalizeDesignCode(designCode);
+
+    if (not karigarStorage.containsKey(newKarigarName)) {
+      Runtime.trap("Karigar name '" # newKarigarName # "' does not exist. Please create the karigar first.");
+    };
+
+    // Only update orders with non-"given_to_hallmark" status
+    let pendingOrders = ordersMap.filter(
+      func(_orderNo, order) { order.designCode == normalizedDesignCode and order.status != "given_to_hallmark" }
+    );
+
+    for ((orderNo, order) in pendingOrders.entries()) {
+      let updatedOrder = { order with karigarName = newKarigarName };
+      ordersMap.add(orderNo, updatedOrder);
+    };
+    recordActivity(caller, "updateOrdersForNewKarigar", "Karigar name updated for pending orders with design code: " # normalizedDesignCode);
   };
 
   public shared ({ caller }) func deleteKarigarByName(karigarName : Text) : async () {
@@ -251,12 +277,35 @@ actor {
     karigarStorage.remove(karigarName);
   };
 
-  // State Queries
-  public query func healthCheck() : async HealthCheckResponse {
-    {
-      status = "OK";
-      canisterId = "unknown";
+  public query ({ caller }) func listKarigars() : async [PersistentKarigar] {
+    if (not isAdminOrStaff(caller)) {
+      Runtime.trap("Unauthorized: Only Admin or Staff can list karigars");
     };
+    karigarStorage.values().toArray();
+  };
+
+  public query ({ caller }) func listDistinctKarigars() : async [PersistentKarigar] {
+    if (not isAdminOrStaff(caller)) {
+      Runtime.trap("Unauthorized: Only Admin or Staff can list karigars");
+    };
+
+    let allKarigars = karigarStorage.values().toArray();
+    let uniqueKarigars = allKarigars.filter(
+      func(karigar) {
+        not allKarigars.foldLeft(false, func(acc, other) { acc or (other.name != karigar.name and not compareKarigarsStrict(karigar, other)) });
+      }
+    );
+    uniqueKarigars;
+  };
+
+  func compareKarigarsStrict(karigar1 : PersistentKarigar, karigar2 : PersistentKarigar) : Bool {
+    karigar1.name == karigar2.name and karigar1.isActive == karigar2.isActive;
+  };
+
+  // -- State Queries
+  public query func healthCheck() : async HealthCheckResponse {
+    let canisterId = "unknown";
+    { status = "OK"; canisterId };
   };
 
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
@@ -514,11 +563,7 @@ actor {
         };
         ordersMap.add(orderNo, updatedOrder);
 
-        recordActivity(
-          caller,
-          "markOrderAsDelivered",
-          "Order " # orderNo # " marked as delivered by Karigar"
-        );
+        recordActivity(caller, "markOrderAsDelivered", "Order " # orderNo # " marked as delivered by Karigar");
       };
       case null {
         Runtime.trap("Order with orderNo " # orderNo # " not found");
@@ -579,11 +624,7 @@ actor {
       };
     };
 
-    recordActivity(
-      caller,
-      "bulkMarkOrdersAsDelivered",
-      "Multiple orders marked as delivered by Karigar"
-    );
+    recordActivity(caller, "bulkMarkOrdersAsDelivered", "Multiple orders marked as delivered by Karigar");
   };
 
   public shared ({ caller }) func handleHallmarkReturns(request : HallmarkReturnRequest) : async () {
@@ -783,11 +824,12 @@ actor {
 
     for (entry in masterDesigns.values()) {
       let normalizedKey = normalizeDesignCode(entry.0);
-      let matchingOrders = ordersMap.filter(
-        func(_orderNo, order) { order.designCode == normalizedKey }
+
+      // Reassign pending orders instead of all matching orders
+      let pendingOrders = ordersMap.filter(
+        func(_orderNo, order) { order.designCode == normalizedKey and order.status != "given_to_hallmark" }
       );
-      // Reassign all matching orders to the new karigar
-      for ((orderNo, order) in matchingOrders.entries()) {
+      for ((orderNo, order) in pendingOrders.entries()) {
         let updatedOrder = { order with karigarName = entry.1.karigarName };
         ordersMap.add(orderNo, updatedOrder);
       };
@@ -993,7 +1035,7 @@ actor {
     };
   };
 
-  // Design-to-Image Mapping
+  // -- Design-to-Image Mapping
   public query ({ caller }) func getAdminDesignImageMappings() : async [(DesignImageMapping, BlobStorage.ExternalBlob)] {
     if (not AccessControl.isAdmin(accessControlState, caller)) {
       Runtime.trap("Unauthorized: Only admins can retrieve design image mappings");
@@ -1041,9 +1083,10 @@ actor {
       Runtime.trap("Unauthorized: Only Admin or Staff can list karigars");
     };
 
-    let masterKarigars = masterDesignsMap.toArray().map(
+    let designKarigars = masterDesignsMap.toArray().map(
       func((_, entry)) { entry.karigarName }
     );
-    masterKarigars;
+    designKarigars;
   };
 };
+

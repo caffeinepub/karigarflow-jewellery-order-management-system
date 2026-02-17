@@ -3,91 +3,119 @@
 @tailwind utilities;
 
 @layer base {
-    :root {
-        --radius: 0.5rem;
-        --background: 0.98 0 0;
-        --foreground: 0.15 0 0;
-        --card: 1 0 0;
-        --card-foreground: 0.15 0 0;
-        --popover: 1 0 0;
-        --popover-foreground: 0.15 0 0;
-        --primary: 0.25 0 0;
-        --primary-foreground: 0.98 0 0;
-        --secondary: 0.95 0 0;
-        --secondary-foreground: 0.25 0 0;
-        --muted: 0.95 0 0;
-        --muted-foreground: 0.50 0 0;
-        --accent: 0.92 0.08 45;
-        --accent-foreground: 0.15 0 0;
-        --destructive: 0.55 0.22 25;
-        --destructive-foreground: 0.98 0 0;
-        --border: 0.90 0 0;
-        --input: 0.90 0 0;
-        --ring: 0.25 0 0;
-        --chart-1: 0.65 0.15 45;
-        --chart-2: 0.60 0.12 180;
-        --chart-3: 0.40 0.08 220;
-        --chart-4: 0.82 0.18 85;
-        --chart-5: 0.75 0.16 70;
-    }
+  :root {
+    /* Warm neutrals with gold accents for jewellery business */
+    --background: oklch(98% 0.01 60);
+    --foreground: oklch(20% 0.02 60);
+    --card: oklch(100% 0 0);
+    --card-foreground: oklch(20% 0.02 60);
+    --popover: oklch(100% 0 0);
+    --popover-foreground: oklch(20% 0.02 60);
+    --primary: oklch(45% 0.15 40);
+    --primary-foreground: oklch(98% 0.01 60);
+    --secondary: oklch(92% 0.02 60);
+    --secondary-foreground: oklch(20% 0.02 60);
+    --muted: oklch(94% 0.01 60);
+    --muted-foreground: oklch(50% 0.02 60);
+    --accent: oklch(92% 0.02 60);
+    --accent-foreground: oklch(20% 0.02 60);
+    --destructive: oklch(55% 0.22 25);
+    --destructive-foreground: oklch(98% 0.01 60);
+    --border: oklch(88% 0.01 60);
+    --input: oklch(88% 0.01 60);
+    --ring: oklch(45% 0.15 40);
+    --radius: 0.5rem;
+    --chart-1: oklch(60% 0.15 40);
+    --chart-2: oklch(70% 0.12 80);
+    --chart-3: oklch(65% 0.10 160);
+    --chart-4: oklch(75% 0.08 240);
+    --chart-5: oklch(68% 0.14 320);
+  }
 
-    .dark {
-        --background: 0.12 0 0;
-        --foreground: 0.95 0 0;
-        --card: 0.18 0 0;
-        --card-foreground: 0.95 0 0;
-        --popover: 0.22 0 0;
-        --popover-foreground: 0.95 0 0;
-        --primary: 0.88 0.10 45;
-        --primary-foreground: 0.12 0 0;
-        --secondary: 0.25 0 0;
-        --secondary-foreground: 0.95 0 0;
-        --muted: 0.25 0 0;
-        --muted-foreground: 0.65 0 0;
-        --accent: 0.35 0.08 45;
-        --accent-foreground: 0.95 0 0;
-        --destructive: 0.65 0.20 25;
-        --destructive-foreground: 0.12 0 0;
-        --border: 0.25 0 0;
-        --input: 0.30 0 0;
-        --ring: 0.65 0 0;
-        --chart-1: 0.50 0.20 260;
-        --chart-2: 0.68 0.16 165;
-        --chart-3: 0.75 0.18 70;
-        --chart-4: 0.62 0.24 305;
-        --chart-5: 0.64 0.22 20;
-    }
-
-    * {
-        @apply border-border;
-    }
-    
-    body {
-        @apply bg-background text-foreground;
-        font-feature-settings: "rlig" 1, "calt" 1;
-    }
+  .dark {
+    --background: oklch(18% 0.02 60);
+    --foreground: oklch(95% 0.01 60);
+    --card: oklch(20% 0.02 60);
+    --card-foreground: oklch(95% 0.01 60);
+    --popover: oklch(20% 0.02 60);
+    --popover-foreground: oklch(95% 0.01 60);
+    --primary: oklch(65% 0.15 40);
+    --primary-foreground: oklch(18% 0.02 60);
+    --secondary: oklch(28% 0.02 60);
+    --secondary-foreground: oklch(95% 0.01 60);
+    --muted: oklch(28% 0.02 60);
+    --muted-foreground: oklch(65% 0.02 60);
+    --accent: oklch(28% 0.02 60);
+    --accent-foreground: oklch(95% 0.01 60);
+    --destructive: oklch(60% 0.22 25);
+    --destructive-foreground: oklch(95% 0.01 60);
+    --border: oklch(32% 0.02 60);
+    --input: oklch(32% 0.02 60);
+    --ring: oklch(65% 0.15 40);
+    --chart-1: oklch(70% 0.15 40);
+    --chart-2: oklch(75% 0.12 80);
+    --chart-3: oklch(72% 0.10 160);
+    --chart-4: oklch(78% 0.08 240);
+    --chart-5: oklch(74% 0.14 320);
+  }
 }
 
-@layer components {
-    /* Admin Dashboard Tab Styling */
-    .admin-tabs-list {
-        @apply bg-muted/50 p-1 rounded-lg relative;
-    }
-    
-    .admin-tab-trigger {
-        @apply relative data-[state=active]:bg-background data-[state=active]:shadow-sm;
-        @apply transition-all duration-200;
-        @apply z-10;
-    }
-    
-    .admin-tab-trigger[data-state="active"]::after {
-        content: '';
-        @apply absolute bottom-0 left-1/2 -translate-x-1/2 w-3/4 h-1 rounded-t-full;
-        @apply bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500;
-        @apply z-0;
-    }
-    
-    .admin-tab-trigger:not([data-state="active"]):hover {
-        @apply bg-muted/80;
-    }
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/* Admin Dashboard Tabs - Mobile Responsive */
+.admin-tabs-list {
+  @apply inline-flex h-auto items-center justify-start rounded-md bg-muted p-1 text-muted-foreground;
+  @apply w-full overflow-x-auto;
+  @apply flex-nowrap;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
+.admin-tabs-list::-webkit-scrollbar {
+  height: 4px;
+}
+
+.admin-tabs-list::-webkit-scrollbar-track {
+  @apply bg-muted;
+}
+
+.admin-tabs-list::-webkit-scrollbar-thumb {
+  @apply bg-muted-foreground/30 rounded;
+}
+
+.admin-tab-trigger {
+  @apply inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
+  @apply data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm;
+  @apply relative;
+  flex-shrink: 0;
+  min-width: fit-content;
+}
+
+/* Mobile: smaller text and padding */
+@media (max-width: 640px) {
+  .admin-tab-trigger {
+    @apply px-2 py-1 text-xs;
+  }
+}
+
+/* Tablet: medium text and padding */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .admin-tab-trigger {
+    @apply px-2.5 py-1.5 text-sm;
+  }
+}
+
+/* Desktop: default sizing */
+@media (min-width: 1025px) {
+  .admin-tabs-list {
+    @apply w-auto overflow-x-visible;
+  }
 }

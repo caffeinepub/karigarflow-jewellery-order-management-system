@@ -124,6 +124,29 @@ export function useSaveMasterDesigns() {
   });
 }
 
+export function useUpdateOrdersForNewKarigar() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ designCode, newKarigarName }: { designCode: string; newKarigarName: string }) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.updateOrdersForNewKarigar(designCode, newKarigarName);
+    },
+    onSuccess: () => {
+      // Invalidate and refetch all related queries
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['activeOrdersForKarigar'] });
+      queryClient.invalidateQueries({ queryKey: ['masterDesigns'] });
+      queryClient.invalidateQueries({ queryKey: ['karigars'] });
+      
+      // Force refetch to ensure UI updates immediately
+      queryClient.refetchQueries({ queryKey: ['orders'] });
+      queryClient.refetchQueries({ queryKey: ['activeOrdersForKarigar'] });
+    },
+  });
+}
+
 export function useSetActiveFlagForMasterDesign() {
   const { actor } = useActor();
   const queryClient = useQueryClient();

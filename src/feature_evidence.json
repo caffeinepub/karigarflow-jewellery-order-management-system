@@ -2,11 +2,11 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-ensure-the-karigar-dropdown-in-the-edit-design-mapping-dialog-shows-the-full-karigar-list-derived-from-the-mapped-master-designs-excel-currently-19-karigars-so-admins-staff-can-select-any-of-those-existing-karigars-when-editing-a-design-mapping",
-      "featureTitle": "Ensure the Karigar dropdown in the “Edit Design Mapping” dialog shows the full Karigar list derived from the mapped Master Designs Excel (currently 19 karigars), so admins/staff can select any of those existing karigars when editing a design mapping.",
+      "featureId": "feature-fix-the-false-error-karigar-name-name-does-not-exist-when-editing-a-design-mapping-and-selecting-an-existing-karigar-example-selecting-raju-sanjay-shows-the-error-even-though-the-karigar-exists-and-has-orders-ensure-karigar-existence-validation-is-case-whitespace-insensitive-and-matches-the-karigar-list-used-in-the-ui",
+      "featureTitle": "Fix the false error \"Karigar name '<name>' does not exist\" when editing a design mapping and selecting an existing karigar (example: selecting \"Raju Sanjay\" shows the error even though the karigar exists and has orders). Ensure karigar existence validation is case/whitespace-insensitive and matches the karigar list used in the UI.",
       "files": [
-        "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx",
-        "frontend/src/hooks/useQueries.ts"
+        "frontend/src/components/karigar/AddKarigarDialog.tsx",
+        "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -16,7 +16,8 @@
         "initial-app@1.0.0",
         "github-export-icp-cli@1.0.0",
         "user-approval@3.0.0",
-        "blob-storage@4.0.0"
+        "blob-storage@4.0.0",
+        "http-outcalls@3.0.0"
       ],
       "testIds": [
         "REQ-1"
@@ -24,10 +25,11 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-fix-the-current-karigar-not-found-blocking-behavior-in-the-edit-design-mapping-dialog-so-an-existing-design-mapping-whose-current-karigar-e-g-raju-sanjay-is-present-in-master-design-derived-karigar-names-is-treated-as-valid-and-can-be-saved-without-forcing-the-user-to-change-the-karigar",
-      "featureTitle": "Fix the “Current karigar not found” blocking behavior in the “Edit Design Mapping” dialog so an existing design mapping whose current karigar (e.g., \"RAJU SANJAY\") is present in master-design-derived karigar names is treated as valid and can be saved without forcing the user to change the karigar.",
+      "featureId": "feature-on-the-admin-dashboard-page-make-the-indicator-tabs-delivered-hallmark-total-orders-customer-orders-karigars-mobile-responsive-so-they-do-not-overlap-or-look-clumped-on-small-screens-also-set-the-default-selected-tab-to-total-orders-whenever-the-admin-dashboard-is-opened-or-refreshed",
+      "featureTitle": "On the Admin Dashboard page, make the indicator tabs (Delivered / Hallmark / Total Orders / Customer Orders / Karigars) mobile-responsive so they do not overlap or look clumped on small screens. Also set the default selected tab to \"Total Orders\" whenever the Admin Dashboard is opened or refreshed.",
       "files": [
-        "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx"
+        "frontend/src/index.css",
+        "frontend/src/pages/admin/AdminDashboardPage.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -37,7 +39,8 @@
         "initial-app@1.0.0",
         "github-export-icp-cli@1.0.0",
         "user-approval@3.0.0",
-        "blob-storage@4.0.0"
+        "blob-storage@4.0.0",
+        "http-outcalls@3.0.0"
       ],
       "testIds": [
         "REQ-2"
@@ -45,11 +48,9 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-add-a-safe-fallback-for-legacy-data-if-an-edited-design-mapping-s-current-karigar-name-is-not-returned-by-the-backend-karigar-list-show-it-in-the-dropdown-as-an-additional-selectable-option-labeled-as-a-legacy-unknown-value-so-the-user-can-keep-it-unchanged-and-still-save-or-intentionally-switch-to-a-known-karigar",
-      "featureTitle": "Add a safe fallback for legacy data: if an edited design mapping’s current karigar name is not returned by the backend karigar list, show it in the dropdown as an additional selectable option labeled as a legacy/unknown value, so the user can keep it unchanged and still save (or intentionally switch to a known karigar).",
-      "files": [
-        "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx"
-      ],
+      "featureId": "feature-add-an-option-to-retrieve-extract-product-images-by-design-code-from-the-vendor-portal-page-https-mpn-malabargroup-com-vendordesigns-aspx-and-use-them-as-design-images-in-the-app-so-admins-can-avoid-relying-on-excel-embedded-image-extraction-or-manually-sharing-urls-use-the-provided-portal-credentials-for-access-username-v1000803-password-9884472485si",
+      "featureTitle": "Add an option to retrieve/extract product images by design code from the vendor portal page https://mpn.malabargroup.com/VendorDesigns.aspx and use them as design images in the app, so admins can avoid relying on Excel embedded-image extraction or manually sharing URLs. Use the provided portal credentials for access (Username: V1000803, Password: 9884472485Si.).",
+      "files": [],
       "components": [
         "authorization@4.0.0",
         "core-infrastructure@1.0.2",
@@ -58,7 +59,8 @@
         "initial-app@1.0.0",
         "github-export-icp-cli@1.0.0",
         "user-approval@3.0.0",
-        "blob-storage@4.0.0"
+        "blob-storage@4.0.0",
+        "http-outcalls@3.0.0"
       ],
       "testIds": [
         "REQ-3"

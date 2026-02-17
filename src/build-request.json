@@ -1,94 +1,92 @@
 {
   "kind": "build_request",
-  "title": "Show full mapped Karigar list in Master Design edit dropdown and unblock saving when current Karigar is missing",
-  "projectName": "KarigarFlow",
+  "title": "Fix karigar validation error, improve admin tabs on mobile, and add vendor-portal design image import by design code",
+  "projectName": "Malabar Partner",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Ensure the Karigar dropdown in the “Edit Design Mapping” dialog shows the full Karigar list derived from the mapped Master Designs Excel (currently 19 karigars), so admins/staff can select any of those existing karigars when editing a design mapping.",
+      "text": "Fix the false error \"Karigar name '<name>' does not exist\" when editing a design mapping and selecting an existing karigar (example: selecting \"Raju Sanjay\" shows the error even though the karigar exists and has orders). Ensure karigar existence validation is case/whitespace-insensitive and matches the karigar list used in the UI.",
       "target": "both",
       "source": {
         "messageIds": [
-          "user-1"
+          "msg-6"
         ],
         "quotes": [
-          "Now that the excel for master design is mapped then we have a list for 19 karigars already. those have to be seen in a dropbox for changes to be updated"
+          "when karigar name *Raju Sanjay* is selected while editing in design. Error karigar name doesn’t exists keeps showing, but however this karigar is already on list",
+          "Karigar name 'RAJU SANJAY' does not exist. Please create the karigar first."
         ]
       },
       "acceptanceCriteria": [
-        "After importing/mapping master designs from Excel, opening Edit Design Mapping shows a dropdown containing all unique karigar names present in saved master designs (including the expected 19 names).",
-        "The dropdown list is consistent between “Add Design Mapping” and “Edit Design Mapping” dialogs.",
-        "The list is not limited to only manually-created karigars; it includes karigar names coming from existing master design mappings."
+        "In the Edit Design Mapping dialog, selecting an existing karigar (including names that differ only by casing or extra spaces, e.g., \"RAJU SANJAY\" vs \"Raju Sanjay\") does not show a \"does not exist\" error on save.",
+        "Backend validations that check whether a karigar exists accept karigar names that match an existing stored karigar when compared using the same normalization as the frontend (trim + collapse spaces + case-insensitive).",
+        "No regression: creating a new karigar still prevents true duplicates that only differ by casing/whitespace (e.g., cannot create both \"Raju Sanjay\" and \"RAJU   SANJAY\")."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Fix the “Current karigar not found” blocking behavior in the “Edit Design Mapping” dialog so an existing design mapping whose current karigar (e.g., \"RAJU SANJAY\") is present in master-design-derived karigar names is treated as valid and can be saved without forcing the user to change the karigar.",
+      "text": "On the Admin Dashboard page, make the indicator tabs (Delivered / Hallmark / Total Orders / Customer Orders / Karigars) mobile-responsive so they do not overlap or look clumped on small screens. Also set the default selected tab to \"Total Orders\" whenever the Admin Dashboard is opened or refreshed.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "user-1"
+          "msg-6"
         ],
         "quotes": [
-          "under karigar name, Current karigar not found\n\nThe current karigar \"RAJU SANJAY\" is not in the list. Please select an existing karigar from the dropdown before saving."
+          "on admin portal page, the indicators tabs looks clumpsy on mobile screen, overlapping each other. And make the tab *Total Orders* selected whenever app is opened or refreshed."
         ]
       },
       "acceptanceCriteria": [
-        "If the currently assigned karigar name matches one of the karigar names available from the backend (including those derived from master designs), the warning is not shown and the Save button is enabled (subject to other normal validation).",
-        "The dropdown’s selected value correctly resolves to the current karigar when editing an existing design mapping.",
-        "Saving an unchanged mapping (code/generic/karigar unchanged) succeeds without requiring re-selection."
+        "On mobile widths (e.g., 360px), the admin tab triggers do not overlap; labels remain readable and tappable.",
+        "Refreshing the Admin Dashboard or reopening the app lands on the \"Total Orders\" tab selected by default.",
+        "Changing tabs still works as before and does not break the existing filtering/metrics behavior for each tab."
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Add a safe fallback for legacy data: if an edited design mapping’s current karigar name is not returned by the backend karigar list, show it in the dropdown as an additional selectable option labeled as a legacy/unknown value, so the user can keep it unchanged and still save (or intentionally switch to a known karigar).",
-      "target": "frontend",
+      "text": "Add an option to retrieve/extract product images by design code from the vendor portal page https://mpn.malabargroup.com/VendorDesigns.aspx and use them as design images in the app, so admins can avoid relying on Excel embedded-image extraction or manually sharing URLs. Use the provided portal credentials for access (Username: V1000803, Password: 9884472485Si.).",
+      "target": "both",
       "source": {
         "messageIds": [
-          "user-1"
+          "msg-6"
         ],
         "quotes": [
-          "The current karigar \"RAJU SANJAY\" is not in the list. Please select an existing karigar from the dropdown before saving."
+          "https://mpn.malabargroup.com/VendorDesigns.aspx",
+          "If u can open this page, all product images as per design code is available if you can actually extract from that and add yourself in the design image it will be very helpful.",
+          "Username: V1000803",
+          "Password: 9884472485Si."
         ]
       },
       "acceptanceCriteria": [
-        "When editing a design mapping whose current karigar name is not present in the fetched karigar list, the dropdown includes an extra option for that exact name so the current value can remain selected.",
-        "The UI continues to display a warning that the current karigar is not in the standard list, but Save is not blocked if the legacy option remains selected and all other required fields are valid.",
-        "Switching from the legacy option to a known karigar works and saving performs the existing reassignment behavior."
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "text": "Update/extend the backend-provided karigar-name aggregation used by the frontend to include unique karigar names from saved master design mappings, in addition to any existing karigar storage and/or orders-derived sources, so the frontend can reliably fetch the complete list without relying on client-side inference.",
-      "target": "backend",
-      "source": {
-        "messageIds": [
-          "user-1"
-        ],
-        "quotes": [
-          "Now that the excel for master design is mapped then we have a list for 19 karigars already."
-        ]
-      },
-      "acceptanceCriteria": [
-        "The backend exposes (or updates the existing) method used by the frontend karigar dropdown (currently via `useListKarigars()` calling `actor.listKarigarsNames()`) to include distinct `karigarName` values from `masterDesignsMap`.",
-        "The returned list does not contain empty strings and is deduplicated.",
-        "No authorization is loosened compared to existing behavior (Admin/Staff only, consistent with current listKarigars access patterns)."
+        "Admin UI provides a clear workflow to fetch an image for a given design code from the vendor portal and save it as a design image mapping in the app (persisted and visible via existing Design Image viewer/mappings table).",
+        "When a design code image is successfully fetched, the Design Image viewer can display it using the existing design-image retrieval flow.",
+        "Failures (login blocked, design code not found, network errors) show an English, user-friendly error without exposing the vendor password in UI, logs, or toast messages.",
+        "The system does not require admins to upload an Excel file to add images when the vendor fetch succeeds."
       ]
     }
   ],
   "constraints": [
-    "Backend must remain a single Motoko actor in backend/main.mo; only add migration logic if state changes require it.",
-    "Do not edit files under frontend/src/components/ui or other immutable paths listed in SYSTEM_CONTEXT.",
-    "Use English for any user-facing text."
+    "Backend must remain a single Motoko actor in backend/main.mo; create backend/migration.mo changes only if state schema upgrades are required.",
+    "Do not modify files under frontend/src/components/ui (shadcn components); compose/wrap them instead.",
+    "Do not edit immutable frontend paths listed in SYSTEM_CONTEXT (e.g., frontend/src/hooks/useInternetIdentity.ts(x), frontend/src/hooks/useActor.ts, frontend/src/main.tsx).",
+    "Any handling of the vendor portal credentials must avoid exposing the password in client-visible code paths, UI rendering, or error messages."
   ],
   "nonGoals": [
-    "Do not change the Excel parsing/mapping logic for master designs beyond what is necessary to surface the already-saved karigar names in the dropdown.",
-    "Do not implement new authentication providers (Internet Identity only).",
-    "Do not add real-time/WebSocket behavior."
+    "Implement third-party authentication providers (only Internet Identity is supported).",
+    "Add real-time updates (WebSockets/push notifications).",
+    "Replace the entire Excel-based design image import flow; keep it working as-is alongside the new vendor-portal-based option."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
+  },
+  "userProfileUpdate": {
+    "goalsToAdd": [],
+    "goalsToRemove": [],
+    "preferencesToAdd": [],
+    "preferencesToRemove": [],
+    "miscToAdd": [],
+    "miscToRemove": [],
+    "fieldsToSet": {},
+    "fieldsToDelete": []
   }
 }

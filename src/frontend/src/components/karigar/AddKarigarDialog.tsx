@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useCreateKarigar } from '../../hooks/useQueries';
+import { useCreateKarigar, useListKarigars } from '../../hooks/useQueries';
 import { toast } from 'sonner';
 
 interface AddKarigarDialogProps {
@@ -12,13 +12,28 @@ interface AddKarigarDialogProps {
   onSuccess?: () => void;
 }
 
+// Helper function to normalize karigar names for comparison
+function normalizeKarigarName(name: string): string {
+  return name.trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
 export function AddKarigarDialog({ open, onOpenChange, onSuccess }: AddKarigarDialogProps) {
   const createMutation = useCreateKarigar();
+  const { data: karigars = [] } = useListKarigars();
   const [karigarName, setKarigarName] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!karigarName.trim()) return;
+
+    // Check for duplicates using normalized comparison
+    const normalizedInput = normalizeKarigarName(karigarName);
+    const isDuplicate = karigars.some(k => normalizeKarigarName(k.name) === normalizedInput);
+
+    if (isDuplicate) {
+      toast.error(`Karigar "${karigarName.trim()}" already exists (case/spacing variations are not allowed)`);
+      return;
+    }
 
     try {
       await createMutation.mutateAsync({

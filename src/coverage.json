@@ -1,74 +1,74 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-17T11:01:59.852Z",
+  "generatedAt": "2026-02-17T19:57:38.191Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 4,
+    "total": 3,
     "implemented": 3,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Ensure the Karigar dropdown in the “Edit Design Mapping” dialog shows the full Karigar list derived from the mapped Master Designs Excel (currently 19 karigars), so admins/staff can select any of those existing karigars when editing a design mapping.",
+        "summary": "Fix the false error \"Karigar name '<name>' does not exist\" when editing a design mapping and selecting an existing karigar (example: selecting \"Raju Sanjay\" shows the error even though the karigar exists and has orders). Ensure karigar existence validation is case/whitespace-insensitive and matches the karigar list used in the UI.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx"
+          "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx",
+          "frontend/src/components/karigar/AddKarigarDialog.tsx",
+          "frontend/src/hooks/useQueries.ts"
         ],
         "matchedFiles": [
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx"
+          "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx",
+          "frontend/src/components/karigar/AddKarigarDialog.tsx"
         ]
       },
       {
         "id": "REQ-2",
-        "summary": "Fix the “Current karigar not found” blocking behavior in the “Edit Design Mapping” dialog so an existing design mapping whose current karigar (e.g., \"RAJU SANJAY\") is present in master-design-derived karigar names is treated as valid and can be saved without forcing the user to change the karigar.",
+        "summary": "On the Admin Dashboard page, make the indicator tabs (Delivered / Hallmark / Total Orders / Customer Orders / Karigars) mobile-responsive so they do not overlap or look clumped on small screens. Also set the default selected tab to \"Total Orders\" whenever the Admin Dashboard is opened or refreshed.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx",
-          "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx"
+          "frontend/src/pages/admin/AdminDashboardPage.tsx",
+          "frontend/src/index.css"
         ],
         "matchedFiles": [
-          "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx",
-          "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx"
+          "frontend/src/pages/admin/AdminDashboardPage.tsx",
+          "frontend/src/index.css"
         ]
       },
       {
         "id": "REQ-3",
-        "summary": "Add a safe fallback for legacy data: if an edited design mapping’s current karigar name is not returned by the backend karigar list, show it in the dropdown as an additional selectable option labeled as a legacy/unknown value, so the user can keep it unchanged and still save (or intentionally switch to a known karigar).",
+        "summary": "Add an option to retrieve/extract product images by design code from the vendor portal page https://mpn.malabargroup.com/VendorDesigns.aspx and use them as design images in the app, so admins can avoid relying on Excel embedded-image extraction or manually sharing URLs. Use the provided portal credentials for access (Username: V1000803, Password: 9884472485Si.).",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx",
-          "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx"
+          "frontend/src/backend.d.ts",
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/pages/admin/DesignImagesPage.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx",
-          "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx"
+          "frontend/src/backend.d.ts"
         ]
-      },
-      {
-        "id": "REQ-4",
-        "summary": "Update/extend the backend-provided karigar-name aggregation used by the frontend to include unique karigar names from saved master design mappings, in addition to any existing karigar storage and/or orders-derived sources, so the frontend can reliably fetch the complete list without relying on client-side inference.",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
       }
     ]
   },
   "changedFiles": [
+    "backend/http-outcalls/outcall.mo",
     "backend/main.mo",
     "backend/migration.mo",
     "build-request.json",
+    "caffeine.lock.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
+    "frontend/src/backend.d.ts",
+    "frontend/src/backend.ts",
+    "frontend/src/components/karigar/AddKarigarDialog.tsx",
     "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx",
-    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/declarations/backend.did.d.ts",
+    "frontend/src/declarations/backend.did.js",
+    "frontend/src/index.css",
+    "frontend/src/pages/admin/AdminDashboardPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

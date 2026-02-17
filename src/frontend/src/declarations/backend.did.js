@@ -113,6 +113,10 @@ export const UserApprovalInfo = IDL.Record({
   'status' : ApprovalStatus,
   'principal' : IDL.Principal,
 });
+export const PersistentKarigar = IDL.Record({
+  'name' : IDL.Text,
+  'isActive' : IDL.Bool,
+});
 export const PartialFulfillmentQty = IDL.Record({
   'suppliedQty' : IDL.Nat,
   'orderNo' : IDL.Text,
@@ -196,7 +200,12 @@ export const idlService = IDL.Service({
   'isCallerApproved' : IDL.Func([], [IDL.Bool], ['query']),
   'isUserBlocked' : IDL.Func([IDL.Principal], [IDL.Bool], ['query']),
   'listApprovals' : IDL.Func([], [IDL.Vec(UserApprovalInfo)], ['query']),
-  'listKarigars' : IDL.Func([], [IDL.Vec(Karigar)], ['query']),
+  'listDistinctKarigars' : IDL.Func(
+      [],
+      [IDL.Vec(PersistentKarigar)],
+      ['query'],
+    ),
+  'listKarigars' : IDL.Func([], [IDL.Vec(PersistentKarigar)], ['query']),
   'listKarigarsNames' : IDL.Func([], [IDL.Vec(IDL.Text)], ['query']),
   'listUserProfiles' : IDL.Func([], [IDL.Vec(UserProfile)], ['query']),
   'markOrderAsDelivered' : IDL.Func([IDL.Text], [], []),
@@ -221,6 +230,7 @@ export const idlService = IDL.Service({
       [],
       [],
     ),
+  'updateOrdersForNewKarigar' : IDL.Func([IDL.Text, IDL.Text], [], []),
   'uploadParsedOrders' : IDL.Func([IDL.Vec(PersistentOrder)], [], []),
 });
 
@@ -332,6 +342,10 @@ export const idlFactory = ({ IDL }) => {
     'status' : ApprovalStatus,
     'principal' : IDL.Principal,
   });
+  const PersistentKarigar = IDL.Record({
+    'name' : IDL.Text,
+    'isActive' : IDL.Bool,
+  });
   const PartialFulfillmentQty = IDL.Record({
     'suppliedQty' : IDL.Nat,
     'orderNo' : IDL.Text,
@@ -415,7 +429,12 @@ export const idlFactory = ({ IDL }) => {
     'isCallerApproved' : IDL.Func([], [IDL.Bool], ['query']),
     'isUserBlocked' : IDL.Func([IDL.Principal], [IDL.Bool], ['query']),
     'listApprovals' : IDL.Func([], [IDL.Vec(UserApprovalInfo)], ['query']),
-    'listKarigars' : IDL.Func([], [IDL.Vec(Karigar)], ['query']),
+    'listDistinctKarigars' : IDL.Func(
+        [],
+        [IDL.Vec(PersistentKarigar)],
+        ['query'],
+      ),
+    'listKarigars' : IDL.Func([], [IDL.Vec(PersistentKarigar)], ['query']),
     'listKarigarsNames' : IDL.Func([], [IDL.Vec(IDL.Text)], ['query']),
     'listUserProfiles' : IDL.Func([], [IDL.Vec(UserProfile)], ['query']),
     'markOrderAsDelivered' : IDL.Func([IDL.Text], [], []),
@@ -440,6 +459,7 @@ export const idlFactory = ({ IDL }) => {
         [],
         [],
       ),
+    'updateOrdersForNewKarigar' : IDL.Func([IDL.Text, IDL.Text], [], []),
     'uploadParsedOrders' : IDL.Func([IDL.Vec(PersistentOrder)], [], []),
   });
 };

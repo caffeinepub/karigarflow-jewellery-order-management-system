@@ -1,73 +1,79 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Karigar dropdown completeness and legacy-safe editing in Master Design Mapping dialog",
+  "title": "Malabar Partner: Karigar validation fix, responsive admin tabs defaulting to Total Orders, and vendor-portal design-image fetch UI",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Show the full Karigar list (including names present in saved master designs) in the Karigar dropdown for both Add and Edit Design Mapping dialogs.",
+      "summary": "Ensure Edit Design Mapping uses case/whitespace-insensitive karigar matching and saves the canonical karigar name from the UI list to avoid false 'does not exist' errors.",
       "acceptanceCriteria": [
-        "After importing/mapping master designs from Excel, opening Edit Design Mapping shows a dropdown containing all unique karigar names present in saved master designs (including the expected 19 names).",
-        "The dropdown list is consistent between “Add Design Mapping” and “Edit Design Mapping” dialogs.",
-        "The list is not limited to only manually-created karigars; it includes karigar names coming from existing master design mappings."
+        "In the Edit Design Mapping dialog, selecting an existing karigar (including names that differ only by casing or extra spaces, e.g., \"RAJU SANJAY\" vs \"Raju Sanjay\") does not show a \"does not exist\" error on save.",
+        "Backend validations that check whether a karigar exists accept karigar names that match an existing stored karigar when compared using the same normalization as the frontend (trim + collapse spaces + case-insensitive).",
+        "No regression: creating a new karigar still prevents true duplicates that only differ by casing/whitespace (e.g., cannot create both \"Raju Sanjay\" and \"Raju   SANJAY\")."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/hooks/useQueries.ts",
-          "operation": "modify",
-          "description": "Extend the karigar aggregation used by useListKarigars() to also merge in distinct karigarName values from the already-saved master designs (fetched via existing backend capabilities), deduplicate, filter empty/whitespace-only, and keep alphabetical sorting. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/hooks/useQueries.ts",
-          "operation": "modify",
-          "description": "Update useSaveMasterDesigns() success handling to also invalidate/refetch the ['karigars'] query so the dropdown updates immediately after master design imports/edits. Verify the component's usage instructions before implementing."
-        },
-        {
           "path": "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx",
           "operation": "modify",
-          "description": "Ensure the dialog uses the aggregated karigar list from useListKarigars() consistently for both Add Mapping and Edit Design Mapping (no separate/partial sources). Verify the component's usage instructions before implementing."
+          "description": "Update karigar selection and save logic to always resolve the chosen karigar to the canonical name from the loaded karigar list using trim + collapse-spaces + case-insensitive normalization (and disable save if the selected karigar is not a normalized match), preventing false 'does not exist' failures."
+        },
+        {
+          "path": "frontend/src/components/karigar/AddKarigarDialog.tsx",
+          "operation": "modify",
+          "description": "Add client-side duplicate prevention using the same karigar-name normalization against the existing karigar list (via useListKarigars) before calling create, so casing/whitespace-only duplicates are blocked with a friendly message."
+        },
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Add/centralize a shared karigar-name normalization helper (trim + collapse spaces + lowercase) for consistent comparisons across karigar listing and dialogs, and ensure any karigar list deduplication continues using the same normalization."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "Stop incorrectly blocking save in Edit Design Mapping when the current karigar exists in the available list; ensure selected value resolves correctly and unchanged saves work.",
+      "summary": "Make Admin Dashboard tabs mobile-responsive (no overlap) and default to the 'Total Orders' tab on open/refresh.",
       "acceptanceCriteria": [
-        "If the currently assigned karigar name matches one of the karigar names available from the backend (including those derived from master designs), the warning is not shown and the Save button is enabled (subject to other normal validation).",
-        "The dropdown’s selected value correctly resolves to the current karigar when editing an existing design mapping.",
-        "Saving an unchanged mapping (code/generic/karigar unchanged) succeeds without requiring re-selection."
+        "On mobile widths (e.g., 360px), the admin tab triggers do not overlap; labels remain readable and tappable.",
+        "Refreshing the Admin Dashboard or reopening the app lands on the \"Total Orders\" tab selected by default.",
+        "Changing tabs still works as before and does not break the existing filtering/metrics behavior for each tab."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx",
+          "path": "frontend/src/pages/admin/AdminDashboardPage.tsx",
           "operation": "modify",
-          "description": "Normalize karigar name comparisons when determining whether the original/selected karigar exists in the fetched list (e.g., trim and collapse whitespace for comparisons) and, on edit-open, resolve the initial Select value to the matching option from the list when a normalized match exists. Verify the component's usage instructions before implementing."
+          "description": "Change the default tab state to 'total' and ensure tab selection resets to 'Total Orders' when the Admin Dashboard mounts; adjust TabsList/TabsTrigger layout classes to avoid overlap on small screens (e.g., allow horizontal scrolling or wrapping while preserving existing tab behavior)."
         },
         {
-          "path": "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx",
+          "path": "frontend/src/index.css",
           "operation": "modify",
-          "description": "Adjust Save-button disabling logic so it only blocks when truly invalid (missing required fields/loading/error), not when the current karigar is actually present in the aggregated list. Verify the component's usage instructions before implementing."
+          "description": "Update the existing Admin Dashboard tab styling rules (.admin-tabs-list, .admin-tab-trigger) to be mobile-responsive (smaller typography/padding on small screens and non-overlapping layout such as scrollable row or wrap) while keeping active-tab styling consistent."
         }
       ]
     },
     {
       "id": "REQ-3",
-      "summary": "Provide a legacy/unknown karigar fallback option in Edit Design Mapping when the current karigar is not in the standard list, while allowing save without forcing changes.",
+      "summary": "Add an admin workflow to fetch a design image by design code from the vendor portal via a backend capability, preview it, and save it as a Design Image Mapping without exposing credentials.",
       "acceptanceCriteria": [
-        "When editing a design mapping whose current karigar name is not present in the fetched karigar list, the dropdown includes an extra option for that exact name so the current value can remain selected.",
-        "The UI continues to display a warning that the current karigar is not in the standard list, but Save is not blocked if the legacy option remains selected and all other required fields are valid.",
-        "Switching from the legacy option to a known karigar works and saving performs the existing reassignment behavior."
+        "Admin UI provides a clear workflow to fetch an image for a given design code from the vendor portal and save it as a design image mapping in the app (persisted and visible via existing Design Image viewer/mappings table).",
+        "When a design code image is successfully fetched, the Design Image viewer can display it using the existing design-image retrieval flow.",
+        "Failures (login blocked, design code not found, network errors) show an English, user-friendly error without exposing the vendor password in UI, logs, or toast messages.",
+        "The system does not require admins to upload an Excel file to add images when the vendor fetch succeeds."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx",
+          "path": "frontend/src/backend.d.ts",
           "operation": "modify",
-          "description": "When editing and the original karigar is not found in the fetched karigar options, inject an additional Select option for the exact original value labeled as legacy/unknown (English text), keep it selected by default, and update the warning copy to indicate it is not in the standard list while not blocking Save. Verify the component's usage instructions before implementing."
+          "description": "Extend the typed backend interface with a new backend capability signature for fetching a vendor-portal design image by design code (returning an ExternalBlob or equivalent), enabling the frontend to call it without TypeScript unsafe casts."
         },
         {
-          "path": "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx",
+          "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Update validation so Save is allowed when the legacy/unknown option remains selected (and other required fields are valid), while still allowing users to switch to a known karigar and save with existing reassignment messaging/behavior. Verify the component's usage instructions before implementing."
+          "description": "Add a React Query mutation hook that calls the new backend capability to fetch a vendor-portal image by design code, returns an ExternalBlob for preview/save, and maps failures to safe user-friendly errors (do not log or surface raw messages that might include credentials). Use the blob-storage ExternalBlob API (getDirectURL) for display/preview; verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/pages/admin/DesignImagesPage.tsx",
+          "operation": "modify",
+          "description": "Add a new 'Fetch from Vendor Portal' section to the existing Design Images page: input for design code, fetch action with loading/error states, preview of the fetched image, and 'Save mapping' that persists via existing saveDesignImageMappings and refreshes the mappings table; ensure errors are English and never display the vendor password. Use the blob-storage ExternalBlob API for preview and persistence; verify the component's usage instructions before implementing."
         }
       ]
     }

@@ -1,34 +1,33 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "New project",
-  "architectural_notes": [
-    "Karigar dropdown options should be sourced from the mapped master design Excel karigar list (currently 19 entries)."
-  ],
+  "summary": "Improve karigar selection/edit validation, fix admin portal mobile indicator tabs (with default Total Orders tab), and automate design image retrieval by design code from vendor portal.",
+  "architectural_notes": [],
   "known_issues": [
-    "Edit design screen shows error \"Current karigar not found\" when the currently assigned karigar (e.g., \"RAJU SANJAY\") is not present in the karigar dropdown list, blocking save."
+    "Selecting existing karigar 'Raju Sanjay' during design edit shows erroneous 'karigar name doesn’t exists' message.",
+    "Admin portal indicator tabs overlap/clump on mobile screens; default selected tab not consistently 'Total Orders' on refresh."
   ],
   "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-ensure-the-karigar-dropdown-in-the-edit-design-mapping-dialog-shows-the-full-karigar-list-derived-from-the-mapped-master-designs-excel-currently-19-karigars-so-admins-staff-can-select-any-of-those-existing-karigars-when-editing-a-design-mapping",
-      "title": "Ensure the Karigar dropdown in the “Edit Design Mapping” dialog shows the full Karigar list derived from the mapped Master Designs Excel (currently 19 karigars), so admins/staff can select any of those existing karigars when editing a design mapping.",
+      "id": "feature-fix-the-false-error-karigar-name-name-does-not-exist-when-editing-a-design-mapping-and-selecting-an-existing-karigar-example-selecting-raju-sanjay-shows-the-error-even-though-the-karigar-exists-and-has-orders-ensure-karigar-existence-validation-is-case-whitespace-insensitive-and-matches-the-karigar-list-used-in-the-ui",
+      "title": "Fix the false error \"Karigar name '<name>' does not exist\" when editing a design mapping and selecting an existing karigar (example: selecting \"Raju Sanjay\" shows the error even though the karigar exists and has orders). Ensure karigar existence validation is case/whitespace-insensitive and matches the karigar list used in the UI.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-fix-the-current-karigar-not-found-blocking-behavior-in-the-edit-design-mapping-dialog-so-an-existing-design-mapping-whose-current-karigar-e-g-raju-sanjay-is-present-in-master-design-derived-karigar-names-is-treated-as-valid-and-can-be-saved-without-forcing-the-user-to-change-the-karigar",
-      "title": "Fix the “Current karigar not found” blocking behavior in the “Edit Design Mapping” dialog so an existing design mapping whose current karigar (e.g., \"RAJU SANJAY\") is present in master-design-derived karigar names is treated as valid and can be saved without forcing the user to change the karigar.",
+      "id": "feature-on-the-admin-dashboard-page-make-the-indicator-tabs-delivered-hallmark-total-orders-customer-orders-karigars-mobile-responsive-so-they-do-not-overlap-or-look-clumped-on-small-screens-also-set-the-default-selected-tab-to-total-orders-whenever-the-admin-dashboard-is-opened-or-refreshed",
+      "title": "On the Admin Dashboard page, make the indicator tabs (Delivered / Hallmark / Total Orders / Customer Orders / Karigars) mobile-responsive so they do not overlap or look clumped on small screens. Also set the default selected tab to \"Total Orders\" whenever the Admin Dashboard is opened or refreshed.",
       "reqIds": [
         "REQ-2"
       ],
       "version": 1
     },
     {
-      "id": "feature-add-a-safe-fallback-for-legacy-data-if-an-edited-design-mapping-s-current-karigar-name-is-not-returned-by-the-backend-karigar-list-show-it-in-the-dropdown-as-an-additional-selectable-option-labeled-as-a-legacy-unknown-value-so-the-user-can-keep-it-unchanged-and-still-save-or-intentionally-switch-to-a-known-karigar",
-      "title": "Add a safe fallback for legacy data: if an edited design mapping’s current karigar name is not returned by the backend karigar list, show it in the dropdown as an additional selectable option labeled as a legacy/unknown value, so the user can keep it unchanged and still save (or intentionally switch to a known karigar).",
+      "id": "feature-add-an-option-to-retrieve-extract-product-images-by-design-code-from-the-vendor-portal-page-https-mpn-malabargroup-com-vendordesigns-aspx-and-use-them-as-design-images-in-the-app-so-admins-can-avoid-relying-on-excel-embedded-image-extraction-or-manually-sharing-urls-use-the-provided-portal-credentials-for-access-username-v1000803-password-9884472485si",
+      "title": "Add an option to retrieve/extract product images by design code from the vendor portal page https://mpn.malabargroup.com/VendorDesigns.aspx and use them as design images in the app, so admins can avoid relying on Excel embedded-image extraction or manually sharing URLs. Use the provided portal credentials for access (Username: V1000803, Password: 9884472485Si.).",
       "reqIds": [
         "REQ-3"
       ],
@@ -38,20 +37,24 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Show the full mapped karigar list (19 from master design Excel) in the edit design screen dropdown, and ensure the currently assigned karigar (e.g., \"RAJU SANJAY\") is selectable/handled so edits can be saved.",
+      "summary": "Fix false validation error when selecting existing karigar (e.g., 'Raju Sanjay') during design edit; ensure karigar existence check matches list and existing orders.",
       "reqIds": [],
       "status": "pending"
     },
     {
-      "id": "AR-5",
-      "summary": "Update/extend the backend-provided karigar-name aggregation used by the frontend to include unique karigar names from saved master design mappings, in addition to any existing karigar storage and/or orders-derived sources, so the frontend can reliably fetch the complete list without relying on client-side inference.",
-      "reqIds": [
-        "REQ-4"
-      ],
+      "id": "AR-2",
+      "summary": "Admin portal: make indicator tabs responsive on mobile (no overlap) and default-select 'Total Orders' tab on open/refresh.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Add ability to fetch/extract product images by design code from https://mpn.malabargroup.com/VendorDesigns.aspx and use them as design images to avoid manual URL/excel extraction.",
+      "reqIds": [],
       "status": "pending"
     }
   ],
-  "projectName": "KarigarFlow",
+  "projectName": "Malabar Partner",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

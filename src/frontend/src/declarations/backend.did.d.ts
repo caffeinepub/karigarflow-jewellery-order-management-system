@@ -61,6 +61,7 @@ export interface PartialFulfillmentQty {
 export interface PartialFulfillmentRequest {
   'entries' : Array<PartialFulfillmentQty>,
 }
+export interface PersistentKarigar { 'name' : string, 'isActive' : boolean }
 export interface PersistentOrder {
   'qty' : bigint,
   'weight' : [] | [number],
@@ -161,7 +162,8 @@ export interface _SERVICE {
   'isCallerApproved' : ActorMethod<[], boolean>,
   'isUserBlocked' : ActorMethod<[Principal], boolean>,
   'listApprovals' : ActorMethod<[], Array<UserApprovalInfo>>,
-  'listKarigars' : ActorMethod<[], Array<Karigar>>,
+  'listDistinctKarigars' : ActorMethod<[], Array<PersistentKarigar>>,
+  'listKarigars' : ActorMethod<[], Array<PersistentKarigar>>,
   'listKarigarsNames' : ActorMethod<[], Array<string>>,
   'listUserProfiles' : ActorMethod<[], Array<UserProfile>>,
   'markOrderAsDelivered' : ActorMethod<[string], undefined>,
@@ -186,6 +188,7 @@ export interface _SERVICE {
     [UpdateOrderTotalSuppliedRequest],
     undefined
   >,
+  'updateOrdersForNewKarigar' : ActorMethod<[string, string], undefined>,
   'uploadParsedOrders' : ActorMethod<[Array<PersistentOrder>], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;

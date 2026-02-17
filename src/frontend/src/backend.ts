@@ -133,6 +133,10 @@ export interface UnmappedOrderEntry {
     uploadDate: Time;
     remarks: string;
 }
+export interface PersistentKarigar {
+    name: string;
+    isActive: boolean;
+}
 export interface ActivityLogEntry {
     action: string;
     userId: Principal;
@@ -239,7 +243,8 @@ export interface backendInterface {
     isCallerApproved(): Promise<boolean>;
     isUserBlocked(user: Principal): Promise<boolean>;
     listApprovals(): Promise<Array<UserApprovalInfo>>;
-    listKarigars(): Promise<Array<Karigar>>;
+    listDistinctKarigars(): Promise<Array<PersistentKarigar>>;
+    listKarigars(): Promise<Array<PersistentKarigar>>;
     listKarigarsNames(): Promise<Array<string>>;
     listUserProfiles(): Promise<Array<UserProfile>>;
     markOrderAsDelivered(orderNo: string): Promise<void>;
@@ -252,6 +257,7 @@ export interface backendInterface {
     setApproval(user: Principal, status: ApprovalStatus): Promise<void>;
     unblockUser(user: Principal): Promise<void>;
     updateOrderTotalSupplied(request: UpdateOrderTotalSuppliedRequest): Promise<void>;
+    updateOrdersForNewKarigar(designCode: string, newKarigarName: string): Promise<void>;
     uploadParsedOrders(parsedOrders: Array<PersistentOrder>): Promise<void>;
 }
 import type { AppRole as _AppRole, ApprovalStatus as _ApprovalStatus, BlockUserRequest as _BlockUserRequest, BulkOrderUpdate as _BulkOrderUpdate, DesignImageMapping as _DesignImageMapping, ExternalBlob as _ExternalBlob, HallmarkReturnRequest as _HallmarkReturnRequest, PersistentOrder as _PersistentOrder, Time as _Time, UnmappedOrderEntry as _UnmappedOrderEntry, UserApprovalInfo as _UserApprovalInfo, UserProfile as _UserProfile, UserRole as _UserRole, _CaffeineStorageRefillInformation as __CaffeineStorageRefillInformation, _CaffeineStorageRefillResult as __CaffeineStorageRefillResult } from "./declarations/backend.did.d.ts";
@@ -677,7 +683,21 @@ export class Backend implements backendInterface {
             return from_candid_vec_n42(this._uploadFile, this._downloadFile, result);
         }
     }
-    async listKarigars(): Promise<Array<Karigar>> {
+    async listDistinctKarigars(): Promise<Array<PersistentKarigar>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.listDistinctKarigars();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.listDistinctKarigars();
+            return result;
+        }
+    }
+    async listKarigars(): Promise<Array<PersistentKarigar>> {
         if (this.processError) {
             try {
                 const result = await this.actor.listKarigars();
@@ -856,6 +876,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.updateOrderTotalSupplied(arg0);
+            return result;
+        }
+    }
+    async updateOrdersForNewKarigar(arg0: string, arg1: string): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateOrdersForNewKarigar(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateOrdersForNewKarigar(arg0, arg1);
             return result;
         }
     }
