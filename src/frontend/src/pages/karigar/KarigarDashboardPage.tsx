@@ -1,34 +1,113 @@
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, AlertCircle } from 'lucide-react';
-import { useGetActiveOrdersForKarigar, useIsCallerApproved, useRequestApproval, useBulkUpdateOrderStatus } from '../../hooks/useQueries';
+import { Loader2, CheckCircle2 } from 'lucide-react';
+import { useGetActiveOrdersForKarigar, useIsCallerApproved, useRequestApproval, useBulkMarkOrdersAsDelivered } from '../../hooks/useQueries';
+import { useOrdersCache } from '../../hooks/useOrdersCache';
 import { OrdersTable } from '../../components/orders/OrdersTable';
-import { KarigarExportControls } from '../../components/exports/KarigarExportControls';
-import { KarigarOrderViewDialog } from '../../components/karigar/KarigarOrderViewDialog';
+import { OrdersFiltersBar } from '../../components/orders/OrdersFiltersBar';
+import { OrdersDataWarningBanner } from '../../components/orders/OrdersDataWarningBanner';
+import { deriveMetrics } from '../../lib/orders/deriveMetrics';
 import { sortOrdersDesignWise } from '../../lib/orders/sortOrdersDesignWise';
-import { downloadKarigarPDF, downloadKarigarJPEG } from '../../lib/exports/karigarOrdersDownloads';
-import { useCurrentUser } from '../../hooks/useCurrentUser';
-import { toast } from 'sonner';
+import { getOrderTimestamp } from '../../lib/orders/getOrderTimestamp';
+import { sanitizeOrders } from '../../lib/orders/validatePersistentOrder';
 import type { PersistentOrder } from '../../backend';
+import { startOfDay, endOfDay } from 'date-fns';
+import { toast } from 'sonner';
 
 export function KarigarDashboardPage() {
-  const { userProfile } = useCurrentUser();
+  const { data: fetchedOrders, isLoading: fetchingOrders, isError, error } = useGetActiveOrdersForKarigar();
   const { data: isApproved, isLoading: checkingApproval } = useIsCallerApproved();
-  const { data: orders, isLoading: loadingOrders, isError, error } = useGetActiveOrdersForKarigar();
   const requestApprovalMutation = useRequestApproval();
-  const bulkUpdateMutation = useBulkUpdateOrderStatus();
-
+  const bulkMarkDeliveredMutation = useBulkMarkOrdersAsDelivered();
+  
+  const { 
+    orders: cachedOrders, 
+    isLoading: loadingCache, 
+    invalidOrdersSkippedCount,
+    clearLocalOrdersCacheAndReload 
+  } = useOrdersCache();
+  
+  // Get today's date for default filtering
+  const today = new Date();
+  
+  const [filters, setFilters] = useState({ 
+    karigar: '', 
+    status: '', 
+    dateFrom: today, 
+    dateTo: today, 
+    orderNoQuery: '', 
+    coFilter: false,
+    rbFilter: false
+  });
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
-  const [viewOrder, setViewOrder] = useState<PersistentOrder | null>(null);
+  const [isClearing, setIsClearing] = useState(false);
+
+  const isLoading = fetchingOrders || loadingCache || checkingApproval;
+  
+  const rawOrders = fetchedOrders || cachedOrders || [];
+  const { validOrders: orders } = sanitizeOrders(rawOrders);
+
+  const handleClearCache = async () => {
+    setIsClearing(true);
+    try {
+      await clearLocalOrdersCacheAndReload();
+      toast.success('Local cache cleared successfully');
+    } catch (error) {
+      console.error('Failed to clear cache:', error);
+      toast.error('Failed to clear local cache');
+    } finally {
+      setIsClearing(false);
+    }
+  };
+
+  const applyFilters = (ordersList: PersistentOrder[]) => {
+    return ordersList.filter(order => {
+      if (filters.status && order.status !== filters.status) {
+        return false;
+      }
+      if (filters.orderNoQuery && !order.orderNo.toLowerCase().includes(filters.orderNoQuery.toLowerCase())) {
+        return false;
+      }
+      
+      if (filters.coFilter && filters.rbFilter) {
+        if (order.orderType !== 'CO' && order.orderType !== 'RB') {
+          return false;
+        }
+      } else if (filters.coFilter) {
+        if (order.orderType !== 'CO') {
+          return false;
+        }
+      } else if (filters.rbFilter) {
+        if (order.orderType !== 'RB') {
+          return false;
+        }
+      }
+      
+      if (filters.dateFrom || filters.dateTo) {
+        const orderDate = getOrderTimestamp(order);
+        if (filters.dateFrom && orderDate < startOfDay(filters.dateFrom)) {
+          return false;
+        }
+        if (filters.dateTo && orderDate > endOfDay(filters.dateTo)) {
+          return false;
+        }
+      }
+      return true;
+    });
+  };
+
+  const filteredOrders = applyFilters(orders);
+  const sortedOrders = sortOrdersDesignWise(filteredOrders);
+  const metrics = deriveMetrics(filteredOrders);
 
   const handleRequestApproval = async () => {
     try {
       await requestApprovalMutation.mutateAsync();
-      toast.success('Approval request submitted');
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to request approval');
+      toast.success('Approval request submitted successfully');
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Failed to request approval';
+      toast.error(errorMsg);
     }
   };
 
@@ -36,50 +115,34 @@ export function KarigarDashboardPage() {
     if (selectedOrders.size === 0) return;
 
     try {
-      await bulkUpdateMutation.mutateAsync({
-        orderNos: Array.from(selectedOrders),
-        newStatus: 'delivered',
-      });
-      toast.success(`Marked ${selectedOrders.size} orders as delivered`);
+      await bulkMarkDeliveredMutation.mutateAsync(Array.from(selectedOrders));
+      toast.success(`${selectedOrders.size} orders marked as delivered`);
       setSelectedOrders(new Set());
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to update orders');
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Failed to mark orders as delivered';
+      toast.error(errorMsg);
     }
   };
 
-  const handleExport = async (format: 'pdf' | 'jpeg', filteredOrders: PersistentOrder[], scope: string) => {
-    if (!userProfile?.karigarName) {
-      toast.error('Karigar name not found');
-      return;
-    }
-
-    try {
-      if (format === 'pdf') {
-        downloadKarigarPDF({
-          karigarName: userProfile.karigarName,
-          orders: filteredOrders,
-          dateLabel: scope,
-          exportScope: 'daily',
-        });
-        toast.success('PDF export initiated');
-      } else {
-        await downloadKarigarJPEG({
-          karigarName: userProfile.karigarName,
-          orders: filteredOrders,
-          dateLabel: scope,
-          exportScope: 'daily',
-        });
-        toast.success('JPEG downloaded successfully');
-      }
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Export failed');
-    }
-  };
-
-  if (checkingApproval || loadingOrders) {
+  if (isError) {
     return (
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold tracking-tight">My Orders</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Karigar Dashboard</h1>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center text-red-600">
+              Error loading orders: {error instanceof Error ? error.message : 'Unknown error'}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-3xl font-bold tracking-tight">Karigar Dashboard</h1>
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
@@ -90,24 +153,25 @@ export function KarigarDashboardPage() {
   if (!isApproved) {
     return (
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold tracking-tight">My Orders</h1>
-        <Card>
+        <h1 className="text-3xl font-bold tracking-tight">Karigar Dashboard</h1>
+        <Card className="border-amber-500/50 bg-amber-50/50 dark:bg-amber-950/20">
           <CardHeader>
-            <CardTitle>Approval Required</CardTitle>
-            <CardDescription>
-              Your account is pending approval from an administrator
+            <CardTitle className="flex items-center gap-2 text-amber-900 dark:text-amber-100">
+              <CheckCircle2 className="h-5 w-5" />
+              Approval Pending
+            </CardTitle>
+            <CardDescription className="text-amber-800 dark:text-amber-200">
+              Your account is awaiting approval from an administrator
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                Please request approval to access your orders. An administrator will review your request.
-              </AlertDescription>
-            </Alert>
+            <p className="text-sm text-amber-900 dark:text-amber-100">
+              To access your orders, please request approval from an administrator.
+            </p>
             <Button
               onClick={handleRequestApproval}
               disabled={requestApprovalMutation.isPending}
+              className="w-full"
             >
               {requestApprovalMutation.isPending ? (
                 <>
@@ -124,77 +188,66 @@ export function KarigarDashboardPage() {
     );
   }
 
-  if (isError) {
-    return (
-      <div className="space-y-6">
-        <h1 className="text-3xl font-bold tracking-tight">My Orders</h1>
-        <Card>
-          <CardContent className="pt-6">
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                {error instanceof Error ? error.message : 'Failed to load orders'}
-              </AlertDescription>
-            </Alert>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  const sortedOrders = sortOrdersDesignWise(orders || []);
-
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">My Orders</h1>
-        <p className="text-muted-foreground mt-2">
-          {sortedOrders.length} active orders
-        </p>
+      <OrdersDataWarningBanner 
+        skippedCount={invalidOrdersSkippedCount} 
+        onClearCache={handleClearCache}
+        isClearing={isClearing}
+      />
+      
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold tracking-tight">Karigar Dashboard</h1>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
-          <CardHeader>
-            <CardTitle>Summary</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Orders</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Total Orders:</span>
-                <span className="font-medium">{sortedOrders.length}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Selected:</span>
-                <span className="font-medium">{selectedOrders.size}</span>
-              </div>
-            </div>
+            <div className="text-2xl font-bold">{metrics.totalOrders}</div>
           </CardContent>
         </Card>
-
-        <KarigarExportControls
-          orders={sortedOrders}
-          onExport={handleExport}
-        />
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Qty</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{metrics.totalQty}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Weight</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{metrics.totalWeight.toFixed(2)}g</div>
+          </CardContent>
+        </Card>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Active Orders</CardTitle>
-          <CardDescription>
-            Select orders to mark as delivered
-          </CardDescription>
+          <CardTitle>Your Orders</CardTitle>
+          <CardDescription>{sortedOrders.length} active orders</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <OrdersFiltersBar
+            orders={orders}
+            filters={filters}
+            onFiltersChange={setFilters}
+            showOrderNoSearch
+          />
           <div className="flex gap-2">
             <Button
               onClick={handleMarkAsDelivered}
-              disabled={selectedOrders.size === 0 || bulkUpdateMutation.isPending}
+              disabled={selectedOrders.size === 0 || bulkMarkDeliveredMutation.isPending}
             >
-              {bulkUpdateMutation.isPending ? (
+              {bulkMarkDeliveredMutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Updating...
+                  Processing...
                 </>
               ) : (
                 `Mark as Delivered (${selectedOrders.size})`
@@ -213,17 +266,10 @@ export function KarigarDashboardPage() {
             selectionMode
             selectedOrders={selectedOrders}
             onSelectionChange={setSelectedOrders}
-            karigarMode
-            onViewOrder={setViewOrder}
+            highlightReturnedFromDelivered
           />
         </CardContent>
       </Card>
-
-      <KarigarOrderViewDialog
-        order={viewOrder}
-        open={!!viewOrder}
-        onOpenChange={(open) => !open && setViewOrder(null)}
-      />
     </div>
   );
 }

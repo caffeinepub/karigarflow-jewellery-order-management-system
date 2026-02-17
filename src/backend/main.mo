@@ -3,37 +3,19 @@ import Text "mo:core/Text";
 import Runtime "mo:core/Runtime";
 import Iter "mo:core/Iter";
 import Time "mo:core/Time";
+import List "mo:core/List";
+import Array "mo:core/Array";
 import Nat "mo:core/Nat";
 import Principal "mo:core/Principal";
-import Array "mo:core/Array";
-import Float "mo:core/Float";
-import List "mo:core/List";
-
-
+import BlobStorage "blob-storage/Storage";
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
+import Migration "migration";
 import UserApproval "user-approval/approval";
-import BlobStorage "blob-storage/Storage";
 import MixinStorage "blob-storage/Mixin";
 
+(with migration = Migration.run)
 actor {
-  // Types
-  type PersistentOrder = {
-    orderNo : Text;
-    orderType : Text;
-    designCode : Text;
-    genericName : Text;
-    karigarName : Text;
-    weight : Float;
-    size : Float;
-    qty : Nat;
-    remarks : Text;
-    status : Text;
-    isCustomerOrder : Bool;
-    uploadDate : Time.Time;
-    createdAt : Time.Time;
-  };
-
   type PartialFulfillmentQty = {
     orderNo : Text;
     suppliedQty : Nat;
@@ -45,20 +27,35 @@ actor {
 
   public type HealthCheckResponse = { status : Text; canisterId : Text };
 
-  public type Order = PersistentOrder;
+  type PersistentOrder = {
+    orderNo : Text;
+    orderType : Text;
+    designCode : Text;
+    genericName : Text;
+    karigarName : Text;
+    weight : ?Float;
+    size : ?Float;
+    qty : Nat;
+    remarks : Text;
+    status : Text;
+    isCustomerOrder : Bool;
+    uploadDate : Time.Time;
+    createdAt : Time.Time;
+    isReturnedFromDelivered : Bool;
+  };
 
-  public type MasterDesignEntry = {
+  type MasterDesignEntry = {
     genericName : Text;
     karigarName : Text;
     isActive : Bool;
   };
 
-  public type UnmappedOrderEntry = {
+  type UnmappedOrderEntry = {
     orderNo : Text;
     orderType : Text;
     designCode : Text;
-    weight : Float;
-    size : Float;
+    weight : ?Float;
+    size : ?Float;
     qty : Nat;
     remarks : Text;
     isCustomerOrder : Bool;
@@ -86,6 +83,14 @@ actor {
     details : Text;
   };
 
+  public type HallmarkReturnRequest = {
+    orderNos : [Text];
+    actionType : {
+      #return_hallmark;
+      #update_status;
+    };
+  };
+
   public type BlockedUserInfo = {
     isBlocked : Bool;
     lastBlocked : ?Time.Time;
@@ -100,6 +105,7 @@ actor {
   public type BulkOrderUpdate = {
     orderNos : [Text];
     newStatus : Text;
+    isReturnedFromDelivered : ?Bool;
   };
 
   public type UpdateOrderTotalSuppliedRequest = {
@@ -120,12 +126,15 @@ actor {
     createdAt : Time.Time;
   };
 
-  // Actor state
+  public type Karigar = {
+    name : Text;
+    isActive : Bool;
+  };
+
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
   include MixinStorage();
-
-  let approvalState = UserApproval.initState(accessControlState);
+  let approvals = UserApproval.initState(accessControlState);
 
   var userProfiles = Map.empty<Principal, UserProfile>();
   var masterDesignsMap = Map.empty<Text, MasterDesignEntry>();
@@ -136,6 +145,9 @@ actor {
   var blockedUsers = Map.empty<Principal, BlockedUserInfo>();
   var designImageMappings = Map.empty<Text, DesignImageMapping>();
   var designImages = Map.empty<Text, DesignImage>();
+
+  let karigarStorage = Map.empty<Text, Karigar>();
+  var maintenanceMode = false;
 
   // Helper Functions
   func validateOrder(order : PersistentOrder) : Bool {
@@ -208,8 +220,39 @@ actor {
     activityLog.add(entry);
   };
 
+  // Karigar management functions
+  public shared ({ caller }) func createKarigar(karigar : Karigar) : async () {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admins can create new karigars");
+    };
+    if (karigar.name == "") {
+      Runtime.trap("Karigar name cannot be empty");
+    };
+    if (karigarStorage.containsKey(karigar.name)) {
+      Runtime.trap("Karigar with name " # karigar.name # " already exists. Please enter a unique new name.");
+    };
+    karigarStorage.add(karigar.name, karigar);
+  };
+
+  public query ({ caller }) func listKarigars() : async [Karigar] {
+    if (not isAdminOrStaff(caller)) {
+      Runtime.trap("Unauthorized: Only Admin or Staff can list karigars");
+    };
+    karigarStorage.values().toArray();
+  };
+
+  public shared ({ caller }) func deleteKarigarByName(karigarName : Text) : async () {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admins can delete karigar names");
+    };
+    if (not karigarStorage.containsKey(karigarName)) {
+      Runtime.trap("Karigar with name " # karigarName # " does not exist. Please enter a valid karigar name");
+    };
+    karigarStorage.remove(karigarName);
+  };
+
   // State Queries
-  public query ({ caller }) func healthCheck() : async HealthCheckResponse {
+  public query func healthCheck() : async HealthCheckResponse {
     {
       status = "OK";
       canisterId = "unknown";
@@ -255,7 +298,7 @@ actor {
 
     switch (getAppRole(caller)) {
       case (?#Karigar) {
-        if (not AccessControl.isAdmin(accessControlState, caller) and not UserApproval.isApproved(approvalState, caller)) {
+        if (not AccessControl.isAdmin(accessControlState, caller) and not UserApproval.isApproved(approvals, caller)) {
           Runtime.trap("Unauthorized: Karigar users must be approved to view orders");
         };
       };
@@ -319,7 +362,7 @@ actor {
 
     switch (getAppRole(caller)) {
       case (?#Karigar) {
-        if (not AccessControl.isAdmin(accessControlState, caller) and not UserApproval.isApproved(approvalState, caller)) {
+        if (not AccessControl.isAdmin(accessControlState, caller) and not UserApproval.isApproved(approvals, caller)) {
           Runtime.trap("Unauthorized: Karigar users must be approved to view active orders");
         };
       };
@@ -373,11 +416,41 @@ actor {
     };
     checkBlockedUser(caller);
 
-    // Prevent Admin and Staff from marking orders as delivered
     if (bulkUpdate.newStatus == "delivered") {
-      Runtime.trap("Unauthorized: Only Karigar users can mark orders as delivered");
+      for (orderNo in bulkUpdate.orderNos.values()) {
+        switch (ordersMap.get(orderNo)) {
+          case (?order) {
+            if (order.status != "given_to_hallmark") {
+              Runtime.trap("Unauthorized: Admin and Staff can only mark orders as delivered when returning from Hallmark (current status must be 'given_to_hallmark')");
+            };
+          };
+          case (null) { Runtime.trap("Order with orderNo " # orderNo # " not found") };
+        };
+      };
     };
 
+    // ADDED: Handle cancellation of "delivered" orders (return to active)
+    if (bulkUpdate.newStatus == "pending" and bulkUpdate.isReturnedFromDelivered == ?true) {
+      for (orderNo in bulkUpdate.orderNos.values()) {
+        switch (ordersMap.get(orderNo)) {
+          case (?order) {
+            if (order.status != "delivered") {
+              Runtime.trap("Only orders in delivered status can be cancelled");
+            };
+            let updatedOrder : PersistentOrder = {
+              order with status = "pending";
+              isReturnedFromDelivered = true; // Mark as returned from delivered!
+            };
+            ordersMap.add(orderNo, updatedOrder);
+          };
+          case (null) { Runtime.trap("Order with orderNo " # orderNo # " not found") };
+        };
+      };
+      recordActivity(caller, "bulkUpdateOrderStatus", "Bulk returned from delivered");
+      return;
+    };
+
+    // Update all orders (regular bulk status change)
     for (orderNo in bulkUpdate.orderNos.values()) {
       switch (ordersMap.get(orderNo)) {
         case (?order) {
@@ -393,7 +466,7 @@ actor {
     recordActivity(caller, "bulkUpdateOrderStatus", "Bulk status update to " # bulkUpdate.newStatus);
   };
 
-  // New function: Only Karigar users can mark orders as delivered
+  // Karigar users can mark orders as delivered
   public shared ({ caller }) func markOrderAsDelivered(orderNo : Text) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only authenticated users can mark orders as delivered");
@@ -405,7 +478,7 @@ actor {
     switch (getAppRole(caller)) {
       case (?#Karigar) {
         // Karigar must be approved
-        if (not AccessControl.isAdmin(accessControlState, caller) and not UserApproval.isApproved(approvalState, caller)) {
+        if (not AccessControl.isAdmin(accessControlState, caller) and not UserApproval.isApproved(approvals, caller)) {
           Runtime.trap("Unauthorized: Karigar users must be approved to mark orders as delivered");
         };
       };
@@ -449,6 +522,120 @@ actor {
       };
       case null {
         Runtime.trap("Order with orderNo " # orderNo # " not found");
+      };
+    };
+  };
+
+  // Karigar users can mark multiple orders as delivered
+  public shared ({ caller }) func bulkMarkOrdersAsDelivered(orderNos : [Text]) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only authenticated users can mark orders as delivered");
+    };
+
+    checkBlockedUser(caller);
+
+    // Verify caller is a Karigar user
+    switch (getAppRole(caller)) {
+      case (?#Karigar) {
+        // Karigar must be approved
+        if (not AccessControl.isAdmin(accessControlState, caller) and not UserApproval.isApproved(approvals, caller)) {
+          Runtime.trap("Unauthorized: Karigar users must be approved to mark orders as delivered");
+        };
+      };
+      case (?#Admin) {
+        Runtime.trap("Unauthorized: Only Karigar users can mark orders as delivered");
+      };
+      case (?#Staff) {
+        Runtime.trap("Unauthorized: Only Karigar users can mark orders as delivered");
+      };
+      case null {
+        Runtime.trap("Unauthorized: User profile not found");
+      };
+    };
+
+    // Update all specified orders
+    for (orderNo in orderNos.values()) {
+      switch (ordersMap.get(orderNo)) {
+        case (?order) {
+          switch (getKarigarName(caller)) {
+            case (?karigarName) {
+              if (order.karigarName == karigarName) {
+                let updatedOrder : PersistentOrder = {
+                  order with status = "delivered";
+                };
+                ordersMap.add(orderNo, updatedOrder);
+              } else {
+                Runtime.trap("Unauthorized: Can only mark your own orders as delivered");
+              };
+            };
+            case null {
+              Runtime.trap("Karigar profile missing karigarName");
+            };
+          };
+        };
+        case null {
+          Runtime.trap("Order with orderNo " # orderNo # " not found");
+        };
+      };
+    };
+
+    recordActivity(
+      caller,
+      "bulkMarkOrdersAsDelivered",
+      "Multiple orders marked as delivered by Karigar"
+    );
+  };
+
+  public shared ({ caller }) func handleHallmarkReturns(request : HallmarkReturnRequest) : async () {
+    if (not isAdminOrStaff(caller)) {
+      Runtime.trap("Unauthorized: Only Admin and Staff can handle hallmark returns");
+    };
+    checkBlockedUser(caller);
+
+    switch (request.actionType) {
+      case (#return_hallmark) {
+        for (orderNo in request.orderNos.values()) {
+          switch (ordersMap.get(orderNo)) {
+            case (?order) {
+              if (order.status == "given_to_hallmark") {
+                let updatedOrder : PersistentOrder = {
+                  order with status = "delivered";
+                };
+                ordersMap.add(orderNo, updatedOrder);
+              } else {
+                Runtime.trap("Cannot return orders that are not in given_to_hallmark status");
+              };
+            };
+            case (null) { Runtime.trap("Order with orderNo " # orderNo # " not found") };
+          };
+        };
+        recordActivity(
+          caller,
+          "handleHallmarkReturns",
+          "Orders returned from hallmark"
+        );
+      };
+      case (#update_status) {
+        for (orderNo in request.orderNos.values()) {
+          switch (ordersMap.get(orderNo)) {
+            case (?order) {
+              if (order.status == "delivered") {
+                let updatedOrder : PersistentOrder = {
+                  order with status = "given_to_hallmark";
+                };
+                ordersMap.add(orderNo, updatedOrder);
+              } else {
+                Runtime.trap("Cannot update status to hallmark unless it is delivered");
+              };
+            };
+            case (null) { Runtime.trap("Order with orderNo " # orderNo # " not found") };
+          };
+        };
+        recordActivity(
+          caller,
+          "handleHallmarkReturns",
+          "Order status updated to hallmark"
+        );
       };
     };
   };
@@ -506,7 +693,7 @@ actor {
           "Order " # orderNo # " status updated to " # newStatus
         );
       };
-      case null { Runtime.trap("Order with orderNo " # orderNo # " not found") };
+      case null { Runtime.trap("Order not found") };
     };
   };
 
@@ -554,6 +741,7 @@ actor {
               isCustomerOrder = finalOrder.isCustomerOrder;
               uploadDate = finalOrder.uploadDate;
               createdAt = finalOrder.createdAt;
+              isReturnedFromDelivered = false;
             };
             ordersMap.add(finalOrder.orderNo, correctOrder);
           } else {
@@ -587,10 +775,23 @@ actor {
       if (not validateDesignCode(entry.0)) {
         Runtime.trap("Invalid design code");
       };
+      // Validate that karigarName exists in karigarStorage
+      if (not karigarStorage.containsKey(entry.1.karigarName)) {
+        Runtime.trap("Karigar name '" # entry.1.karigarName # "' does not exist. Please create the karigar first.");
+      };
     };
 
     for (entry in masterDesigns.values()) {
       let normalizedKey = normalizeDesignCode(entry.0);
+      let matchingOrders = ordersMap.filter(
+        func(_orderNo, order) { order.designCode == normalizedKey }
+      );
+      // Reassign all matching orders to the new karigar
+      for ((orderNo, order) in matchingOrders.entries()) {
+        let updatedOrder = { order with karigarName = entry.1.karigarName };
+        ordersMap.add(orderNo, updatedOrder);
+      };
+
       masterDesignsMap.add(normalizedKey, entry.1);
     };
 
@@ -642,6 +843,7 @@ actor {
             isCustomerOrder = unmappedOrder.isCustomerOrder;
             uploadDate = unmappedOrder.uploadDate;
             createdAt = unmappedOrder.createdAt;
+            isReturnedFromDelivered = false;
           };
           ordersMap.add(order.orderNo, order);
           unmappedDesignCodesMap.remove(key);
@@ -663,14 +865,14 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only authenticated users can check approval status");
     };
-    AccessControl.hasPermission(accessControlState, caller, #admin) or UserApproval.isApproved(approvalState, caller);
+    AccessControl.hasPermission(accessControlState, caller, #admin) or UserApproval.isApproved(approvals, caller);
   };
 
   public shared ({ caller }) func setApproval(user : Principal, status : UserApproval.ApprovalStatus) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
       Runtime.trap("Unauthorized: Only admins can perform this action");
     };
-    UserApproval.setApproval(approvalState, user, status);
+    UserApproval.setApproval(approvals, user, status);
     recordActivity(caller, "setApproval", "Approval changed for user: " # user.toText());
   };
 
@@ -678,7 +880,7 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
       Runtime.trap("Unauthorized: Only admins can perform this action");
     };
-    UserApproval.listApprovals(approvalState);
+    UserApproval.listApprovals(approvals);
   };
 
   public shared ({ caller }) func requestApproval() : async () {
@@ -686,7 +888,7 @@ actor {
       Runtime.trap("Unauthorized: Only authenticated users can request approval");
     };
     checkBlockedUser(caller);
-    UserApproval.setApproval(approvalState, caller, #pending);
+    UserApproval.setApproval(approvals, caller, #pending);
     recordActivity(caller, "requestApproval", "Approval requested");
   };
 
@@ -745,6 +947,9 @@ actor {
   };
 
   public query ({ caller }) func isUserBlocked(user : Principal) : async Bool {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admins can check user block status");
+    };
     switch (blockedUsers.get(user)) {
       case (null) { false };
       case (?info) { info.isBlocked };
@@ -830,3 +1035,4 @@ actor {
     validatedMappings;
   };
 };
+

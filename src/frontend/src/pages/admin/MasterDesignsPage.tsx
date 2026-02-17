@@ -6,14 +6,16 @@ import { Input } from '@/components/ui/input';
 import { MasterDesignFormDialog } from '../../components/masterDesigns/MasterDesignFormDialog';
 import { MasterDesignImportDialog } from '../../components/masterDesigns/MasterDesignImportDialog';
 import { MasterDesignsTable } from '../../components/masterDesigns/MasterDesignsTable';
+import { AddKarigarDialog } from '../../components/karigar/AddKarigarDialog';
 import { InlineErrorState } from '../../components/errors/InlineErrorState';
-import { Plus, Upload, Search } from 'lucide-react';
+import { Plus, Upload, Search, UserPlus } from 'lucide-react';
 
 export function MasterDesignsPage() {
   const { data: masterDesigns = [], isLoading, error, refetch } = useGetMasterDesigns();
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
+  const [showAddKarigarDialog, setShowAddKarigarDialog] = useState(false);
   const [editingDesign, setEditingDesign] = useState<{ code: string; entry: any } | null>(null);
 
   const filteredDesigns = masterDesigns.filter(([code, entry]) => {
@@ -44,6 +46,10 @@ export function MasterDesignsPage() {
           <p className="text-muted-foreground">Manage design code mappings</p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowAddKarigarDialog(true)}>
+            <UserPlus className="mr-2 h-4 w-4" />
+            Add Karigar
+          </Button>
           <Button onClick={() => setShowAddDialog(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Add Mapping
@@ -96,6 +102,11 @@ export function MasterDesignsPage() {
       <MasterDesignImportDialog
         open={showImportDialog}
         onOpenChange={setShowImportDialog}
+      />
+
+      <AddKarigarDialog
+        open={showAddKarigarDialog}
+        onOpenChange={setShowAddKarigarDialog}
       />
     </div>
   );

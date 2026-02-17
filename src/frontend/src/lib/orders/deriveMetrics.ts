@@ -1,62 +1,58 @@
 import type { PersistentOrder } from '../../backend';
-import { formatKarigarName } from './formatKarigarName';
 import { sanitizeOrders } from './validatePersistentOrder';
 
 export interface KarigarStats {
-  count: number;
-  totalWeight: number;
+  totalOrders: number;
   totalQty: number;
-  customerOrdersCount: number;
+  totalWeight: number;
 }
 
 export interface OrderMetrics {
   totalOrders: number;
-  totalWeight: number;
   totalQty: number;
+  totalWeight: number;
   customerOrdersCount: number;
   byKarigar: Record<string, KarigarStats>;
 }
 
 export function deriveMetrics(orders: PersistentOrder[]): OrderMetrics {
-  // Sanitize orders before computing metrics
   const { validOrders } = sanitizeOrders(orders);
   
-  const metrics: OrderMetrics = {
-    totalOrders: validOrders.length,
-    totalWeight: 0,
-    totalQty: 0,
-    customerOrdersCount: 0,
-    byKarigar: {},
-  };
+  const byKarigar: Record<string, KarigarStats> = {};
+  let totalQty = 0;
+  let totalWeight = 0;
+  let customerOrdersCount = 0;
 
-  validOrders.forEach((order) => {
-    metrics.totalWeight += order.weight;
-    metrics.totalQty += Number(order.qty);
+  for (const order of validOrders) {
+    const qty = Number(order.qty) || 0;
+    const weight = Number(order.weight) || 0;
+    
+    totalQty += qty;
+    totalWeight += weight;
     
     if (order.isCustomerOrder) {
-      metrics.customerOrdersCount++;
+      customerOrdersCount++;
     }
 
-    // Use shared formatter to ensure consistent display
-    const displayKarigar = formatKarigarName(order.karigarName);
-
-    if (!metrics.byKarigar[displayKarigar]) {
-      metrics.byKarigar[displayKarigar] = { 
-        count: 0, 
-        totalWeight: 0, 
+    const karigarName = order.karigarName || 'Unassigned';
+    if (!byKarigar[karigarName]) {
+      byKarigar[karigarName] = {
+        totalOrders: 0,
         totalQty: 0,
-        customerOrdersCount: 0,
+        totalWeight: 0,
       };
     }
     
-    metrics.byKarigar[displayKarigar].count++;
-    metrics.byKarigar[displayKarigar].totalQty += Number(order.qty);
-    metrics.byKarigar[displayKarigar].totalWeight += order.weight;
-    
-    if (order.isCustomerOrder) {
-      metrics.byKarigar[displayKarigar].customerOrdersCount++;
-    }
-  });
+    byKarigar[karigarName].totalOrders++;
+    byKarigar[karigarName].totalQty += qty;
+    byKarigar[karigarName].totalWeight += weight;
+  }
 
-  return metrics;
+  return {
+    totalOrders: validOrders.length,
+    totalQty,
+    totalWeight,
+    customerOrdersCount,
+    byKarigar,
+  };
 }

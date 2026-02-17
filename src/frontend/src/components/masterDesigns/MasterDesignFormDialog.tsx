@@ -3,7 +3,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useSaveMasterDesigns } from '../../hooks/useQueries';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useSaveMasterDesigns, useListKarigars } from '../../hooks/useQueries';
 import { toast } from 'sonner';
 import type { MasterDesignEntry } from '../../backend';
 
@@ -15,6 +16,7 @@ interface MasterDesignFormDialogProps {
 
 export function MasterDesignFormDialog({ open, onOpenChange, editingDesign }: MasterDesignFormDialogProps) {
   const saveMutation = useSaveMasterDesigns();
+  const { data: karigars = [], isLoading: karigarsLoading, error: karigarsError } = useListKarigars();
   const [designCode, setDesignCode] = useState('');
   const [genericName, setGenericName] = useState('');
   const [karigarName, setKarigarName] = useState('');
@@ -45,9 +47,9 @@ export function MasterDesignFormDialog({ open, onOpenChange, editingDesign }: Ma
       await saveMutation.mutateAsync([[designCode.trim(), entry]]);
       toast.success(editingDesign ? 'Design updated successfully' : 'Design added successfully');
       onOpenChange(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to save design:', error);
-      toast.error('Failed to save design');
+      toast.error(error?.message || 'Failed to save design');
     }
   };
 
@@ -59,44 +61,72 @@ export function MasterDesignFormDialog({ open, onOpenChange, editingDesign }: Ma
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="designCode">Design Code *</Label>
+            <Label htmlFor="designCode">Design Code</Label>
             <Input
               id="designCode"
               value={designCode}
               onChange={(e) => setDesignCode(e.target.value)}
-              placeholder="e.g., D001"
-              disabled={!!editingDesign}
-              required
+              placeholder="Enter design code"
+              disabled={!!editingDesign || saveMutation.isPending}
             />
           </div>
-
           <div className="space-y-2">
-            <Label htmlFor="genericName">Generic Name *</Label>
+            <Label htmlFor="genericName">Generic Name</Label>
             <Input
               id="genericName"
               value={genericName}
               onChange={(e) => setGenericName(e.target.value)}
-              placeholder="e.g., Ring"
-              required
+              placeholder="Enter generic name"
+              disabled={saveMutation.isPending}
             />
           </div>
-
           <div className="space-y-2">
-            <Label htmlFor="karigarName">Karigar Name *</Label>
-            <Input
-              id="karigarName"
-              value={karigarName}
-              onChange={(e) => setKarigarName(e.target.value)}
-              placeholder="e.g., Ramesh"
-              required
-            />
+            <Label htmlFor="karigarName">Karigar Name</Label>
+            {karigarsLoading ? (
+              <div className="text-sm text-muted-foreground">Loading karigars...</div>
+            ) : karigarsError ? (
+              <div className="text-sm text-destructive">Failed to load karigars. Please try again.</div>
+            ) : karigars.length === 0 ? (
+              <div className="text-sm text-muted-foreground">No karigars available. Please add a karigar first.</div>
+            ) : (
+              <Select
+                value={karigarName}
+                onValueChange={setKarigarName}
+                disabled={saveMutation.isPending || karigarsLoading}
+              >
+                <SelectTrigger id="karigarName">
+                  <SelectValue placeholder="Select a karigar" />
+                </SelectTrigger>
+                <SelectContent>
+                  {karigars.map((karigar) => (
+                    <SelectItem key={karigar.name} value={karigar.name}>
+                      {karigar.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
-
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={saveMutation.isPending}
+            >
               Cancel
             </Button>
-            <Button type="submit" disabled={saveMutation.isPending}>
+            <Button
+              type="submit"
+              disabled={
+                !designCode.trim() ||
+                !genericName.trim() ||
+                !karigarName.trim() ||
+                saveMutation.isPending ||
+                karigarsLoading ||
+                karigars.length === 0
+              }
+            >
               {saveMutation.isPending ? 'Saving...' : 'Save'}
             </Button>
           </DialogFooter>

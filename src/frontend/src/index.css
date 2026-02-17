@@ -71,18 +71,20 @@
 @layer components {
     /* Admin Dashboard Tab Styling */
     .admin-tabs-list {
-        @apply bg-muted/50 p-1 rounded-lg;
+        @apply bg-muted/50 p-1 rounded-lg relative;
     }
     
     .admin-tab-trigger {
         @apply relative data-[state=active]:bg-background data-[state=active]:shadow-sm;
         @apply transition-all duration-200;
+        @apply z-10;
     }
     
     .admin-tab-trigger[data-state="active"]::after {
         content: '';
         @apply absolute bottom-0 left-1/2 -translate-x-1/2 w-3/4 h-1 rounded-t-full;
         @apply bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500;
+        @apply z-0;
     }
     
     .admin-tab-trigger:not([data-state="active"]):hover {

@@ -1,42 +1,65 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-16T20:10:49.464Z",
-  "summary": "Diff implements Admin dashboard styling (tab indicator + metric card accents) and appears to add a Delivered-tab bulk action to move orders to \"given_to_hallmark\". Staff dashboard code was modified and the change log claims \"Mark as Delivered\" was removed there. Backend authorization changes for restricting \"delivered\" updates to Karigar cannot be confirmed from the truncated backend diff excerpt.",
+  "generatedAt": "2026-02-17T07:05:39.149Z",
+  "summary": "Diff adds a frontend Add Karigar dialog and a new Add Karigar button on the Master Designs page, plus introduces backend migration scaffolding for a new karigarStorage field. However, the diff summary does not show the required backend APIs for listing/adding Karigars, does not show persistent karigar storage wired into backend state, and does not show the required order reassignment behavior when updating a master design mapping. The diff summary also indicates multiple unrelated frontend changes beyond the Karigar/master-design scope.",
   "missing_requirements": [
     {
       "id": "REQ-1",
-      "requirement": "Enforce that only users with app role #Karigar can change an order’s status to \"delivered\"; Admin/Staff attempts must be rejected with an authorization error; Karigar flow must only allow setting \"delivered\" (not other statuses).",
-      "reason": "backend/main.mo is truncated and the provided excerpt only shows helper functions (e.g., role detection) but does not show any authorization checks inside the order-status update methods (single update or bulk update) that would explicitly reject Admin/Staff \"delivered\" transitions and constrain Karigar to only \"delivered\".",
+      "requirement": "Backend exposes authenticated (Admin/Staff) query to list saved Karigar names and authenticated method to add a Karigar name (reject empty/whitespace-only), stored persistently in canister state.",
+      "reason": "The diff shows a Karigar type and a karigarStorage map declaration, but does not show any backend public methods for list/add Karigars nor any evidence that karigarStorage is part of persistent/stable canister state (it is shown as `let karigarStorage = Map.empty...` in main.mo).",
       "evidence": [
-        "backend/main.mo (truncated excerpt does not include the status update methods / checks)"
+        "backend/main.mo",
+        "backend/migration.mo"
       ]
     },
     {
       "id": "REQ-2",
-      "requirement": "Remove/disable any Admin UI action that marks orders as \"delivered\" (and if visible, it must be disabled with an English explanation and must not call the backend).",
-      "reason": "AdminDashboardPage.tsx is truncated and the diff summary does not explicitly show removal/disablement of any Admin \"Mark as Delivered\" control; therefore this cannot be verified from the provided evidence.",
+      "requirement": "When a master design mapping’s karigarName is updated, existing stored orders for that designCode are reassigned to the latest karigarName (Admin/Staff only), and reflected in getOrders()/getActiveOrdersForKarigar().",
+      "reason": "The diff summary does not show any changes to the backend master design save/update logic or any code updating existing ordersMap entries when a mapping changes.",
       "evidence": [
-        "frontend/src/pages/admin/AdminDashboardPage.tsx (truncated)"
+        "backend/main.mo"
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "requirement": "Add React Query hooks to fetch and mutate the Karigar list; UI uses these hooks and handles loading/error states, invalidating/refetching Karigar list on add.",
+      "reason": "While `AddKarigarDialog` imports `useCreateKarigar` and `MasterDesignFormDialog` imports `useListKarigars`, the provided truncated diff for `frontend/src/hooks/useQueries.ts` does not include the actual implementations of these hooks or their cache invalidation/refetch behavior, so it cannot be verified from the diff summary.",
+      "evidence": [
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/components/karigar/AddKarigarDialog.tsx",
+        "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx",
+        "frontend-file-summaries.txt"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Added project tracking entries AR-1..AR-6 in project_state.json describing the same requests as \"pending\".",
-      "reason": "The BuildRequest does not ask to update or maintain project_state.json/new_feature_requests metadata.",
+      "description": "Broad, unrelated frontend refactors and feature changes across app shell, routing, auth UX, dashboards, connectivity status bar, error boundaries, and other pages.",
+      "reason": "BuildRequest is narrowly scoped to Karigar directory + selection for Master Design assignments and related backend support; the diff summary reports many additional UI/behavior changes not requested.",
       "evidence": [
-        "project_state.json"
+        "frontend-file-summaries.txt"
+      ]
+    },
+    {
+      "description": "Add Karigar payload includes an `isActive` flag and backend Karigar storage modeled as `Karigar { name; isActive }` rather than a simple list of names.",
+      "reason": "BuildRequest asks for maintaining a reusable list of Karigar names (create/read); an active flag may be an unrequested extension.",
+      "evidence": [
+        "backend/main.mo",
+        "backend/migration.mo",
+        "frontend/src/components/karigar/AddKarigarDialog.tsx"
       ]
     }
   ],
-  "confidence": 0.54,
+  "confidence": 0.62,
   "changed_files": [
     "backend/main.mo",
+    "backend/migration.mo",
     "frontend-file-summaries.txt",
-    "frontend/src/index.css",
-    "frontend/src/pages/admin/AdminDashboardPage.tsx",
-    "frontend/src/pages/staff/StaffDashboardPage.tsx",
+    "frontend/src/components/karigar/AddKarigarDialog.tsx",
+    "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pages/admin/MasterDesignsPage.tsx",
     "project_state.json"
   ]
 }

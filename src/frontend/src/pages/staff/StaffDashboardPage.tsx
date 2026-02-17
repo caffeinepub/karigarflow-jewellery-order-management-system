@@ -27,11 +27,14 @@ export function StaffDashboardPage() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('total');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   
+  // Get today's date for default filtering
+  const today = new Date();
+  
   const [totalFilters, setTotalFilters] = useState({ 
     karigar: '', 
     status: '', 
-    dateFrom: null as Date | null, 
-    dateTo: null as Date | null, 
+    dateFrom: today, 
+    dateTo: today, 
     orderNoQuery: '', 
     coFilter: false,
     rbFilter: false
@@ -39,8 +42,8 @@ export function StaffDashboardPage() {
   const [hallmarkFilters, setHallmarkFilters] = useState({ 
     karigar: '', 
     status: '', 
-    dateFrom: null as Date | null, 
-    dateTo: null as Date | null, 
+    dateFrom: today, 
+    dateTo: today, 
     orderNoQuery: '', 
     coFilter: false,
     rbFilter: false
@@ -48,8 +51,8 @@ export function StaffDashboardPage() {
   const [coFilters, setCoFilters] = useState({ 
     karigar: '', 
     status: '', 
-    dateFrom: null as Date | null, 
-    dateTo: null as Date | null, 
+    dateFrom: today, 
+    dateTo: today, 
     orderNoQuery: '', 
     coFilter: false,
     rbFilter: false
@@ -106,17 +109,32 @@ export function StaffDashboardPage() {
     });
   };
 
-  const totalOrders = applyFilters(orders, totalFilters);
-  const hallmarkOrders = applyFilters(
-    orders.filter(o => o.designCode.toLowerCase().includes('hallmark') || o.orderNo.endsWith('_hallmark')),
-    hallmarkFilters
-  );
-  const customerOrders = applyFilters(
-    orders.filter(o => o.isCustomerOrder),
-    coFilters
-  );
+  // Base datasets
+  const totalBaseOrders = orders.filter(o => o.status !== 'given_to_hallmark' && o.status !== 'delivered');
+  const hallmarkBaseOrders = orders.filter(o => o.designCode.toLowerCase().includes('hallmark') || o.orderNo.endsWith('_hallmark'));
+  const customerBaseOrders = orders.filter(o => o.isCustomerOrder && o.status !== 'given_to_hallmark' && o.status !== 'delivered');
 
-  const metrics = deriveMetrics(orders);
+  // Apply filters
+  const totalOrders = applyFilters(totalBaseOrders, totalFilters);
+  const hallmarkOrders = applyFilters(hallmarkBaseOrders, hallmarkFilters);
+  const customerOrders = applyFilters(customerBaseOrders, coFilters);
+
+  // Compute metrics from visible filtered orders
+  const getActiveTabDataset = () => {
+    switch (activeTab) {
+      case 'total':
+        return totalOrders;
+      case 'hallmark':
+        return hallmarkOrders;
+      case 'co':
+        return customerOrders;
+      default:
+        return totalOrders;
+    }
+  };
+
+  const activeTabDataset = getActiveTabDataset();
+  const metrics = deriveMetrics(activeTabDataset);
   const karigarNames = Object.keys(metrics.byKarigar).sort();
 
   const handleViewDesignImage = (order: PersistentOrder) => {
@@ -172,10 +190,10 @@ export function StaffDashboardPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Customer Orders</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Qty</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{metrics.customerOrdersCount}</div>
+            <div className="text-2xl font-bold">{metrics.totalQty}</div>
           </CardContent>
         </Card>
         <Card>
@@ -188,11 +206,11 @@ export function StaffDashboardPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Orders</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Weight</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {orders.filter(o => o.status === 'pending').length}
+              {metrics.totalWeight.toFixed(2)}g
             </div>
           </CardContent>
         </Card>
@@ -214,7 +232,7 @@ export function StaffDashboardPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <OrdersFiltersBar
-                orders={orders}
+                orders={totalBaseOrders}
                 filters={totalFilters}
                 onFiltersChange={setTotalFilters}
                 showOrderNoSearch
@@ -236,7 +254,7 @@ export function StaffDashboardPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <OrdersFiltersBar
-                orders={orders}
+                orders={hallmarkBaseOrders}
                 filters={hallmarkFilters}
                 onFiltersChange={setHallmarkFilters}
                 showOrderNoSearch
@@ -257,7 +275,7 @@ export function StaffDashboardPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <OrdersFiltersBar
-                orders={orders}
+                orders={customerBaseOrders}
                 filters={coFilters}
                 onFiltersChange={setCoFilters}
                 showOrderNoSearch

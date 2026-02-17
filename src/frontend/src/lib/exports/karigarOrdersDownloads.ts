@@ -1,6 +1,7 @@
 import type { PersistentOrder } from '../../backend';
 import { format } from 'date-fns';
 import { generateKarigarPOCode } from '../orders/generateKarigarPOCode';
+import { formatOptionalNumber } from '../orders/formatOptionalNumber';
 
 interface KarigarDownloadOptions {
   karigarName: string;
@@ -29,7 +30,7 @@ export function downloadKarigarPDF({ karigarName, orders, selectedDate, dateLabe
   const today = format(new Date(), 'yyyy-MM-dd');
   const poCode = generateKarigarPOCode(karigarName);
   const dateStr = dateLabel || (selectedDate ? format(selectedDate, 'MMMM do, yyyy') : 'All Dates');
-  const totalWeight = orders.reduce((sum, o) => sum + o.weight, 0);
+  const totalWeight = orders.reduce((sum, o) => sum + (o.weight ?? 0), 0);
   const totalQty = orders.reduce((sum, o) => sum + Number(o.qty), 0);
   const scopeLabel = exportScope === 'daily' ? 'Daily Orders' : 'Total Orders';
 
@@ -126,8 +127,8 @@ export function downloadKarigarPDF({ karigarName, orders, selectedDate, dateLabe
               <td>${order.orderType}${order.isCustomerOrder ? ' (CO)' : ''}</td>
               <td>${order.designCode}</td>
               <td>${order.genericName}</td>
-              <td>${order.weight.toFixed(2)}</td>
-              <td>${order.size.toFixed(2)}</td>
+              <td>${formatOptionalNumber(order.weight, 2) || '—'}</td>
+              <td>${formatOptionalNumber(order.size, 2) || '—'}</td>
               <td>${Number(order.qty)}</td>
               <td>${order.remarks}</td>
             </tr>
@@ -202,7 +203,7 @@ export async function downloadKarigarJPEG({ karigarName, orders, selectedDate, d
   const today = format(new Date(), 'yyyy-MM-dd');
   const poCode = generateKarigarPOCode(karigarName);
   const dateStr = dateLabel || (selectedDate ? format(selectedDate, 'MMMM do, yyyy') : 'All Dates');
-  const totalWeight = orders.reduce((sum, o) => sum + o.weight, 0);
+  const totalWeight = orders.reduce((sum, o) => sum + (o.weight ?? 0), 0);
   const totalQty = orders.reduce((sum, o) => sum + Number(o.qty), 0);
   const scopeLabel = exportScope === 'daily' ? 'Daily' : 'Total';
 
@@ -274,8 +275,8 @@ export async function downloadKarigarJPEG({ karigarName, orders, selectedDate, d
     ctx.fillText(`${order.orderType}${order.isCustomerOrder ? ' (CO)' : ''}`, 170, y + 20);
     ctx.fillText(order.designCode, 260, y + 20);
     ctx.fillText(order.genericName, 390, y + 20);
-    ctx.fillText(order.weight.toFixed(2), 550, y + 20);
-    ctx.fillText(order.size.toFixed(2), 640, y + 20);
+    ctx.fillText(formatOptionalNumber(order.weight, 2) || '—', 550, y + 20);
+    ctx.fillText(formatOptionalNumber(order.size, 2) || '—', 640, y + 20);
     ctx.fillText(String(Number(order.qty)), 720, y + 20);
     ctx.fillText(order.remarks.substring(0, 50), 790, y + 20);
     

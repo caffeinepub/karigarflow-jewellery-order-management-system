@@ -1,234 +1,101 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
-import { useInternetIdentity } from './useInternetIdentity';
-import type { PersistentOrder, MasterDesignEntry, UnmappedOrderEntry, UserProfile, AppRole, UserApprovalInfo, ApprovalStatus, BulkOrderUpdate, PartialFulfillmentRequest, ActivityLogEntry, BlockUserRequest, UpdateOrderTotalSuppliedRequest, DesignImageMapping } from '../backend';
-import { ExternalBlob } from '../backend';
-import type { Principal } from '@icp-sdk/core/principal';
-import { chunkOrders } from '@/lib/orders/chunkOrders';
-import { getDB } from '@/offline/db';
-import { normalizeDesignCode } from '@/lib/mapping/normalizeDesignCode';
-import { sanitizeOrders } from '@/lib/orders/validatePersistentOrder';
-
-// Re-export PersistentOrder as Order for convenience
-export type Order = PersistentOrder;
-
-// Local type for user profile info (backend doesn't export this yet)
-export interface UserProfileInfo {
-  principal: Principal;
-  profile: UserProfile;
-}
-
-// ============================================================================
-// Orders
-// ============================================================================
+import type { 
+  PersistentOrder, 
+  MasterDesignEntry, 
+  UnmappedOrderEntry, 
+  UserProfile, 
+  ActivityLogEntry,
+  UserApprovalInfo,
+  ApprovalStatus,
+  PartialFulfillmentRequest,
+  HallmarkReturnRequest,
+  UpdateOrderTotalSuppliedRequest,
+  DesignImageMapping,
+  BulkOrderUpdate,
+  Karigar,
+} from '../backend';
+import { Principal } from '@dfinity/principal';
 
 export function useGetOrders() {
-  const { actor, isFetching: actorFetching } = useActor();
+  const { actor, isFetching } = useActor();
 
   return useQuery<PersistentOrder[]>({
     queryKey: ['orders'],
     queryFn: async () => {
-      if (!actor) throw new Error('Actor not available');
-      const rawOrders = await actor.getOrders();
-      
-      // Sanitize orders before persisting
-      const { validOrders, skippedCount } = sanitizeOrders(rawOrders);
-      
-      if (skippedCount > 0) {
-        console.warn(`Backend returned ${skippedCount} invalid orders, skipping them`);
-      }
-      
-      // Persist only valid orders to IndexedDB after successful fetch
-      try {
-        const db = await getDB();
-        const transaction = db.transaction(['orders'], 'readwrite');
-        const store = transaction.objectStore('orders');
-        
-        // Clear existing orders
-        await new Promise<void>((resolve, reject) => {
-          const clearRequest = store.clear();
-          clearRequest.onsuccess = () => resolve();
-          clearRequest.onerror = () => reject(clearRequest.error);
-        });
-        
-        // Add new valid orders
-        for (const order of validOrders) {
-          await new Promise<void>((resolve, reject) => {
-            const addRequest = store.add(order);
-            addRequest.onsuccess = () => resolve();
-            addRequest.onerror = () => reject(addRequest.error);
-          });
-        }
-      } catch (error) {
-        console.warn('Failed to persist orders to IndexedDB:', error);
-      }
-      
-      return validOrders;
+      if (!actor) return [];
+      return actor.getOrders();
     },
-    enabled: !!actor && !actorFetching,
-    staleTime: 30_000,
+    enabled: !!actor && !isFetching,
   });
 }
 
 export function useGetActiveOrdersForKarigar() {
-  const { actor, isFetching: actorFetching } = useActor();
+  const { actor, isFetching } = useActor();
 
   return useQuery<PersistentOrder[]>({
-    queryKey: ['activeKarigarOrders'],
+    queryKey: ['activeOrdersForKarigar'],
     queryFn: async () => {
-      if (!actor) throw new Error('Actor not available');
-      const rawOrders = await actor.getActiveOrdersForKarigar();
-      
-      // Sanitize orders
-      const { validOrders, skippedCount } = sanitizeOrders(rawOrders);
-      
-      if (skippedCount > 0) {
-        console.warn(`Backend returned ${skippedCount} invalid karigar orders, skipping them`);
-      }
-      
-      return validOrders;
+      if (!actor) return [];
+      return actor.getActiveOrdersForKarigar();
     },
-    enabled: !!actor && !actorFetching,
-    staleTime: 30_000,
+    enabled: !!actor && !isFetching,
   });
 }
 
-export interface BatchUploadProgress {
-  currentBatch: number;
-  totalBatches: number;
-  uploadedOrders: number;
-  totalOrders: number;
+export function useGetUnmappedDesignCodes() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<UnmappedOrderEntry[]>({
+    queryKey: ['unmappedDesignCodes'],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getUnmappedDesignCodes();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useGetMasterDesigns() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<[string, MasterDesignEntry][]>({
+    queryKey: ['masterDesigns'],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getMasterDesigns();
+    },
+    enabled: !!actor && !isFetching,
+  });
 }
 
 export function useUploadParsedOrdersBatched() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
 
-  return useMutation<
-    void,
-    Error,
-    { orders: PersistentOrder[]; onProgress?: (progress: BatchUploadProgress) => void }
-  >({
-    mutationFn: async ({ orders, onProgress }) => {
+  return useMutation({
+    mutationFn: async (variables: { orders: PersistentOrder[]; onProgress?: (progress: number) => void }) => {
       if (!actor) throw new Error('Actor not available');
-
+      const { orders, onProgress } = variables;
+      
       const BATCH_SIZE = 50;
-      const batches = chunkOrders(orders, BATCH_SIZE);
-      const totalBatches = batches.length;
+      const batches: PersistentOrder[][] = [];
+      for (let i = 0; i < orders.length; i += BATCH_SIZE) {
+        batches.push(orders.slice(i, i + BATCH_SIZE));
+      }
 
       for (let i = 0; i < batches.length; i++) {
-        const batch = batches[i];
-        await actor.uploadParsedOrders(batch);
-
+        await actor.uploadParsedOrders(batches[i]);
         if (onProgress) {
-          onProgress({
-            currentBatch: i + 1,
-            totalBatches,
-            uploadedOrders: (i + 1) * BATCH_SIZE,
-            totalOrders: orders.length,
-          });
+          onProgress(((i + 1) / batches.length) * 100);
         }
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['orders'] });
       queryClient.invalidateQueries({ queryKey: ['unmappedDesignCodes'] });
-      queryClient.invalidateQueries({ queryKey: ['activeKarigarOrders'] });
+      queryClient.invalidateQueries({ queryKey: ['activeOrdersForKarigar'] });
     },
-  });
-}
-
-export function useBulkUpdateOrderStatus() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation<void, Error, BulkOrderUpdate>({
-    mutationFn: async (bulkUpdate) => {
-      if (!actor) throw new Error('Actor not available');
-      await actor.bulkUpdateOrderStatus(bulkUpdate);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['orders'] });
-      queryClient.invalidateQueries({ queryKey: ['activeKarigarOrders'] });
-      queryClient.invalidateQueries({ queryKey: ['activityLog'] });
-    },
-  });
-}
-
-export function useProcessPartialFulfillment() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation<void, Error, PartialFulfillmentRequest>({
-    mutationFn: async (request) => {
-      if (!actor) throw new Error('Actor not available');
-      await actor.processPartialFulfillment(request);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['orders'] });
-      queryClient.invalidateQueries({ queryKey: ['activeKarigarOrders'] });
-      queryClient.invalidateQueries({ queryKey: ['activityLog'] });
-    },
-  });
-}
-
-export function useUpdateOrderTotalSupplied() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation<void, Error, UpdateOrderTotalSuppliedRequest>({
-    mutationFn: async (request) => {
-      if (!actor) throw new Error('Actor not available');
-      await actor.updateOrderTotalSupplied(request);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['orders'] });
-      queryClient.invalidateQueries({ queryKey: ['activeKarigarOrders'] });
-      queryClient.invalidateQueries({ queryKey: ['activityLog'] });
-    },
-  });
-}
-
-// ============================================================================
-// Master Designs
-// ============================================================================
-
-export function useGetMasterDesigns() {
-  const { actor, isFetching: actorFetching } = useActor();
-
-  return useQuery<[string, MasterDesignEntry][]>({
-    queryKey: ['masterDesigns'],
-    queryFn: async () => {
-      if (!actor) throw new Error('Actor not available');
-      const designs = await actor.getMasterDesigns();
-      
-      // Persist to IndexedDB
-      try {
-        const db = await getDB();
-        const transaction = db.transaction(['masterDesigns'], 'readwrite');
-        const store = transaction.objectStore('masterDesigns');
-        
-        await new Promise<void>((resolve, reject) => {
-          const clearRequest = store.clear();
-          clearRequest.onsuccess = () => resolve();
-          clearRequest.onerror = () => reject(clearRequest.error);
-        });
-        
-        for (const [code, entry] of designs) {
-          await new Promise<void>((resolve, reject) => {
-            const addRequest = store.add({ designCode: code, ...entry });
-            addRequest.onsuccess = () => resolve();
-            addRequest.onerror = () => reject(addRequest.error);
-          });
-        }
-      } catch (error) {
-        console.warn('Failed to persist master designs to IndexedDB:', error);
-      }
-      
-      return designs;
-    },
-    enabled: !!actor && !actorFetching,
-    staleTime: 60_000,
   });
 }
 
@@ -236,16 +103,16 @@ export function useSaveMasterDesigns() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
 
-  return useMutation<void, Error, [string, MasterDesignEntry][]>({
-    mutationFn: async (designs) => {
+  return useMutation({
+    mutationFn: async (masterDesigns: [string, MasterDesignEntry][]) => {
       if (!actor) throw new Error('Actor not available');
-      await actor.saveMasterDesigns(designs);
+      return actor.saveMasterDesigns(masterDesigns);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['masterDesigns'] });
       queryClient.invalidateQueries({ queryKey: ['orders'] });
       queryClient.invalidateQueries({ queryKey: ['unmappedDesignCodes'] });
-      queryClient.invalidateQueries({ queryKey: ['activeKarigarOrders'] });
+      queryClient.invalidateQueries({ queryKey: ['activeOrdersForKarigar'] });
     },
   });
 }
@@ -254,10 +121,10 @@ export function useSetActiveFlagForMasterDesign() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
 
-  return useMutation<void, Error, { designCode: string; isActive: boolean }>({
-    mutationFn: async ({ designCode, isActive }) => {
+  return useMutation({
+    mutationFn: async ({ designCode, isActive }: { designCode: string; isActive: boolean }) => {
       if (!actor) throw new Error('Actor not available');
-      await actor.setActiveFlagForMasterDesign(designCode, isActive);
+      return actor.setActiveFlagForMasterDesign(designCode, isActive);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['masterDesigns'] });
@@ -265,125 +132,29 @@ export function useSetActiveFlagForMasterDesign() {
   });
 }
 
-// ============================================================================
-// Unmapped Design Codes
-// ============================================================================
+export function useGetActivityLog() {
+  const { actor, isFetching } = useActor();
 
-export function useGetUnmappedDesignCodes() {
-  const { actor, isFetching: actorFetching } = useActor();
-
-  return useQuery<UnmappedOrderEntry[]>({
-    queryKey: ['unmappedDesignCodes'],
+  return useQuery<ActivityLogEntry[]>({
+    queryKey: ['activityLog'],
     queryFn: async () => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.getUnmappedDesignCodes();
+      if (!actor) return [];
+      return actor.getActivityLog();
     },
-    enabled: !!actor && !actorFetching,
-    staleTime: 30_000,
+    enabled: !!actor && !isFetching,
   });
 }
-
-// ============================================================================
-// User Profiles
-// ============================================================================
-
-export function useGetCallerUserProfile() {
-  const { actor, isFetching: actorFetching } = useActor();
-
-  const query = useQuery<UserProfile | null>({
-    queryKey: ['currentUserProfile'],
-    queryFn: async () => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.getCallerUserProfile();
-    },
-    enabled: !!actor && !actorFetching,
-    retry: false,
-  });
-
-  return {
-    ...query,
-    isLoading: actorFetching || query.isLoading,
-    isFetched: !!actor && query.isFetched,
-  };
-}
-
-export function useSaveCallerUserProfile() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation<void, Error, UserProfile>({
-    mutationFn: async (profile) => {
-      if (!actor) throw new Error('Actor not available');
-      await actor.saveCallerUserProfile(profile);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['currentUserProfile'] });
-    },
-  });
-}
-
-export function useListUserProfiles() {
-  const { actor, isFetching: actorFetching } = useActor();
-
-  return useQuery<UserProfile[]>({
-    queryKey: ['userProfiles'],
-    queryFn: async () => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.listUserProfiles();
-    },
-    enabled: !!actor && !actorFetching,
-  });
-}
-
-export function useCreateUserProfile() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation<void, Error, { user: Principal; profile: UserProfile }>({
-    mutationFn: async ({ user, profile }) => {
-      if (!actor) throw new Error('Actor not available');
-      await actor.createUserProfile(user, profile);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userProfiles'] });
-      queryClient.invalidateQueries({ queryKey: ['approvals'] });
-    },
-  });
-}
-
-// ============================================================================
-// Authorization
-// ============================================================================
-
-export function useIsCallerAdmin() {
-  const { actor, isFetching: actorFetching } = useActor();
-
-  return useQuery<boolean>({
-    queryKey: ['isAdmin'],
-    queryFn: async () => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.isCallerAdmin();
-    },
-    enabled: !!actor && !actorFetching,
-    staleTime: Infinity,
-    retry: false,
-  });
-}
-
-// ============================================================================
-// User Approval
-// ============================================================================
 
 export function useIsCallerApproved() {
-  const { actor, isFetching: actorFetching } = useActor();
+  const { actor, isFetching } = useActor();
 
   return useQuery<boolean>({
-    queryKey: ['isApproved'],
+    queryKey: ['isCallerApproved'],
     queryFn: async () => {
-      if (!actor) throw new Error('Actor not available');
+      if (!actor) return false;
       return actor.isCallerApproved();
     },
-    enabled: !!actor && !actorFetching,
+    enabled: !!actor && !isFetching,
   });
 }
 
@@ -391,28 +162,27 @@ export function useRequestApproval() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
 
-  return useMutation<void, Error>({
+  return useMutation({
     mutationFn: async () => {
       if (!actor) throw new Error('Actor not available');
-      await actor.requestApproval();
+      return actor.requestApproval();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['isApproved'] });
-      queryClient.invalidateQueries({ queryKey: ['approvals'] });
+      queryClient.invalidateQueries({ queryKey: ['isCallerApproved'] });
     },
   });
 }
 
 export function useListApprovals() {
-  const { actor, isFetching: actorFetching } = useActor();
+  const { actor, isFetching } = useActor();
 
   return useQuery<UserApprovalInfo[]>({
     queryKey: ['approvals'],
     queryFn: async () => {
-      if (!actor) throw new Error('Actor not available');
+      if (!actor) return [];
       return actor.listApprovals();
     },
-    enabled: !!actor && !actorFetching,
+    enabled: !!actor && !isFetching,
   });
 }
 
@@ -420,10 +190,10 @@ export function useSetApproval() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
 
-  return useMutation<void, Error, { user: Principal; status: ApprovalStatus }>({
-    mutationFn: async ({ user, status }) => {
+  return useMutation({
+    mutationFn: async ({ user, status }: { user: Principal; status: ApprovalStatus }) => {
       if (!actor) throw new Error('Actor not available');
-      await actor.setApproval(user, status);
+      return actor.setApproval(user, status);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['approvals'] });
@@ -431,40 +201,45 @@ export function useSetApproval() {
   });
 }
 
-// ============================================================================
-// Activity Log
-// ============================================================================
+export function useCreateUserProfile() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
 
-export function useGetActivityLog() {
-  const { actor, isFetching: actorFetching } = useActor();
-
-  return useQuery<ActivityLogEntry[]>({
-    queryKey: ['activityLog'],
-    queryFn: async () => {
+  return useMutation({
+    mutationFn: async ({ user, profile }: { user: Principal; profile: UserProfile }) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.getActivityLog();
+      return actor.createUserProfile(user, profile);
     },
-    enabled: !!actor && !actorFetching,
-    staleTime: 30_000,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['approvals'] });
+      queryClient.invalidateQueries({ queryKey: ['userProfiles'] });
+    },
   });
 }
 
-// ============================================================================
-// User Blocking
-// ============================================================================
-
-export function useCheckUserBlocked() {
-  const { actor, isFetching: actorFetching } = useActor();
-  const { identity } = useInternetIdentity();
+export function useIsCallerAdmin() {
+  const { actor, isFetching } = useActor();
 
   return useQuery<boolean>({
-    queryKey: ['isBlocked', identity?.getPrincipal().toString()],
+    queryKey: ['isCallerAdmin'],
     queryFn: async () => {
-      if (!actor || !identity) return false;
-      return actor.isUserBlocked(identity.getPrincipal());
+      if (!actor) return false;
+      return actor.isCallerAdmin();
     },
-    enabled: !!actor && !actorFetching && !!identity,
-    staleTime: 30_000,
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useCheckUserBlocked() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<boolean>({
+    queryKey: ['isUserBlocked'],
+    queryFn: async () => {
+      if (!actor) return false;
+      return actor.isUserBlocked(await actor.getCallerUserProfile().then(p => p ? Principal.fromText('2vxsx-fae') : Principal.fromText('2vxsx-fae')));
+    },
+    enabled: !!actor && !isFetching,
   });
 }
 
@@ -472,13 +247,13 @@ export function useBlockUser() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
 
-  return useMutation<void, Error, BlockUserRequest>({
-    mutationFn: async (request) => {
+  return useMutation({
+    mutationFn: async ({ user, reason }: { user: Principal; reason?: string }) => {
       if (!actor) throw new Error('Actor not available');
-      await actor.blockUser(request);
+      return actor.blockUser({ user, reason });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['isBlocked'] });
+      queryClient.invalidateQueries({ queryKey: ['approvals'] });
       queryClient.invalidateQueries({ queryKey: ['userProfiles'] });
     },
   });
@@ -488,63 +263,121 @@ export function useUnblockUser() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
 
-  return useMutation<void, Error, Principal>({
-    mutationFn: async (user) => {
+  return useMutation({
+    mutationFn: async (user: Principal) => {
       if (!actor) throw new Error('Actor not available');
-      await actor.unblockUser(user);
+      return actor.unblockUser(user);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['isBlocked'] });
+      queryClient.invalidateQueries({ queryKey: ['approvals'] });
       queryClient.invalidateQueries({ queryKey: ['userProfiles'] });
     },
   });
 }
 
-// ============================================================================
-// Design Image Mappings
-// ============================================================================
+export function useListUserProfiles() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<UserProfile[]>({
+    queryKey: ['userProfiles'],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.listUserProfiles();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useProcessPartialFulfillment() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (request: PartialFulfillmentRequest) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.processPartialFulfillment(request);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['activeOrdersForKarigar'] });
+    },
+  });
+}
+
+export function useHandleHallmarkReturns() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (request: HallmarkReturnRequest) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.handleHallmarkReturns(request);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['activeOrdersForKarigar'] });
+    },
+  });
+}
+
+export function useBulkUpdateOrderStatus() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (bulkUpdate: BulkOrderUpdate) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.bulkUpdateOrderStatus(bulkUpdate);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['activeOrdersForKarigar'] });
+    },
+  });
+}
+
+export function useBulkMarkOrdersAsDelivered() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (orderNos: string[]) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.bulkMarkOrdersAsDelivered(orderNos);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['activeOrdersForKarigar'] });
+    },
+  });
+}
+
+export function useUpdateOrderTotalSupplied() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (request: UpdateOrderTotalSuppliedRequest) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.updateOrderTotalSupplied(request);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['activeOrdersForKarigar'] });
+    },
+  });
+}
 
 export function useGetDesignImageMappings() {
-  const { actor, isFetching: actorFetching } = useActor();
+  const { actor, isFetching } = useActor();
 
   return useQuery<DesignImageMapping[]>({
     queryKey: ['designImageMappings'],
     queryFn: async () => {
-      if (!actor) throw new Error('Actor not available');
+      if (!actor) return [];
       return actor.getDesignImageMappings();
     },
-    enabled: !!actor && !actorFetching,
-    staleTime: 60_000,
-  });
-}
-
-export function useGetDesignImageForCode(designCode: string, enabled: boolean = true) {
-  const { actor, isFetching: actorFetching } = useActor();
-
-  return useQuery<DesignImageMapping | null>({
-    queryKey: ['designImageMapping', designCode],
-    queryFn: async () => {
-      if (!actor) throw new Error('Actor not available');
-      const mappings = await actor.getDesignImageMappings();
-      const normalized = normalizeDesignCode(designCode);
-      return mappings.find(m => normalizeDesignCode(m.designCode) === normalized) || null;
-    },
-    enabled: !!actor && !actorFetching && enabled && !!designCode,
-    staleTime: 60_000,
-  });
-}
-
-export function useGetAdminDesignImageMappings() {
-  const { actor, isFetching: actorFetching } = useActor();
-
-  return useQuery<[DesignImageMapping, ExternalBlob][]>({
-    queryKey: ['adminDesignImageMappings'],
-    queryFn: async () => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.getAdminDesignImageMappings();
-    },
-    enabled: !!actor && !actorFetching,
-    staleTime: 60_000,
+    enabled: !!actor && !isFetching,
   });
 }
 
@@ -552,15 +385,57 @@ export function useSaveDesignImageMappings() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
 
-  return useMutation<DesignImageMapping[], Error, DesignImageMapping[]>({
-    mutationFn: async (mappings) => {
+  return useMutation({
+    mutationFn: async (parsedMappings: DesignImageMapping[]) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.saveDesignImageMappings(mappings);
+      return actor.saveDesignImageMappings(parsedMappings);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['designImageMappings'] });
-      queryClient.invalidateQueries({ queryKey: ['adminDesignImageMappings'] });
-      queryClient.invalidateQueries({ queryKey: ['designImageMapping'] });
+    },
+  });
+}
+
+export function useGetDesignImageForCode(designCode: string) {
+  const { actor, isFetching } = useActor();
+
+  return useQuery({
+    queryKey: ['designImage', designCode],
+    queryFn: async () => {
+      if (!actor) return null;
+      const mappings = await actor.getDesignImageMappings();
+      const mapping = mappings.find(m => m.designCode === designCode);
+      return mapping || null;
+    },
+    enabled: !!actor && !isFetching && !!designCode,
+  });
+}
+
+// Karigar management hooks
+export function useListKarigars() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<Karigar[]>({
+    queryKey: ['karigars'],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.listKarigars();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useCreateKarigar() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (karigar: Karigar) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.createKarigar(karigar);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['karigars'] });
     },
   });
 }

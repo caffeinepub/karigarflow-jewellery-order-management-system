@@ -4,11 +4,16 @@ import { parseOrdersFromPdfText } from './pdf/parseOrdersFromPdfText';
 import { parseOrdersFromWorkbook } from './excel/parseOrdersFromWorkbook';
 import { readWorkbookFromFile } from './excel/readWorkbookFromFile';
 
+export interface ParseResult {
+  orders: PersistentOrder[];
+  warnings: string[];
+}
+
 /**
  * Main order file parser that routes to Excel or PDF parsers with proper error handling
- * and user-friendly messages for both file types.
+ * and user-friendly messages for both file types. Returns both orders and non-blocking warnings.
  */
-export async function parseOrderFile(file: File, uploadDate: Date): Promise<PersistentOrder[]> {
+export async function parseOrderFile(file: File, uploadDate: Date): Promise<ParseResult> {
   const fileName = file.name.toLowerCase();
 
   try {
@@ -17,9 +22,10 @@ export async function parseOrderFile(file: File, uploadDate: Date): Promise<Pers
       // Flatten to single string for parsing
       const pageTexts = await extractTextFromPDF(file);
       const text = pageTexts.map(lines => lines.join('\n')).join('\n');
-      return parseOrdersFromPdfText(text, uploadDate);
+      const orders = parseOrdersFromPdfText(text, uploadDate);
+      return { orders, warnings: [] };
     } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
-      // Excel parsing
+      // Excel parsing - now returns both orders and warnings
       const workbook = await readWorkbookFromFile(file);
       return parseOrdersFromWorkbook(workbook, uploadDate);
     } else {

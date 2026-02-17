@@ -1,74 +1,90 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-16T20:10:49.468Z",
+  "generatedAt": "2026-02-17T07:05:39.153Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 4,
+    "total": 6,
     "implemented": 3,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Enforce that only the Karigar portal (users with app role #Karigar) can change an order’s status to \"delivered\"; prevent Admin and Staff users from marking orders as delivered via any backend method.",
+        "summary": "Add backend support for maintaining a reusable list of Karigar names that can be assigned to master design mappings (create/read).",
         "status": "unknown",
         "plannedFiles": [],
         "matchedFiles": []
       },
       {
         "id": "REQ-2",
-        "summary": "Update the Staff and Admin frontends so there is no UI action that allows marking orders as \"delivered\"; any existing Staff/Admin \"Mark as Delivered\" controls must be removed or disabled to reflect the authorization rule.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/pages/staff/StaffDashboardPage.tsx",
-          "frontend/src/pages/admin/AdminDashboardPage.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/pages/staff/StaffDashboardPage.tsx",
-          "frontend/src/pages/admin/AdminDashboardPage.tsx"
-        ]
+        "summary": "Update backend master design editing so that when a master design mapping’s karigarName is changed, existing stored orders for that design code are reassigned to the updated karigarName.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
       },
       {
         "id": "REQ-3",
-        "summary": "In Admin Dashboard → Delivered tab, add the same bulk action pattern available in Total Orders (selection + action button) to change selected delivered orders to status \"given_to_hallmark\".",
+        "summary": "In the Admin Portal Master Designs page, add a top-level action near the existing “Add Mapping” button to add a Karigar name into the saved Karigar list.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/pages/admin/AdminDashboardPage.tsx"
+          "frontend/src/components/karigar/AddKarigarDialog.tsx",
+          "frontend/src/pages/admin/MasterDesignsPage.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/pages/admin/AdminDashboardPage.tsx"
+          "frontend/src/components/karigar/AddKarigarDialog.tsx",
+          "frontend/src/pages/admin/MasterDesignsPage.tsx"
         ]
       },
       {
         "id": "REQ-4",
-        "summary": "Apply color styling on the Admin dashboard metric cards for “Orders in View”, “Customer Orders”, “Active Karigars”, and “Total Weight”, and add color styling to the tab indicator/slider bar for the main Admin dashboard tabs (from Total Orders to Karigars).",
+        "summary": "In the Master Design add/edit dialog, replace the free-text Karigar Name input with a selection control that lets admins/staff choose from the previously added Karigars, and saves the selected Karigar as the mapping’s karigarName.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/pages/admin/AdminDashboardPage.tsx",
-          "frontend/src/index.css"
+          "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/pages/admin/AdminDashboardPage.tsx",
-          "frontend/src/index.css"
+          "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx"
         ]
+      },
+      {
+        "id": "REQ-5",
+        "summary": "Add React Query hooks needed to fetch and mutate the Karigar list from the frontend admin portal.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/pages/admin/MasterDesignsPage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/pages/admin/MasterDesignsPage.tsx"
+        ]
+      },
+      {
+        "id": "REQ-6",
+        "summary": "If the backend state schema changes to add persistent Karigar storage, implement a safe conditional upgrade migration so existing deployments upgrade without trapping and initialize the new Karigar storage to an empty state.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
       }
     ]
   },
   "changedFiles": [
     "backend/main.mo",
+    "backend/migration.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
     "frontend/src/backend.d.ts",
     "frontend/src/backend.ts",
+    "frontend/src/components/karigar/AddKarigarDialog.tsx",
+    "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx",
     "frontend/src/declarations/backend.did.d.ts",
     "frontend/src/declarations/backend.did.js",
-    "frontend/src/index.css",
-    "frontend/src/pages/admin/AdminDashboardPage.tsx",
-    "frontend/src/pages/staff/StaffDashboardPage.tsx",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pages/admin/MasterDesignsPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

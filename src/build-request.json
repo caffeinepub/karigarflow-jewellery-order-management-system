@@ -1,96 +1,129 @@
 {
   "kind": "build_request",
-  "title": "Restrict delivered status updates to Karigar, add hallmark action in Admin Delivered tab, and colorize Admin dashboard tabs",
-  "projectName": "Karigar Orders",
+  "title": "Add Karigar directory and selection for Master Design assignments",
+  "projectName": "Master Design Admin",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Enforce that only the Karigar portal (users with app role #Karigar) can change an order’s status to \"delivered\"; prevent Admin and Staff users from marking orders as delivered via any backend method.",
+      "text": "Add backend support for maintaining a reusable list of Karigar names that can be assigned to master design mappings (create/read).",
       "target": "backend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-user-1"
         ],
         "quotes": [
-          "Only karigar portal has the authorisation to mark orders as delivered, not the staff or admin portal"
+          "Also overall add an option in the top near add mapping, to add a karigar name that order can be assigned to."
         ]
       },
       "acceptanceCriteria": [
-        "When a caller with role #Admin or #Staff attempts to update any order to status \"delivered\", the backend rejects the call with an authorization error.",
-        "When a caller with role #Karigar updates orders to status \"delivered\" (for their own orders), the update succeeds.",
-        "Existing Admin/Staff bulk status updates (e.g., setting \"given_to_hallmark\") continue to work as before.",
-        "Karigar users cannot use the delivered update capability to set other statuses besides \"delivered\" via the Karigar flow."
+        "Backend exposes an authenticated (Admin/Staff) query to list all saved Karigar names.",
+        "Backend exposes an authenticated (Admin/Staff) method to add a Karigar name, rejecting empty/whitespace-only names.",
+        "Karigar names are stored persistently in canister state and remain available after upgrade/restart."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Update the Staff and Admin frontends so there is no UI action that allows marking orders as \"delivered\"; any existing Staff/Admin \"Mark as Delivered\" controls must be removed or disabled to reflect the authorization rule.",
-      "target": "frontend",
+      "text": "Update backend master design editing so that when a master design mapping’s karigarName is changed, existing stored orders for that design code are reassigned to the updated karigarName.",
+      "target": "backend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-user-1"
         ],
         "quotes": [
-          "Only karigar portal has the authorisation to mark orders as delivered, not the staff or admin portal"
+          "Under the action where we are able to edit generic name and karigar name. Add option to select karigar from the previously added karigars and thereafter assign that design order to the changed karigar name."
         ]
       },
       "acceptanceCriteria": [
-        "Admin dashboard pages do not present a button/action that triggers a status change to \"delivered\".",
-        "Staff dashboard pages do not present a button/action that triggers a status change to \"delivered\".",
-        "If any legacy Staff/Admin control remains visible for workflow reasons, it must be disabled and show a clear, English explanation that only Karigar can mark delivered (no backend call attempted)."
+        "When a master design mapping is updated for a design code, orders already stored in the backend with the same designCode are updated to use the mapping’s latest karigarName.",
+        "The reassignment is performed only for callers authorized as Admin/Staff (same as master design management).",
+        "After updating a mapping, subsequent calls to getOrders()/getActiveOrdersForKarigar() reflect the new karigar assignment for affected orders."
       ]
     },
     {
       "id": "REQ-3",
-      "text": "In Admin Dashboard → Delivered tab, add the same bulk action pattern available in Total Orders (selection + action button) to change selected delivered orders to status \"given_to_hallmark\".",
+      "text": "In the Admin Portal Master Designs page, add a top-level action near the existing “Add Mapping” button to add a Karigar name into the saved Karigar list.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-user-1"
         ],
         "quotes": [
-          "Once the karigar updates the status it shows in the admin portal under the delivered tab... Just like total orders have option to change the status to given for hallmark, same option should be available in this tab too."
+          "Also overall add an option in the top near add mapping, to add a karigar name that order can be assigned to."
         ]
       },
       "acceptanceCriteria": [
-        "Delivered tab supports selecting one or more rows (checkbox selection) similar to the Total Orders tab selection UI.",
-        "Delivered tab includes an action button that sets the selected delivered orders’ status to \"given_to_hallmark\" using the existing bulk status update flow.",
-        "After a successful update, the selected orders are no longer shown in the Delivered tab list and appear under the Hallmark tab (because of existing tab filtering by status).",
-        "A success toast is shown indicating how many orders were updated; failures show an error toast message in English.",
-        "The existing Delivered tab filters (karigar/status/date/orderNo/CO/RB filters) continue to work."
+        "Master Designs page shows a new button near “Add Mapping” to open an “Add Karigar” dialog.",
+        "The dialog allows entering a Karigar name and saving it; on success it shows a success toast and closes.",
+        "The Karigar list is refreshed after adding so it is immediately available for selection in the edit mapping flow.",
+        "User-facing text is in English."
       ]
     },
     {
       "id": "REQ-4",
-      "text": "Apply color styling on the Admin dashboard metric cards for “Orders in View”, “Customer Orders”, “Active Karigars”, and “Total Weight”, and add color styling to the tab indicator/slider bar for the main Admin dashboard tabs (from Total Orders to Karigars).",
+      "text": "In the Master Design add/edit dialog, replace the free-text Karigar Name input with a selection control that lets admins/staff choose from the previously added Karigars, and saves the selected Karigar as the mapping’s karigarName.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-user-1"
         ],
         "quotes": [
-          "Under admin dashboard, give colors to the tabs of ‘ orders in view, customer orders, active karigars, total weight ’",
-          "And also give color to the slide bar under these tabs from total orders to karigars."
+          "Add option to select karigar from the previously added karigars and thereafter assign that design order to the changed karigar name."
         ]
       },
       "acceptanceCriteria": [
-        "Each of the four Admin dashboard metric cards has a distinct, consistent accent color (e.g., title/accent bar/badge/background tint) while preserving readability and existing layout.",
-        "The Admin dashboard TabsList/TabsTrigger styling clearly shows the active tab with a colored indicator/underline/slider bar, and inactive tabs have a visually distinct state.",
-        "No edits are made to immutable Shadcn UI component source files; styling is applied via page-level className overrides and/or global Tailwind styles in allowed files.",
-        "All user-facing text remains in English."
+        "When adding or editing a master design mapping, the Karigar field is a selectable list populated from the saved Karigar names.",
+        "Saving the form persists the selected Karigar name into the MasterDesignEntry.karigarName value.",
+        "Editing an existing mapping pre-selects the currently saved karigarName (or shows an empty/unselected state if it does not exist in the saved list).",
+        "User-facing text is in English."
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "text": "Add React Query hooks needed to fetch and mutate the Karigar list from the frontend admin portal.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-user-1"
+        ],
+        "quotes": [
+          "Add option to select karigar from the previously added karigars"
+        ]
+      },
+      "acceptanceCriteria": [
+        "A query hook exists to fetch the Karigar list and cache it with React Query.",
+        "A mutation hook exists to add a Karigar and invalidates/refetches the Karigar list on success.",
+        "Master Designs UI uses these hooks and handles loading/error states (e.g., disable save while pending, show toast/error state on failure)."
+      ]
+    },
+    {
+      "id": "REQ-6",
+      "text": "If the backend state schema changes to add persistent Karigar storage, implement a safe conditional upgrade migration so existing deployments upgrade without trapping and initialize the new Karigar storage to an empty state.",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-user-1"
+        ],
+        "quotes": [
+          "Yes do what’s required"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Upgrading from the current deployed state does not trap.",
+        "After upgrade, the Karigar list exists and defaults to empty if no prior data existed.",
+        "Existing orders and master designs remain intact after upgrade."
       ]
     }
   ],
   "constraints": [
-    "Backend must remain a single Motoko actor in backend/main.mo (no additional backend services).",
-    "Do not edit files under frontend/src/components/ui (Shadcn components are read-only in this environment); apply styling via composition/props/page-level classNames or allowed CSS files.",
-    "Do not modify frontend/src/hooks/useInternetIdentity.ts(x), frontend/src/hooks/useActor.ts, or frontend/src/main.tsx (immutable paths)."
+    "Backend must remain a single Motoko actor with all logic in backend/main.mo.",
+    "Do not edit frontend files under the immutable paths listed in SYSTEM_CONTEXT (compose existing UI components instead).",
+    "Use English for all user-facing text."
   ],
   "nonGoals": [
-    "Do not add new authentication providers or third-party auth; keep Internet Identity as-is.",
-    "Do not redesign unrelated pages (e.g., Design Images, Master Designs) beyond the requested Admin dashboard styling.",
-    "Do not introduce new order statuses beyond the existing ones (e.g., \"pending\", \"delivered\", \"given_to_hallmark\")."
+    "Do not add third-party authentication providers (only Internet Identity is supported).",
+    "Do not add external databases or off-chain storage for Karigar lists.",
+    "Do not implement real-time updates (no WebSockets)."
   ],
   "imageRequirements": {
     "required": [],

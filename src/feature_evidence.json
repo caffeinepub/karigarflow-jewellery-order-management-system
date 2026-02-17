@@ -2,32 +2,11 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-update-the-staff-and-admin-frontends-so-there-is-no-ui-action-that-allows-marking-orders-as-delivered-any-existing-staff-admin-mark-as-delivered-controls-must-be-removed-or-disabled-to-reflect-the-authorization-rule",
-      "featureTitle": "Update the Staff and Admin frontends so there is no UI action that allows marking orders as \"delivered\"; any existing Staff/Admin \"Mark as Delivered\" controls must be removed or disabled to reflect the authorization rule.",
+      "featureId": "feature-in-the-admin-portal-master-designs-page-add-a-top-level-action-near-the-existing-add-mapping-button-to-add-a-karigar-name-into-the-saved-karigar-list",
+      "featureTitle": "In the Admin Portal Master Designs page, add a top-level action near the existing “Add Mapping” button to add a Karigar name into the saved Karigar list.",
       "files": [
-        "frontend/src/pages/admin/AdminDashboardPage.tsx",
-        "frontend/src/pages/staff/StaffDashboardPage.tsx"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0",
-        "user-approval@3.0.0",
-        "blob-storage@4.0.0"
-      ],
-      "testIds": [
-        "REQ-2"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-in-admin-dashboard-delivered-tab-add-the-same-bulk-action-pattern-available-in-total-orders-selection-action-button-to-change-selected-delivered-orders-to-status-given-to-hallmark",
-      "featureTitle": "In Admin Dashboard → Delivered tab, add the same bulk action pattern available in Total Orders (selection + action button) to change selected delivered orders to status \"given_to_hallmark\".",
-      "files": [
-        "frontend/src/pages/admin/AdminDashboardPage.tsx"
+        "frontend/src/components/karigar/AddKarigarDialog.tsx",
+        "frontend/src/pages/admin/MasterDesignsPage.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -45,11 +24,10 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-apply-color-styling-on-the-admin-dashboard-metric-cards-for-orders-in-view-customer-orders-active-karigars-and-total-weight-and-add-color-styling-to-the-tab-indicator-slider-bar-for-the-main-admin-dashboard-tabs-from-total-orders-to-karigars",
-      "featureTitle": "Apply color styling on the Admin dashboard metric cards for “Orders in View”, “Customer Orders”, “Active Karigars”, and “Total Weight”, and add color styling to the tab indicator/slider bar for the main Admin dashboard tabs (from Total Orders to Karigars).",
+      "featureId": "feature-in-the-master-design-add-edit-dialog-replace-the-free-text-karigar-name-input-with-a-selection-control-that-lets-admins-staff-choose-from-the-previously-added-karigars-and-saves-the-selected-karigar-as-the-mapping-s-karigarname",
+      "featureTitle": "In the Master Design add/edit dialog, replace the free-text Karigar Name input with a selection control that lets admins/staff choose from the previously added Karigars, and saves the selected Karigar as the mapping’s karigarName.",
       "files": [
-        "frontend/src/index.css",
-        "frontend/src/pages/admin/AdminDashboardPage.tsx"
+        "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -63,6 +41,28 @@
       ],
       "testIds": [
         "REQ-4"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-react-query-hooks-needed-to-fetch-and-mutate-the-karigar-list-from-the-frontend-admin-portal",
+      "featureTitle": "Add React Query hooks needed to fetch and mutate the Karigar list from the frontend admin portal.",
+      "files": [
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/pages/admin/MasterDesignsPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "user-approval@3.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-5"
       ],
       "confidence": "high"
     }

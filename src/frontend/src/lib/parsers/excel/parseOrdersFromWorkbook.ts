@@ -3,8 +3,9 @@ import type { PersistentOrder } from '../../../backend';
 /**
  * Parse orders from a SheetJS workbook with flexible column name matching,
  * numeric field validation, customer order detection, and detailed row-level error messages.
+ * Weight and Size are now optional fields - empty/invalid values are treated as null with warnings.
  */
-export function parseOrdersFromWorkbook(workbook: any, uploadDate: Date): PersistentOrder[] {
+export function parseOrdersFromWorkbook(workbook: any, uploadDate: Date): { orders: PersistentOrder[]; warnings: string[] } {
   const sheetName = workbook.SheetNames[0];
   const sheet = workbook.Sheets[sheetName];
   const rawData: any[] = (window as any).XLSX.utils.sheet_to_json(sheet, { defval: '' });
@@ -15,6 +16,7 @@ export function parseOrdersFromWorkbook(workbook: any, uploadDate: Date): Persis
 
   const orders: PersistentOrder[] = [];
   const errors: string[] = [];
+  const warnings: string[] = [];
 
   // Flexible column name matching
   const findColumn = (row: any, possibleNames: string[]): string | undefined => {
@@ -53,19 +55,35 @@ export function parseOrdersFromWorkbook(workbook: any, uploadDate: Date): Persis
         return;
       }
 
-      // Parse numeric fields with validation
-      const weight = weightCol ? parseFloat(String(row[weightCol])) : 0;
-      const size = sizeCol ? parseFloat(String(row[sizeCol])) : 0;
-      const qty = qtyCol ? parseInt(String(row[qtyCol]), 10) : 1;
+      // Parse optional numeric fields (weight, size) - treat empty/invalid as null with warnings
+      let weight: number | undefined = undefined;
+      if (weightCol) {
+        const weightStr = String(row[weightCol] || '').trim();
+        if (weightStr !== '') {
+          const parsedWeight = parseFloat(weightStr);
+          if (!isNaN(parsedWeight) && parsedWeight >= 0) {
+            weight = parsedWeight;
+          } else {
+            warnings.push(`Row ${index + 2}: Invalid weight value (treated as blank)`);
+          }
+        }
+      }
 
-      if (isNaN(weight) || weight < 0) {
-        errors.push(`Row ${index + 2}: Invalid weight value`);
-        return;
+      let size: number | undefined = undefined;
+      if (sizeCol) {
+        const sizeStr = String(row[sizeCol] || '').trim();
+        if (sizeStr !== '') {
+          const parsedSize = parseFloat(sizeStr);
+          if (!isNaN(parsedSize) && parsedSize >= 0) {
+            size = parsedSize;
+          } else {
+            warnings.push(`Row ${index + 2}: Invalid size value (treated as blank)`);
+          }
+        }
       }
-      if (isNaN(size) || size < 0) {
-        errors.push(`Row ${index + 2}: Invalid size value`);
-        return;
-      }
+
+      // Qty is still required
+      const qty = qtyCol ? parseInt(String(row[qtyCol]), 10) : 1;
       if (isNaN(qty) || qty <= 0) {
         errors.push(`Row ${index + 2}: Invalid quantity value`);
         return;
@@ -90,6 +108,7 @@ export function parseOrdersFromWorkbook(workbook: any, uploadDate: Date): Persis
         isCustomerOrder,
         uploadDate: uploadTimestamp,
         createdAt: uploadTimestamp,
+        isReturnedFromDelivered: false,
       });
     } catch (error) {
       errors.push(`Row ${index + 2}: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -104,5 +123,5 @@ export function parseOrdersFromWorkbook(workbook: any, uploadDate: Date): Persis
     throw new Error('No valid orders found in Excel file');
   }
 
-  return orders;
+  return { orders, warnings };
 }

@@ -29,9 +29,11 @@ export const BlockUserRequest = IDL.Record({
   'reason' : IDL.Opt(IDL.Text),
 });
 export const BulkOrderUpdate = IDL.Record({
+  'isReturnedFromDelivered' : IDL.Opt(IDL.Bool),
   'orderNos' : IDL.Vec(IDL.Text),
   'newStatus' : IDL.Text,
 });
+export const Karigar = IDL.Record({ 'name' : IDL.Text, 'isActive' : IDL.Bool });
 export const AppRole = IDL.Variant({
   'Staff' : IDL.Null,
   'Admin' : IDL.Null,
@@ -46,11 +48,12 @@ export const UserProfile = IDL.Record({
 export const Time = IDL.Int;
 export const PersistentOrder = IDL.Record({
   'qty' : IDL.Nat,
-  'weight' : IDL.Float64,
+  'weight' : IDL.Opt(IDL.Float64),
   'status' : IDL.Text,
   'createdAt' : Time,
-  'size' : IDL.Float64,
+  'size' : IDL.Opt(IDL.Float64),
   'orderType' : IDL.Text,
+  'isReturnedFromDelivered' : IDL.Bool,
   'orderNo' : IDL.Text,
   'isCustomerOrder' : IDL.Bool,
   'karigarName' : IDL.Text,
@@ -80,15 +83,22 @@ export const MasterDesignEntry = IDL.Record({
 });
 export const UnmappedOrderEntry = IDL.Record({
   'qty' : IDL.Nat,
-  'weight' : IDL.Float64,
+  'weight' : IDL.Opt(IDL.Float64),
   'createdAt' : Time,
-  'size' : IDL.Float64,
+  'size' : IDL.Opt(IDL.Float64),
   'orderType' : IDL.Text,
   'orderNo' : IDL.Text,
   'isCustomerOrder' : IDL.Bool,
   'designCode' : IDL.Text,
   'uploadDate' : Time,
   'remarks' : IDL.Text,
+});
+export const HallmarkReturnRequest = IDL.Record({
+  'actionType' : IDL.Variant({
+    'update_status' : IDL.Null,
+    'return_hallmark' : IDL.Null,
+  }),
+  'orderNos' : IDL.Vec(IDL.Text),
 });
 export const HealthCheckResponse = IDL.Record({
   'status' : IDL.Text,
@@ -145,8 +155,11 @@ export const idlService = IDL.Service({
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
   'blockUser' : IDL.Func([BlockUserRequest], [], []),
+  'bulkMarkOrdersAsDelivered' : IDL.Func([IDL.Vec(IDL.Text)], [], []),
   'bulkUpdateOrderStatus' : IDL.Func([BulkOrderUpdate], [], []),
+  'createKarigar' : IDL.Func([Karigar], [], []),
   'createUserProfile' : IDL.Func([IDL.Principal, UserProfile], [], []),
+  'deleteKarigarByName' : IDL.Func([IDL.Text], [], []),
   'getActiveOrdersForKarigar' : IDL.Func([], [IDL.Vec(PersistentOrder)], []),
   'getActivityLog' : IDL.Func([], [IDL.Vec(ActivityLogEntry)], ['query']),
   'getAdminDesignImageMappings' : IDL.Func(
@@ -177,11 +190,13 @@ export const idlService = IDL.Service({
       [IDL.Opt(UserProfile)],
       ['query'],
     ),
+  'handleHallmarkReturns' : IDL.Func([HallmarkReturnRequest], [], []),
   'healthCheck' : IDL.Func([], [HealthCheckResponse], ['query']),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'isCallerApproved' : IDL.Func([], [IDL.Bool], ['query']),
   'isUserBlocked' : IDL.Func([IDL.Principal], [IDL.Bool], ['query']),
   'listApprovals' : IDL.Func([], [IDL.Vec(UserApprovalInfo)], ['query']),
+  'listKarigars' : IDL.Func([], [IDL.Vec(Karigar)], ['query']),
   'listUserProfiles' : IDL.Func([], [IDL.Vec(UserProfile)], ['query']),
   'markOrderAsDelivered' : IDL.Func([IDL.Text], [], []),
   'processPartialFulfillment' : IDL.Func([PartialFulfillmentRequest], [], []),
@@ -232,9 +247,11 @@ export const idlFactory = ({ IDL }) => {
     'reason' : IDL.Opt(IDL.Text),
   });
   const BulkOrderUpdate = IDL.Record({
+    'isReturnedFromDelivered' : IDL.Opt(IDL.Bool),
     'orderNos' : IDL.Vec(IDL.Text),
     'newStatus' : IDL.Text,
   });
+  const Karigar = IDL.Record({ 'name' : IDL.Text, 'isActive' : IDL.Bool });
   const AppRole = IDL.Variant({
     'Staff' : IDL.Null,
     'Admin' : IDL.Null,
@@ -249,11 +266,12 @@ export const idlFactory = ({ IDL }) => {
   const Time = IDL.Int;
   const PersistentOrder = IDL.Record({
     'qty' : IDL.Nat,
-    'weight' : IDL.Float64,
+    'weight' : IDL.Opt(IDL.Float64),
     'status' : IDL.Text,
     'createdAt' : Time,
-    'size' : IDL.Float64,
+    'size' : IDL.Opt(IDL.Float64),
     'orderType' : IDL.Text,
+    'isReturnedFromDelivered' : IDL.Bool,
     'orderNo' : IDL.Text,
     'isCustomerOrder' : IDL.Bool,
     'karigarName' : IDL.Text,
@@ -283,15 +301,22 @@ export const idlFactory = ({ IDL }) => {
   });
   const UnmappedOrderEntry = IDL.Record({
     'qty' : IDL.Nat,
-    'weight' : IDL.Float64,
+    'weight' : IDL.Opt(IDL.Float64),
     'createdAt' : Time,
-    'size' : IDL.Float64,
+    'size' : IDL.Opt(IDL.Float64),
     'orderType' : IDL.Text,
     'orderNo' : IDL.Text,
     'isCustomerOrder' : IDL.Bool,
     'designCode' : IDL.Text,
     'uploadDate' : Time,
     'remarks' : IDL.Text,
+  });
+  const HallmarkReturnRequest = IDL.Record({
+    'actionType' : IDL.Variant({
+      'update_status' : IDL.Null,
+      'return_hallmark' : IDL.Null,
+    }),
+    'orderNos' : IDL.Vec(IDL.Text),
   });
   const HealthCheckResponse = IDL.Record({
     'status' : IDL.Text,
@@ -348,8 +373,11 @@ export const idlFactory = ({ IDL }) => {
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
     'blockUser' : IDL.Func([BlockUserRequest], [], []),
+    'bulkMarkOrdersAsDelivered' : IDL.Func([IDL.Vec(IDL.Text)], [], []),
     'bulkUpdateOrderStatus' : IDL.Func([BulkOrderUpdate], [], []),
+    'createKarigar' : IDL.Func([Karigar], [], []),
     'createUserProfile' : IDL.Func([IDL.Principal, UserProfile], [], []),
+    'deleteKarigarByName' : IDL.Func([IDL.Text], [], []),
     'getActiveOrdersForKarigar' : IDL.Func([], [IDL.Vec(PersistentOrder)], []),
     'getActivityLog' : IDL.Func([], [IDL.Vec(ActivityLogEntry)], ['query']),
     'getAdminDesignImageMappings' : IDL.Func(
@@ -380,11 +408,13 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Opt(UserProfile)],
         ['query'],
       ),
+    'handleHallmarkReturns' : IDL.Func([HallmarkReturnRequest], [], []),
     'healthCheck' : IDL.Func([], [HealthCheckResponse], ['query']),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'isCallerApproved' : IDL.Func([], [IDL.Bool], ['query']),
     'isUserBlocked' : IDL.Func([IDL.Principal], [IDL.Bool], ['query']),
     'listApprovals' : IDL.Func([], [IDL.Vec(UserApprovalInfo)], ['query']),
+    'listKarigars' : IDL.Func([], [IDL.Vec(Karigar)], ['query']),
     'listUserProfiles' : IDL.Func([], [IDL.Vec(UserProfile)], ['query']),
     'markOrderAsDelivered' : IDL.Func([IDL.Text], [], []),
     'processPartialFulfillment' : IDL.Func([PartialFulfillmentRequest], [], []),

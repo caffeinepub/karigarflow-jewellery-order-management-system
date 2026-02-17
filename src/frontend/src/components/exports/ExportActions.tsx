@@ -117,7 +117,7 @@ export function ExportActions({ filteredOrders, selectedDate }: ExportActionsPro
                     key={karigarName}
                     onClick={() => handleKarigarExport(karigarName, 'pdf')}
                   >
-                    {karigarName} ({metrics.byKarigar[karigarName].count})
+                    {karigarName} ({metrics.byKarigar[karigarName].totalOrders})
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuSubContent>
@@ -134,7 +134,7 @@ export function ExportActions({ filteredOrders, selectedDate }: ExportActionsPro
                     key={karigarName}
                     onClick={() => handleKarigarExport(karigarName, 'jpeg')}
                   >
-                    {karigarName} ({metrics.byKarigar[karigarName].count})
+                    {karigarName} ({metrics.byKarigar[karigarName].totalOrders})
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuSubContent>

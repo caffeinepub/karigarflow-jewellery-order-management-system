@@ -22,6 +22,7 @@ export interface DesignImageMapping {
     designCode: string;
 }
 export interface BulkOrderUpdate {
+    isReturnedFromDelivered?: boolean;
     orderNos: Array<string>;
     newStatus: string;
 }
@@ -30,11 +31,19 @@ export interface HealthCheckResponse {
     status: string;
     canisterId: string;
 }
+export interface Karigar {
+    name: string;
+    isActive: boolean;
+}
+export interface HallmarkReturnRequest {
+    actionType: Variant_update_status_return_hallmark;
+    orderNos: Array<string>;
+}
 export interface UnmappedOrderEntry {
     qty: bigint;
-    weight: number;
+    weight?: number;
     createdAt: Time;
-    size: number;
+    size?: number;
     orderType: string;
     orderNo: string;
     isCustomerOrder: boolean;
@@ -58,11 +67,12 @@ export interface BlockUserRequest {
 }
 export interface PersistentOrder {
     qty: bigint;
-    weight: number;
+    weight?: number;
     status: string;
     createdAt: Time;
-    size: number;
+    size?: number;
     orderType: string;
+    isReturnedFromDelivered: boolean;
     orderNo: string;
     isCustomerOrder: boolean;
     karigarName: string;
@@ -108,11 +118,18 @@ export enum UserRole {
     user = "user",
     guest = "guest"
 }
+export enum Variant_update_status_return_hallmark {
+    update_status = "update_status",
+    return_hallmark = "return_hallmark"
+}
 export interface backendInterface {
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     blockUser(request: BlockUserRequest): Promise<void>;
+    bulkMarkOrdersAsDelivered(orderNos: Array<string>): Promise<void>;
     bulkUpdateOrderStatus(bulkUpdate: BulkOrderUpdate): Promise<void>;
+    createKarigar(karigar: Karigar): Promise<void>;
     createUserProfile(user: Principal, profile: UserProfile): Promise<void>;
+    deleteKarigarByName(karigarName: string): Promise<void>;
     getActiveOrdersForKarigar(): Promise<Array<PersistentOrder>>;
     getActivityLog(): Promise<Array<ActivityLogEntry>>;
     getAdminDesignImageMappings(): Promise<Array<[DesignImageMapping, ExternalBlob]>>;
@@ -123,11 +140,13 @@ export interface backendInterface {
     getOrders(): Promise<Array<PersistentOrder>>;
     getUnmappedDesignCodes(): Promise<Array<UnmappedOrderEntry>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
+    handleHallmarkReturns(request: HallmarkReturnRequest): Promise<void>;
     healthCheck(): Promise<HealthCheckResponse>;
     isCallerAdmin(): Promise<boolean>;
     isCallerApproved(): Promise<boolean>;
     isUserBlocked(user: Principal): Promise<boolean>;
     listApprovals(): Promise<Array<UserApprovalInfo>>;
+    listKarigars(): Promise<Array<Karigar>>;
     listUserProfiles(): Promise<Array<UserProfile>>;
     markOrderAsDelivered(orderNo: string): Promise<void>;
     processPartialFulfillment(request: PartialFulfillmentRequest): Promise<void>;

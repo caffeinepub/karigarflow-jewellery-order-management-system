@@ -1,7 +1,7 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { useGetDesignImageForCode } from '../../hooks/useQueries';
+import { useEffect, useState } from 'react';
 
 interface DesignImageViewerDialogProps {
   designCode: string;
@@ -10,62 +10,58 @@ interface DesignImageViewerDialogProps {
 }
 
 export function DesignImageViewerDialog({ designCode, open, onOpenChange }: DesignImageViewerDialogProps) {
-  const { data: imageMapping, isLoading, isError, error } = useGetDesignImageForCode(designCode, open);
+  const { data: imageMapping, isLoading, isError, error } = useGetDesignImageForCode(designCode);
+  const [imageUrl, setImageUrl] = useState<string>('');
+
+  useEffect(() => {
+    if (imageMapping?.image) {
+      const url = imageMapping.image.getDirectURL();
+      setImageUrl(url);
+      return () => {
+        if (url.startsWith('blob:')) {
+          URL.revokeObjectURL(url);
+        }
+      };
+    }
+  }, [imageMapping]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Design Image</DialogTitle>
-          <DialogDescription>
-            Design Code: <span className="font-mono">{designCode}</span>
-          </DialogDescription>
+          <DialogTitle>Design Image: {designCode}</DialogTitle>
         </DialogHeader>
-
-        <div className="mt-4">
+        
+        <div className="space-y-4">
           {isLoading && (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           )}
-
+          
           {isError && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                {error instanceof Error ? error.message : 'Failed to load image'}
-              </AlertDescription>
-            </Alert>
+            <div className="flex items-center gap-2 text-destructive py-4">
+              <AlertCircle className="h-5 w-5" />
+              <span>Error loading image: {error instanceof Error ? error.message : 'Unknown error'}</span>
+            </div>
           )}
-
+          
           {!isLoading && !isError && !imageMapping && (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                No image found for this design code.
-              </AlertDescription>
-            </Alert>
+            <div className="text-center text-muted-foreground py-8">
+              No image found for design code: {designCode}
+            </div>
           )}
-
-          {!isLoading && !isError && imageMapping && (
-            <div className="space-y-4">
-              <div className="text-sm">
-                <p className="font-medium">Generic Name:</p>
-                <p className="text-muted-foreground">{imageMapping.genericName}</p>
+          
+          {imageMapping && imageUrl && (
+            <div className="space-y-2">
+              <div className="text-sm text-muted-foreground">
+                <strong>Generic Name:</strong> {imageMapping.genericName}
               </div>
               <div className="rounded-lg border overflow-hidden bg-muted/20">
-                <img
-                  src={imageMapping.image.getDirectURL()}
+                <img 
+                  src={imageUrl} 
                   alt={`Design ${designCode}`}
-                  className="w-full h-auto max-h-[500px] object-contain"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.style.display = 'none';
-                    target.parentElement?.insertAdjacentHTML(
-                      'beforeend',
-                      '<div class="flex items-center justify-center p-8 text-muted-foreground">Failed to load image</div>'
-                    );
-                  }}
+                  className="w-full h-auto"
                 />
               </div>
             </div>

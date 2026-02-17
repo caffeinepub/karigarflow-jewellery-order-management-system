@@ -8,6 +8,7 @@ import { DesignImageViewerDialog } from '../designImages/DesignImageViewerDialog
 import type { PersistentOrder } from '../../backend';
 import { format } from 'date-fns';
 import { getOrderTimestamp } from '../../lib/orders/getOrderTimestamp';
+import { formatOptionalNumber } from '../../lib/orders/formatOptionalNumber';
 
 interface KarigarOrderViewDialogProps {
   order: PersistentOrder | null;
@@ -45,11 +46,11 @@ export function KarigarOrderViewDialog({ order, open, onOpenChange }: KarigarOrd
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Weight</p>
-                <p>{order.weight.toFixed(2)}g</p>
+                <p>{formatOptionalNumber(order.weight, 2) ? `${formatOptionalNumber(order.weight, 2)}g` : <span className="text-muted-foreground">—</span>}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Size</p>
-                <p>{order.size.toFixed(2)}</p>
+                <p>{formatOptionalNumber(order.size, 2) || <span className="text-muted-foreground">—</span>}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Quantity</p>

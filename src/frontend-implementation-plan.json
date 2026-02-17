@@ -1,66 +1,65 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Admin/Staff delivered controls removal, Admin Delivered bulk hallmark action, and Admin dashboard tab/card color styling",
+  "title": "Karigar directory + selection for Master Design assignments (frontend)",
   "requirements": [
     {
-      "id": "REQ-2",
-      "summary": "Remove/disable any Staff/Admin UI that can mark orders as delivered so only Karigar portal can perform delivered updates.",
+      "id": "REQ-3",
+      "summary": "Add an “Add Karigar” action on Master Designs page to create a saved Karigar name via dialog.",
       "acceptanceCriteria": [
-        "Admin dashboard pages do not present a button/action that triggers a status change to \"delivered\".",
-        "Staff dashboard pages do not present a button/action that triggers a status change to \"delivered\".",
-        "If any legacy Staff/Admin control remains visible for workflow reasons, it must be disabled and show a clear, English explanation that only Karigar can mark delivered (no backend call attempted)."
+        "Master Designs page shows a new button near “Add Mapping” to open an “Add Karigar” dialog.",
+        "The dialog allows entering a Karigar name and saving it; on success it shows a success toast and closes.",
+        "The Karigar list is refreshed after adding so it is immediately available for selection in the edit mapping flow.",
+        "User-facing text is in English."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/pages/staff/StaffDashboardPage.tsx",
-          "operation": "modify",
-          "description": "Remove the Staff \"Mark as Delivered\" bulk action and related selection-driven delivered workflow (including disabling/removing any dialog wiring that would trigger delivered status updates) so Staff cannot initiate delivered status changes from the UI."
+          "path": "frontend/src/components/karigar/AddKarigarDialog.tsx",
+          "operation": "create",
+          "description": "Create an Add Karigar dialog component (name input + Save/Cancel) that uses the React Query mutation hook to add a Karigar, disables Save while pending, and shows success/error toasts. Use the shadcn-ui component library (Dialog, Button, Input/Label) for consistent UI; verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/pages/admin/AdminDashboardPage.tsx",
+          "path": "frontend/src/pages/admin/MasterDesignsPage.tsx",
           "operation": "modify",
-          "description": "Confirm Admin UI has no delivered status-changing controls; ensure no delivered action buttons are introduced in any Admin tab while implementing other requested changes."
-        }
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "summary": "Add bulk selection + \"Give to Hallmark\" action to Admin Delivered tab using the existing bulk status update flow.",
-      "acceptanceCriteria": [
-        "Delivered tab supports selecting one or more rows (checkbox selection) similar to the Total Orders tab selection UI.",
-        "Delivered tab includes an action button that sets the selected delivered orders’ status to \"given_to_hallmark\" using the existing bulk status update flow.",
-        "After a successful update, the selected orders are no longer shown in the Delivered tab list and appear under the Hallmark tab (because of existing tab filtering by status).",
-        "A success toast is shown indicating how many orders were updated; failures show an error toast message in English.",
-        "The existing Delivered tab filters (karigar/status/date/orderNo/CO/RB filters) continue to work."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/pages/admin/AdminDashboardPage.tsx",
-          "operation": "modify",
-          "description": "Implement Delivered-tab row selection (checkboxes) by enabling OrdersTable selectionMode for the Delivered tab and maintaining a Delivered-specific selected set; add a Delivered-tab bulk action button to set selected orders to \"given_to_hallmark\" via the existing useBulkUpdateOrderStatus mutation, with success/error toasts and selection reset on completion."
+          "description": "Add a top-level “Add Karigar” button near the existing “Add Mapping” button, wire state to open/close AddKarigarDialog, and ensure the dialog is mounted so successful add closes and the karigar list can refresh for downstream selection. Use shadcn-ui Button styling for parity with existing actions; verify the component's usage instructions before implementing."
         }
       ]
     },
     {
       "id": "REQ-4",
-      "summary": "Add distinct accent colors to Admin dashboard metric cards and a colored active-tab indicator/slider styling for Admin dashboard tabs.",
+      "summary": "Replace free-text Karigar Name input in Master Design add/edit dialog with a selectable list sourced from saved Karigars.",
       "acceptanceCriteria": [
-        "Each of the four Admin dashboard metric cards has a distinct, consistent accent color (e.g., title/accent bar/badge/background tint) while preserving readability and existing layout.",
-        "The Admin dashboard TabsList/TabsTrigger styling clearly shows the active tab with a colored indicator/underline/slider bar, and inactive tabs have a visually distinct state.",
-        "No edits are made to immutable Shadcn UI component source files; styling is applied via page-level className overrides and/or global Tailwind styles in allowed files.",
-        "All user-facing text remains in English."
+        "When adding or editing a master design mapping, the Karigar field is a selectable list populated from the saved Karigar names.",
+        "Saving the form persists the selected Karigar name into the MasterDesignEntry.karigarName value.",
+        "Editing an existing mapping pre-selects the currently saved karigarName (or shows an empty/unselected state if it does not exist in the saved list).",
+        "User-facing text is in English."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/pages/admin/AdminDashboardPage.tsx",
+          "path": "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx",
           "operation": "modify",
-          "description": "Apply page-level Tailwind className styling to the four metric cards (Orders in View, Customer Orders, Active Karigars, Total Weight) to give each a distinct accent (e.g., border/top accent + subtle background tint), and add TabsList/TabsTrigger className overrides to show a colored active indicator/underline and clear inactive states without modifying shadcn/ui component source."
+          "description": "Replace the karigarName text input with a selection control bound to the saved Karigar list (fetched via a React Query hook). Ensure edit mode pre-selects the existing mapping karigarName when present; otherwise show an empty/unselected state. On save, persist the selected value into MasterDesignEntry.karigarName, keep Save disabled while the master design save mutation is pending, and handle loading/error states for the karigar list (e.g., disable selection and show an inline message/toast). Use shadcn-ui form primitives where available for consistent styling; verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "summary": "Add React Query hooks to fetch and add Karigars and integrate them into Master Designs UI with proper loading/error handling.",
+      "acceptanceCriteria": [
+        "A query hook exists to fetch the Karigar list and cache it with React Query.",
+        "A mutation hook exists to add a Karigar and invalidates/refetches the Karigar list on success.",
+        "Master Designs UI uses these hooks and handles loading/error states (e.g., disable save while pending, show toast/error state on failure)."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Add React Query hooks for Karigar list management: a list query hook that calls the backend actor’s listKarigars() and a create mutation hook that calls createKarigar(...), with invalidation/refetch of the karigar list query on success. Ensure hooks respect actor availability (useActor) and are safe under auth/authorization failures returned by the backend (surface errors for UI to present)."
         },
         {
-          "path": "frontend/src/index.css",
+          "path": "frontend/src/pages/admin/MasterDesignsPage.tsx",
           "operation": "modify",
-          "description": "Add minimal global Tailwind/CSS helpers (within existing layers) to support Admin dashboard tab indicator/slider styling and/or reusable metric-card accent styles if needed, ensuring readability in light/dark modes."
+          "description": "Wire Master Designs page and its dialogs to use the new Karigar hooks (directly or via child components) so the list is available for the mapping dialog selection and is refreshed after Add Karigar succeeds (via query invalidation). Verify RoleGate / authorization behavior remains consistent with existing admin/staff access patterns from the authorization component; verify the component's usage instructions before implementing."
         }
       ]
     }

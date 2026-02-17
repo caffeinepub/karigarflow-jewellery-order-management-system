@@ -1,12 +1,14 @@
 # Specification
 
 ## Summary
-**Goal:** Ensure only Karigar users can mark orders as delivered, remove Delivered actions from Admin/Staff UIs, add a bulk “given_to_hallmark” action in Admin Delivered tab, and apply color styling to Admin dashboard cards and tab indicator.
+**Goal:** Let admins/staff manage a reusable Karigar directory and select Karigars for Master Design mappings so orders reflect updated assignments.
 
 **Planned changes:**
-- Backend: enforce authorization so only users with role #Karigar can set an order’s status to `"delivered"`; reject Admin/Staff attempts (including any backend/bulk methods), while keeping existing Admin/Staff bulk updates for other statuses working.
-- Frontend (Admin/Staff): remove or disable any UI controls that allow marking orders as `"delivered"`; if any control must remain visible, keep it disabled with an English explanation and no backend call.
-- Frontend (Admin): in Dashboard → Delivered tab, add row selection (checkboxes) and a bulk action to update selected delivered orders to `"given_to_hallmark"` using the existing bulk update flow; keep existing filters and show success/error toasts.
-- Frontend (Admin): apply distinct accent colors to the four metric cards (“Orders in View”, “Customer Orders”, “Active Karigars”, “Total Weight”) and add colored active-tab indicator/slider styling for the main Admin dashboard tabs, via page-level styling (no edits to Shadcn UI source files).
+- Add backend persistence and authenticated APIs to create and list Karigar names.
+- Update backend master design editing so changing a mapping’s karigarName reassigns existing stored orders with the same designCode to the latest karigarName.
+- Add an “Add Karigar” action on the Admin Portal Master Designs page to save a new Karigar name and refresh the available list.
+- Replace the free-text Karigar Name field in the Master Design add/edit dialog with a selectable list populated from saved Karigars (with proper pre-select/empty state behavior).
+- Add React Query hooks to fetch the Karigar list and add Karigars, including cache invalidation and basic loading/error handling in the UI.
+- If state schema changes, implement a safe upgrade migration to initialize Karigar storage without affecting existing orders/master designs.
 
-**User-visible outcome:** Karigar portal users can mark their orders as delivered, while Admin/Staff cannot; Admins can bulk move orders from Delivered to Hallmark from the Delivered tab; Admin dashboard cards and tab indicator have clearer color styling.
+**User-visible outcome:** Admins/staff can add Karigar names in the Master Designs area, select from that list when adding/editing master design mappings, and existing orders for a design code will reflect the updated Karigar assignment after changes.

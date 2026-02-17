@@ -27,6 +27,7 @@ export interface BlockUserRequest {
   'reason' : [] | [string],
 }
 export interface BulkOrderUpdate {
+  'isReturnedFromDelivered' : [] | [boolean],
   'orderNos' : Array<string>,
   'newStatus' : string,
 }
@@ -38,10 +39,16 @@ export interface DesignImageMapping {
   'designCode' : string,
 }
 export type ExternalBlob = Uint8Array;
+export interface HallmarkReturnRequest {
+  'actionType' : { 'update_status' : null } |
+    { 'return_hallmark' : null },
+  'orderNos' : Array<string>,
+}
 export interface HealthCheckResponse {
   'status' : string,
   'canisterId' : string,
 }
+export interface Karigar { 'name' : string, 'isActive' : boolean }
 export interface MasterDesignEntry {
   'isActive' : boolean,
   'karigarName' : string,
@@ -56,11 +63,12 @@ export interface PartialFulfillmentRequest {
 }
 export interface PersistentOrder {
   'qty' : bigint,
-  'weight' : number,
+  'weight' : [] | [number],
   'status' : string,
   'createdAt' : Time,
-  'size' : number,
+  'size' : [] | [number],
   'orderType' : string,
+  'isReturnedFromDelivered' : boolean,
   'orderNo' : string,
   'isCustomerOrder' : boolean,
   'karigarName' : string,
@@ -72,9 +80,9 @@ export interface PersistentOrder {
 export type Time = bigint;
 export interface UnmappedOrderEntry {
   'qty' : bigint,
-  'weight' : number,
+  'weight' : [] | [number],
   'createdAt' : Time,
-  'size' : number,
+  'size' : [] | [number],
   'orderType' : string,
   'orderNo' : string,
   'isCustomerOrder' : boolean,
@@ -129,8 +137,11 @@ export interface _SERVICE {
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'blockUser' : ActorMethod<[BlockUserRequest], undefined>,
+  'bulkMarkOrdersAsDelivered' : ActorMethod<[Array<string>], undefined>,
   'bulkUpdateOrderStatus' : ActorMethod<[BulkOrderUpdate], undefined>,
+  'createKarigar' : ActorMethod<[Karigar], undefined>,
   'createUserProfile' : ActorMethod<[Principal, UserProfile], undefined>,
+  'deleteKarigarByName' : ActorMethod<[string], undefined>,
   'getActiveOrdersForKarigar' : ActorMethod<[], Array<PersistentOrder>>,
   'getActivityLog' : ActorMethod<[], Array<ActivityLogEntry>>,
   'getAdminDesignImageMappings' : ActorMethod<
@@ -144,11 +155,13 @@ export interface _SERVICE {
   'getOrders' : ActorMethod<[], Array<PersistentOrder>>,
   'getUnmappedDesignCodes' : ActorMethod<[], Array<UnmappedOrderEntry>>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
+  'handleHallmarkReturns' : ActorMethod<[HallmarkReturnRequest], undefined>,
   'healthCheck' : ActorMethod<[], HealthCheckResponse>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'isCallerApproved' : ActorMethod<[], boolean>,
   'isUserBlocked' : ActorMethod<[Principal], boolean>,
   'listApprovals' : ActorMethod<[], Array<UserApprovalInfo>>,
+  'listKarigars' : ActorMethod<[], Array<Karigar>>,
   'listUserProfiles' : ActorMethod<[], Array<UserProfile>>,
   'markOrderAsDelivered' : ActorMethod<[string], undefined>,
   'processPartialFulfillment' : ActorMethod<

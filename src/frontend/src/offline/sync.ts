@@ -75,7 +75,7 @@ export function useOfflineSync() {
           await uploadOrdersMutation.mutateAsync({
             orders: item.orders,
             onProgress: (progress) => {
-              console.log(`[Sync] Progress: batch ${progress.currentBatch}/${progress.totalBatches}, uploaded ${progress.uploadedOrders}/${progress.totalOrders}`);
+              console.log(`[Sync] Upload progress: ${progress}%`);
             },
           });
 

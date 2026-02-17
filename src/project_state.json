@@ -1,34 +1,32 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Admin/Karigar order management portal with role-based order status updates and enhanced admin dashboard UI styling.",
-  "architectural_notes": [
-    "Role-based authorization: only Karigar portal can mark orders as Delivered; Admin/Staff should not have this permission."
-  ],
+  "summary": "Admin portal: enhance Master Design order assignment to support managing and assigning Karigars (add new Karigar and reassign orders to existing Karigars).",
+  "architectural_notes": [],
   "known_issues": [],
   "isFixRequest": false,
   "existing_features": [
     {
-      "id": "feature-update-the-staff-and-admin-frontends-so-there-is-no-ui-action-that-allows-marking-orders-as-delivered-any-existing-staff-admin-mark-as-delivered-controls-must-be-removed-or-disabled-to-reflect-the-authorization-rule",
-      "title": "Update the Staff and Admin frontends so there is no UI action that allows marking orders as \"delivered\"; any existing Staff/Admin \"Mark as Delivered\" controls must be removed or disabled to reflect the authorization rule.",
-      "reqIds": [
-        "REQ-2"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-in-admin-dashboard-delivered-tab-add-the-same-bulk-action-pattern-available-in-total-orders-selection-action-button-to-change-selected-delivered-orders-to-status-given-to-hallmark",
-      "title": "In Admin Dashboard → Delivered tab, add the same bulk action pattern available in Total Orders (selection + action button) to change selected delivered orders to status \"given_to_hallmark\".",
+      "id": "feature-in-the-admin-portal-master-designs-page-add-a-top-level-action-near-the-existing-add-mapping-button-to-add-a-karigar-name-into-the-saved-karigar-list",
+      "title": "In the Admin Portal Master Designs page, add a top-level action near the existing “Add Mapping” button to add a Karigar name into the saved Karigar list.",
       "reqIds": [
         "REQ-3"
       ],
       "version": 1
     },
     {
-      "id": "feature-apply-color-styling-on-the-admin-dashboard-metric-cards-for-orders-in-view-customer-orders-active-karigars-and-total-weight-and-add-color-styling-to-the-tab-indicator-slider-bar-for-the-main-admin-dashboard-tabs-from-total-orders-to-karigars",
-      "title": "Apply color styling on the Admin dashboard metric cards for “Orders in View”, “Customer Orders”, “Active Karigars”, and “Total Weight”, and add color styling to the tab indicator/slider bar for the main Admin dashboard tabs (from Total Orders to Karigars).",
+      "id": "feature-in-the-master-design-add-edit-dialog-replace-the-free-text-karigar-name-input-with-a-selection-control-that-lets-admins-staff-choose-from-the-previously-added-karigars-and-saves-the-selected-karigar-as-the-mapping-s-karigarname",
+      "title": "In the Master Design add/edit dialog, replace the free-text Karigar Name input with a selection control that lets admins/staff choose from the previously added Karigars, and saves the selected Karigar as the mapping’s karigarName.",
       "reqIds": [
         "REQ-4"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-react-query-hooks-needed-to-fetch-and-mutate-the-karigar-list-from-the-frontend-admin-portal",
+      "title": "Add React Query hooks needed to fetch and mutate the Karigar list from the frontend admin portal.",
+      "reqIds": [
+        "REQ-5"
       ],
       "version": 1
     }
@@ -36,26 +34,42 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Add action in Admin portal Delivered tab to change order status to 'Given for hallmark' (similar to Total Orders tab)",
+      "summary": "In Master Design admin portal, during edit of a design order (generic name / karigar name action), allow selecting a Karigar from previously added Karigars and assign the order to the selected Karigar.",
       "reqIds": [],
       "status": "pending"
     },
     {
       "id": "AR-2",
-      "summary": "Add color styling to Admin dashboard tabs (Orders in View, Customer Orders, Active Karigars, Total Weight) and the slide bar/indicator across tabs from Total Orders to Karigars",
+      "summary": "In Master Design admin portal, add a top-level option near 'Add Mapping' to add a Karigar name so orders can be assigned to that Karigar.",
       "reqIds": [],
       "status": "pending"
     },
     {
       "id": "AR-3",
-      "summary": "Enforce that only the Karigar portal (users with app role #Karigar) can change an order’s status to \"delivered\"; prevent Admin and Staff users from marking orders as delivered via any backend method.",
+      "summary": "Add backend support for maintaining a reusable list of Karigar names that can be assigned to master design mappings (create/read).",
       "reqIds": [
         "REQ-1"
       ],
       "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "Update backend master design editing so that when a master design mapping’s karigarName is changed, existing stored orders for that design code are reassigned to the updated karigarName.",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-8",
+      "summary": "If the backend state schema changes to add persistent Karigar storage, implement a safe conditional upgrade migration so existing deployments upgrade without trapping and initialize the new Karigar storage to an empty state.",
+      "reqIds": [
+        "REQ-6"
+      ],
+      "status": "pending"
     }
   ],
-  "projectName": "Karigar Orders",
+  "projectName": "Master Design Admin",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

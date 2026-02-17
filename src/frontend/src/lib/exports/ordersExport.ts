@@ -1,5 +1,6 @@
 import type { PersistentOrder } from '../../backend';
 import { formatKarigarName } from '../orders/formatKarigarName';
+import { formatOptionalNumberForExport } from '../orders/formatOptionalNumber';
 import { getOrderTimestamp } from '../orders/getOrderTimestamp';
 import { format, startOfDay, endOfDay } from 'date-fns';
 
@@ -54,8 +55,8 @@ export function exportOrders(orders: PersistentOrder[], type: ExportType, select
     order.designCode,
     order.genericName,
     formatKarigarName(order.karigarName),
-    order.weight.toFixed(2),
-    order.size.toFixed(2),
+    formatOptionalNumberForExport(order.weight, 2),
+    formatOptionalNumberForExport(order.size, 2),
     String(Number(order.qty)),
     order.remarks,
     order.status,
