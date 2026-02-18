@@ -100,19 +100,23 @@ export function AppShell({ children }: AppShellProps) {
   );
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-50 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
-        <div className="container flex h-16 items-center justify-between px-4 gap-4">
-          <div className="flex items-center gap-4">
+    <div className="flex flex-col min-h-screen w-full max-w-full overflow-x-hidden bg-background">
+      {/* Sticky header with proper z-index below overlays */}
+      <header className="sticky top-0 z-40 w-full border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
+        <div className="container flex h-16 items-center justify-between px-4 gap-4 max-w-full">
+          <div className="flex items-center gap-4 min-w-0">
             {navItems.length > 0 && (
               <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-                <SheetTrigger asChild className="lg:hidden">
+                <SheetTrigger asChild className="lg:hidden flex-shrink-0">
                   <Button variant="ghost" size="icon">
                     <Menu className="h-5 w-5" />
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="left" className="w-64">
-                  <div className="mb-6">
+                <SheetContent 
+                  side="left" 
+                  className="w-64 bg-card max-h-screen overflow-y-auto flex flex-col"
+                >
+                  <div className="mb-6 flex-shrink-0">
                     <div className="flex items-center gap-2 mb-4">
                       <Gem className="h-6 w-6 text-primary" />
                       <span className="text-lg font-bold">KarigarFlow</span>
@@ -126,30 +130,32 @@ export function AppShell({ children }: AppShellProps) {
                       </div>
                     )}
                   </div>
-                  <MobileNavContent />
+                  <div className="flex-1 overflow-y-auto">
+                    <MobileNavContent />
+                  </div>
                 </SheetContent>
               </Sheet>
             )}
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-shrink-0">
               <Gem className="h-6 w-6 text-primary" />
               <span className="text-lg font-bold hidden sm:inline">KarigarFlow</span>
             </div>
           </div>
 
           {navItems.length > 0 && (
-            <div className="hidden lg:flex items-center gap-2 flex-1 justify-center">
+            <div className="hidden lg:flex items-center gap-2 flex-1 justify-center min-w-0">
               <DesktopNavContent />
             </div>
           )}
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
             <BackendStatusIndicator />
             
             {userProfile && (
               <div className="hidden sm:flex items-center gap-2">
                 <div className="text-right text-sm">
-                  <p className="font-medium">{userProfile.name}</p>
+                  <p className="font-medium truncate max-w-[120px]">{userProfile.name}</p>
                   <Badge variant="outline" className="text-xs">
                     {effectiveRole || userProfile.appRole}
                   </Badge>
@@ -163,11 +169,14 @@ export function AppShell({ children }: AppShellProps) {
 
       <ConnectivityStatusBar />
 
-      <main className="container py-6 px-4">
-        {children}
+      {/* Main content area - no padding-top needed as header is in flow */}
+      <main className="flex-1 w-full max-w-full overflow-x-hidden">
+        <div className="container py-6 px-4 max-w-full">
+          {children}
+        </div>
       </main>
 
-      <footer className="border-t mt-12">
+      <footer className="border-t mt-auto w-full">
         <div className="container py-6 px-4 text-center text-sm text-muted-foreground">
           <p>
             © {new Date().getFullYear()} KarigarFlow. Built with ❤️ using{' '}

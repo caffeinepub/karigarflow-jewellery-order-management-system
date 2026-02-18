@@ -69,9 +69,12 @@ function parseDesignRow(line: string): [string, MasterDesignEntry] | null {
   // Middle tokens are generic name
   const genericName = tokens.slice(1, -1).join(' ');
   
+  // Create karigarId from karigarName
+  const karigarId = karigarName ? karigarName.trim().replace(/\s+/g, '_').toLowerCase() : 'unassigned';
+  
   const entry: MasterDesignEntry = {
     genericName: genericName || designCode,
-    karigarName: karigarName || 'Unassigned',
+    karigarId: karigarId,
     isActive: true
   };
   

@@ -129,10 +129,13 @@ export function parseMasterDesignsFromWorkbook(workbook: any): [string, MasterDe
         ? String(row[columnMap.karigarName] || '').trim() 
         : '';
       
+      // Create karigarId from karigarName
+      const karigarId = karigarName ? karigarName.trim().replace(/\s+/g, '_').toLowerCase() : 'unassigned';
+      
       // Create master design entry
       const entry: MasterDesignEntry = {
         genericName: genericName || designCode, // Default to design code if no generic name
-        karigarName: karigarName || 'Unassigned', // Default to 'Unassigned' if no karigar name
+        karigarId: karigarId, // Use generated ID
         isActive: true
       };
       

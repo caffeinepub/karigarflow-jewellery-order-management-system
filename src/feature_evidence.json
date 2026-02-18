@@ -2,11 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-revert-the-application-codebase-and-production-deployment-to-match-exactly-version-54-not-version-55-56-ensuring-that-any-new-draft-build-is-also-based-on-the-version-54-code-snapshot",
-      "featureTitle": "Revert the application codebase and production deployment to match exactly Version 54 (not Version 55/56), ensuring that any new draft build is also based on the Version 54 code snapshot.",
+      "featureId": "feature-fix-the-global-layout-so-the-navigation-sidebar-including-the-mobile-left-sheet-menu-never-overlaps-or-obscures-page-content-across-routes-and-viewport-sizes",
+      "featureTitle": "Fix the global layout so the navigation/sidebar (including the mobile left Sheet menu) never overlaps or obscures page content across routes and viewport sizes.",
       "files": [
-        "frontend/public/service-worker.js",
-        "frontend/src/version.ts"
+        "frontend/src/components/layout/AppShell.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -25,10 +24,34 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-add-a-user-visible-and-developer-verifiable-build-identifier-that-clearly-indicates-the-deployed-app-version-e-g-v54-in-both-frontend-and-backend-so-the-team-can-confirm-production-is-running-version-54-after-rollback",
-      "featureTitle": "Add a user-visible and developer-verifiable build identifier that clearly indicates the deployed app version (e.g., 'v54') in both frontend and backend, so the team can confirm production is running Version 54 after rollback.",
+      "featureId": "feature-fix-the-date-picker-calendar-popovers-so-they-do-not-overlap-surrounding-ui-or-each-other-and-ensure-only-one-calendar-popover-can-remain-open-at-a-time-in-date-filter-uis-e-g-from-date-vs-to-date",
+      "featureTitle": "Fix the date-picker (calendar) popovers so they do not overlap surrounding UI or each other, and ensure only one calendar popover can remain open at a time in date filter UIs (e.g., From Date vs To Date).",
       "files": [
-        "frontend/src/components/layout/AppShell.tsx"
+        "frontend/src/components/orders/OrdersFiltersBar.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "user-approval@3.0.0",
+        "blob-storage@4.0.0",
+        "http-outcalls@3.0.0"
+      ],
+      "testIds": [
+        "REQ-2"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-fix-the-master-designs-page-overlap-issues-so-that-opening-the-karigar-list-and-any-action-menus-lists-does-not-overlap-or-collide-with-the-page-layout-header-actions-area-filter-badge-row-search-row-card-content-and-table",
+      "featureTitle": "Fix the Master Designs page overlap issues so that opening the Karigar List and any action menus/lists does not overlap or collide with the page layout (header/actions area, filter badge row, search row, card content, and table).",
+      "files": [
+        "frontend/src/components/karigar/TotalKarigarListDialog.tsx",
+        "frontend/src/components/masterDesigns/MasterDesignsTable.tsx",
+        "frontend/src/pages/admin/MasterDesignsPage.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -43,32 +66,6 @@
       ],
       "testIds": [
         "REQ-3"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-fix-the-rollback-rebuild-flow-so-that-draft-expiry-and-caching-do-not-prevent-restoring-the-exact-version-54-deployment-including-ensuring-client-caches-service-worker-do-not-keep-serving-version-55-56-assets-after-rollback",
-      "featureTitle": "Fix the rollback/rebuild flow so that draft expiry and caching do not prevent restoring the exact Version 54 deployment (including ensuring client caches/service worker do not keep serving Version 55/56 assets after rollback).",
-      "files": [
-        "frontend/public/service-worker.js",
-        "frontend/src/components/auth/LoginButton.tsx",
-        "frontend/src/components/errors/AppErrorBoundary.tsx",
-        "frontend/src/pwa/clearPwaCaches.ts",
-        "frontend/src/pwa/registerServiceWorker.ts"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0",
-        "user-approval@3.0.0",
-        "blob-storage@4.0.0",
-        "http-outcalls@3.0.0"
-      ],
-      "testIds": [
-        "REQ-4"
       ],
       "confidence": "high"
     }

@@ -12,8 +12,8 @@ export function sortOrdersKarigarWise(orders: PersistentOrder[]): PersistentOrde
   const { validOrders } = sanitizeOrders(orders);
   
   return [...validOrders].sort((a, b) => {
-    const karigarA = formatKarigarName(a.karigarName);
-    const karigarB = formatKarigarName(b.karigarName);
+    const karigarA = formatKarigarName(a.karigarId);
+    const karigarB = formatKarigarName(b.karigarId);
     
     const karigarCompare = karigarA.localeCompare(karigarB);
     if (karigarCompare !== 0) return karigarCompare;

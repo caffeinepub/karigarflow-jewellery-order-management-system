@@ -1,7 +1,7 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useSetActiveFlagForMasterDesign } from '../../hooks/useQueries';
+import { useSetActiveFlagForMasterDesign, useListKarigarReference } from '../../hooks/useQueries';
 import { Edit, Power } from 'lucide-react';
 import { toast } from 'sonner';
 import type { MasterDesignEntry } from '../../backend';
@@ -13,6 +13,7 @@ interface MasterDesignsTableProps {
 
 export function MasterDesignsTable({ designs, onEdit }: MasterDesignsTableProps) {
   const setActiveMutation = useSetActiveFlagForMasterDesign();
+  const { data: karigars = [] } = useListKarigarReference();
 
   const handleToggleActive = async (designCode: string, currentActive: boolean) => {
     try {
@@ -21,6 +22,11 @@ export function MasterDesignsTable({ designs, onEdit }: MasterDesignsTableProps)
     } catch (error) {
       toast.error('Failed to update design status');
     }
+  };
+
+  const getKarigarName = (karigarId: string) => {
+    const karigar = karigars.find(k => k.id === karigarId);
+    return karigar ? karigar.name : karigarId;
   };
 
   if (designs.length === 0) {
@@ -32,15 +38,15 @@ export function MasterDesignsTable({ designs, onEdit }: MasterDesignsTableProps)
   }
 
   return (
-    <div className="rounded-md border overflow-x-auto">
+    <div className="w-full overflow-x-auto rounded-md border relative">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Design Code</TableHead>
-            <TableHead>Generic Name</TableHead>
-            <TableHead>Karigar Name</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
+            <TableHead className="min-w-[150px]">Design Code</TableHead>
+            <TableHead className="min-w-[150px]">Generic Name</TableHead>
+            <TableHead className="min-w-[150px]">Karigar Name</TableHead>
+            <TableHead className="min-w-[100px]">Status</TableHead>
+            <TableHead className="text-right min-w-[120px] sticky right-0 bg-card">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -48,13 +54,13 @@ export function MasterDesignsTable({ designs, onEdit }: MasterDesignsTableProps)
             <TableRow key={code}>
               <TableCell className="font-mono font-medium">{code}</TableCell>
               <TableCell>{entry.genericName}</TableCell>
-              <TableCell>{entry.karigarName}</TableCell>
+              <TableCell>{getKarigarName(entry.karigarId)}</TableCell>
               <TableCell>
                 <Badge variant={entry.isActive ? 'default' : 'outline'}>
                   {entry.isActive ? 'Active' : 'Inactive'}
                 </Badge>
               </TableCell>
-              <TableCell className="text-right">
+              <TableCell className="text-right sticky right-0 bg-card">
                 <div className="flex justify-end gap-2">
                   <Button
                     size="sm"

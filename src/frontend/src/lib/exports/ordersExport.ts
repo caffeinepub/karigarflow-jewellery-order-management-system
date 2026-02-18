@@ -54,7 +54,7 @@ export function exportOrders(orders: PersistentOrder[], type: ExportType, select
     order.orderType,
     order.designCode,
     order.genericName,
-    formatKarigarName(order.karigarName),
+    formatKarigarName(order.karigarId),
     formatOptionalNumberForExport(order.weight, 2),
     formatOptionalNumberForExport(order.size, 2),
     String(Number(order.qty)),

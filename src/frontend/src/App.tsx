@@ -1,4 +1,4 @@
-import { RouterProvider, createRouter, createRoute, createRootRoute, Outlet, useNavigate } from '@tanstack/react-router';
+import { RouterProvider, createRouter, createRoute, createRootRoute, Outlet, useNavigate, useLocation } from '@tanstack/react-router';
 import { useInternetIdentity } from './hooks/useInternetIdentity';
 import { useCurrentUser } from './hooks/useCurrentUser';
 import { useIsCallerAdmin, useCheckUserBlocked } from './hooks/useQueries';
@@ -27,6 +27,7 @@ import { AppRole } from './backend';
 import { useEffect } from 'react';
 
 function Layout() {
+  const location = useLocation();
   const { identity } = useInternetIdentity();
   const { actor: safeActor, isError: actorError, error: actorErrorObj, refetch: refetchActor } = useSafeActor();
   const { userProfile, isLoading: profileLoading, isFetched: profileFetched, isError: profileError, error: profileErrorObj, refetch: refetchProfile } = useCurrentUser();
@@ -84,10 +85,11 @@ function Layout() {
     return <NoProfileBlockedScreen />;
   }
 
-  // User has a profile, show the app
+  // User has a profile, show the app with keyed outlet to ensure route isolation
+  // The key forces React to unmount the previous route component when pathname changes
   return (
     <AppShell>
-      <Outlet />
+      <Outlet key={location.pathname} />
     </AppShell>
   );
 }
@@ -222,7 +224,7 @@ const ingestOrdersRoute = createRoute({
   ),
 });
 
-const unmappedRoute = createRoute({
+const unmappedDesignCodesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/staff/unmapped',
   component: () => (
@@ -242,7 +244,7 @@ const karigarDashboardRoute = createRoute({
   ),
 });
 
-const bootstrapRoute = createRoute({
+const bootstrapAdminRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/setup/bootstrap',
   component: BootstrapAdminPage,
@@ -256,9 +258,9 @@ const routeTree = rootRoute.addChildren([
   userManagementRoute,
   staffDashboardRoute,
   ingestOrdersRoute,
-  unmappedRoute,
+  unmappedDesignCodesRoute,
   karigarDashboardRoute,
-  bootstrapRoute,
+  bootstrapAdminRoute,
 ]);
 
 const router = createRouter({ routeTree });
@@ -272,7 +274,7 @@ declare module '@tanstack/react-router' {
 export default function App() {
   return (
     <AppErrorBoundary>
-      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
         <RouterProvider router={router} />
         <Toaster />
       </ThemeProvider>

@@ -41,7 +41,7 @@ export function IngestionPreviewTable({ previewOrders, unmappedCodes }: Ingestio
         <TableBody>
           {previewOrders.map((order, idx) => {
             const unmapped = isUnmapped(order.designCode);
-            const isPdfDerived = order.karigarName && order.karigarName.trim() !== '' && order.karigarName.toLowerCase() !== 'unassigned';
+            const isPdfDerived = order.karigarId && order.karigarId.trim() !== '' && order.karigarId.toLowerCase() !== 'unassigned';
             
             return (
               <TableRow
@@ -65,7 +65,7 @@ export function IngestionPreviewTable({ previewOrders, unmappedCodes }: Ingestio
                 <TableCell>{order.genericName || <span className="text-muted-foreground italic">—</span>}</TableCell>
                 <TableCell>
                   <span className="flex items-center gap-1">
-                    {formatKarigarName(order.karigarName)}
+                    {formatKarigarName(order.karigarId)}
                     {isPdfDerived && (
                       <CheckCircle 
                         className="h-3 w-3 text-blue-600 flex-shrink-0" 

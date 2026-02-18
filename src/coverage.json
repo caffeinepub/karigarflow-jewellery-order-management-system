@@ -1,89 +1,67 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-18T05:18:52.123Z",
+  "generatedAt": "2026-02-18T12:21:54.317Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 4,
+    "total": 3,
     "implemented": 3,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Revert the application codebase and production deployment to match exactly Version 54 (not Version 55/56), ensuring that any new draft build is also based on the Version 54 code snapshot.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/version.ts",
-          "frontend/src/main.tsx",
-          "frontend/public/service-worker.js"
-        ],
-        "matchedFiles": [
-          "frontend/src/version.ts",
-          "frontend/public/service-worker.js"
-        ]
-      },
-      {
-        "id": "REQ-2",
-        "summary": "Ensure the rollback to Version 54 preserves existing persisted canister state (orders, user profiles, master designs, karigars, activity logs, design images/mappings) and does not wipe/reset data; if Version 54 requires a schema change, implement a compatible conditional upgrade migration that preserves all existing data.",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
-      },
-      {
-        "id": "REQ-3",
-        "summary": "Add a user-visible and developer-verifiable build identifier that clearly indicates the deployed app version (e.g., 'v54') in both frontend and backend, so the team can confirm production is running Version 54 after rollback.",
+        "summary": "Fix the global layout so the navigation/sidebar (including the mobile left Sheet menu) never overlaps or obscures page content across routes and viewport sizes.",
         "status": "implemented",
         "plannedFiles": [
           "frontend/src/components/layout/AppShell.tsx",
-          "frontend/src/main.tsx"
+          "frontend/src/index.css"
         ],
         "matchedFiles": [
           "frontend/src/components/layout/AppShell.tsx"
         ]
       },
       {
-        "id": "REQ-4",
-        "summary": "Fix the rollback/rebuild flow so that draft expiry and caching do not prevent restoring the exact Version 54 deployment (including ensuring client caches/service worker do not keep serving Version 55/56 assets after rollback).",
+        "id": "REQ-2",
+        "summary": "Fix the date-picker (calendar) popovers so they do not overlap surrounding UI or each other, and ensure only one calendar popover can remain open at a time in date filter UIs (e.g., From Date vs To Date).",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/pwa/clearPwaCaches.ts",
-          "frontend/public/service-worker.js",
-          "frontend/src/pwa/registerServiceWorker.ts",
-          "frontend/src/main.tsx",
-          "frontend/src/components/auth/LoginButton.tsx",
-          "frontend/src/components/errors/AppErrorBoundary.tsx"
+          "frontend/src/components/orders/OrdersFiltersBar.tsx",
+          "frontend/src/index.css"
         ],
         "matchedFiles": [
-          "frontend/src/pwa/clearPwaCaches.ts",
-          "frontend/public/service-worker.js",
-          "frontend/src/pwa/registerServiceWorker.ts",
-          "frontend/src/components/auth/LoginButton.tsx",
-          "frontend/src/components/errors/AppErrorBoundary.tsx"
+          "frontend/src/components/orders/OrdersFiltersBar.tsx"
+        ]
+      },
+      {
+        "id": "REQ-3",
+        "summary": "Fix the Master Designs page overlap issues so that opening the Karigar List and any action menus/lists does not overlap or collide with the page layout (header/actions area, filter badge row, search row, card content, and table).",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/admin/MasterDesignsPage.tsx",
+          "frontend/src/components/karigar/TotalKarigarListDialog.tsx",
+          "frontend/src/components/masterDesigns/MasterDesignsTable.tsx",
+          "frontend/src/index.css"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/admin/MasterDesignsPage.tsx",
+          "frontend/src/components/karigar/TotalKarigarListDialog.tsx",
+          "frontend/src/components/masterDesigns/MasterDesignsTable.tsx"
         ]
       }
     ]
   },
   "changedFiles": [
-    "backend/main.mo",
-    "backend/migration.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/public/service-worker.js",
-    "frontend/src/backend.d.ts",
-    "frontend/src/backend.ts",
-    "frontend/src/components/auth/LoginButton.tsx",
-    "frontend/src/components/errors/AppErrorBoundary.tsx",
+    "frontend/src/components/karigar/TotalKarigarListDialog.tsx",
     "frontend/src/components/layout/AppShell.tsx",
-    "frontend/src/declarations/backend.did.d.ts",
-    "frontend/src/declarations/backend.did.js",
-    "frontend/src/hooks/useQueries.ts",
-    "frontend/src/pwa/clearPwaCaches.ts",
-    "frontend/src/pwa/registerServiceWorker.ts",
-    "frontend/src/version.ts",
+    "frontend/src/components/masterDesigns/MasterDesignsTable.tsx",
+    "frontend/src/components/orders/OrdersFiltersBar.tsx",
+    "frontend/src/pages/admin/MasterDesignsPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

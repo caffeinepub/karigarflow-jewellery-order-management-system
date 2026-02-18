@@ -1,89 +1,45 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-18T05:18:52.120Z",
-  "summary": "Diff adds a v54 build identifier in the frontend and substantial PWA/service-worker cache handling aimed at preventing stale assets after rollback. It also introduces a backend migration module and wires it into backend/main.mo. However, the diff does not provide evidence that the overall codebase/deployment is reverted to match Version 54 exactly, that the backend exposes a version/build query returning 'v54', nor that the rollback/draft-build process is fixed to avoid rebuilding from Version 55/56. The diff summary also indicates multiple UI/behavior changes (dashboards, role gates, etc.) that appear unrelated to rollback verification/caching.",
+  "generatedAt": "2026-02-18T12:21:54.314Z",
+  "summary": "Diff implements several overlap-related layout adjustments (sticky header/root overflow control, responsive wrapping on Master Designs page, viewport-bounded Karigar List dialog scrolling) and adds mutual-exclusion state for OrdersFiltersBar calendar popovers. However, some acceptance criteria are not evidenced in the provided diffs (notably calendar popover clipping/z-index/close-on-select, and Master Designs row-level Actions menus/dialogs rendering above and not being clipped).",
   "missing_requirements": [
     {
       "id": "REQ-1",
-      "requirement": "Revert the application codebase and production deployment to match exactly Version 54 (not Version 55/56), ensuring that any new draft build is also based on the Version 54 code snapshot.",
-      "reason": "The diff shows new changes (e.g., adding migration, PWA cache clearing utilities, service worker update logic, and various UI behavior changes) but does not provide evidence of reverting to an exact Version 54 snapshot or removing Version 55/56 changes. There is also no build/CI/draft-build flow change shown that guarantees drafts build from Version 54 only.",
+      "requirement": "Fix the global layout so the navigation/sidebar (including the mobile left Sheet menu) never overlaps or obscures page content across routes and viewport sizes.",
+      "reason": "AppShell shows changes toward controlling overflow and header stacking (sticky header z-index and overflow-x-hidden), but the diff is truncated before showing how main content is positioned relative to the sticky header and the mobile Sheet overlay (e.g., content padding/offset, SheetContent sizing/scroll behavior). The evidence is insufficient to confirm that content never renders underneath the header/sheet across routes and viewport sizes.",
       "evidence": [
-        "frontend-file-summaries.txt",
-        "backend/main.mo",
-        "frontend/src/pwa/registerServiceWorker.ts",
-        "frontend/public/service-worker.js",
-        "frontend/src/version.ts"
+        "frontend/src/components/layout/AppShell.tsx (truncated)"
       ]
     },
     {
       "id": "REQ-2",
-      "requirement": "Ensure the rollback to Version 54 preserves existing persisted canister state and does not wipe/reset data; if Version 54 requires a schema change, implement a compatible conditional upgrade migration that preserves all existing data.",
-      "reason": "A migration module is added and wired into backend/main.mo, but the provided diff excerpt does not show the stable variable declarations, preupgrade/postupgrade hooks, or the exact persistence schema used in Version 54 vs current. Based on the truncated backend/main.mo, it is not developer-verifiable from this diff summary alone that production state will be preserved without loss.",
+      "requirement": "Fix the date-picker (calendar) popovers so they do not overlap surrounding UI or each other, ensure only one calendar popover can remain open at a time, ensure popover is not clipped and closes after selection.",
+      "reason": "Mutual exclusivity state (fromDateOpen/toDateOpen and open-change handlers) is implemented, but the diff is truncated before showing (1) Popover/PopoverContent configuration that prevents clipping (portal usage, z-index, side/align, container overflow interactions) and (2) the Calendar onSelect handlers closing the corresponding popover after date selection.",
       "evidence": [
-        "backend/migration.mo",
-        "backend/main.mo"
+        "frontend/src/components/orders/OrdersFiltersBar.tsx (truncated)"
       ]
     },
     {
       "id": "REQ-3",
-      "requirement": "Backend exposes a query method (or extends an existing health/status method) returning the app version/build identifier, and the value reported is 'v54'.",
-      "reason": "Frontend BUILD_ID is added and imported in AppShell, but the backend-side version/build identifier query (or extension to an existing status/health method) is not shown in the diff excerpt. backend/main.mo includes a HealthCheckResponse type but no visible query method returning a build identifier.",
+      "requirement": "Fix the Master Designs page overlap issues so that opening the Karigar List and any action menus/lists does not overlap or collide with the page layout, including row-level Actions UI rendering above the table and not being clipped by parent containers.",
+      "reason": "The Karigar List dialog is adjusted to be viewport-bounded with internal scrolling, and the page header/actions layout is made more wrap-friendly. However, the table implementation shown contains only inline buttons (no menu/popover/dialog for row-level Actions), and there are no evidenced changes ensuring any row-level Actions menus/dialogs render above the table and are not clipped by parent containers.",
       "evidence": [
-        "frontend/src/version.ts",
-        "frontend/src/components/layout/AppShell.tsx",
-        "backend/main.mo"
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "requirement": "Fix the rollback/rebuild flow so that draft expiry and caching do not prevent restoring the exact Version 54 deployment (including ensuring the rollback/rebuild does not get forced into rebuilding Version 55 due to draft-expiry handling).",
-      "reason": "The diff addresses service worker cache versioning/activation and adds cache-clearing utilities, but it does not show any change to the draft build/rollback process or draft-expiry handling that could force rebuilding Version 55/56.",
-      "evidence": [
-        "frontend/src/pwa/registerServiceWorker.ts",
-        "frontend/public/service-worker.js",
-        "frontend/src/pwa/clearPwaCaches.ts",
-        "frontend-file-summaries.txt"
+        "frontend/src/components/karigar/TotalKarigarListDialog.tsx (truncated)",
+        "frontend/src/pages/admin/MasterDesignsPage.tsx (truncated)",
+        "frontend/src/components/masterDesigns/MasterDesignsTable.tsx"
       ]
     }
   ],
-  "hallucinated_features": [
-    {
-      "description": "Multiple admin/staff dashboard behavior changes (reordered tabs, default tab selection, date filtering defaults, new metrics logic, selection support, and various prop-name corrections).",
-      "reason": "These appear to be functional/UI changes unrelated to the stated rollback-only non-goal ('Adding new product features unrelated to restoring Version 54'). The diff summary suggests enhancements/fixes beyond rollback verification/caching/state preservation.",
-      "evidence": [
-        "frontend-file-summaries.txt"
-      ]
-    },
-    {
-      "description": "New/expanded error boundary UX including 'Logout & Clear Session' flow that clears PWA caches, localStorage, sessionStorage, and forces navigation/reload.",
-      "reason": "While cache-clearing relates to REQ-4, this specific new user-facing flow and session-clearing behavior is not explicitly requested as part of the rollback requirements and could be considered additional product behavior.",
-      "evidence": [
-        "frontend/src/components/errors/AppErrorBoundary.tsx"
-      ]
-    },
-    {
-      "description": "Additional logout behavior to clear React Query cache and unregister service workers/clear Cache Storage on logout.",
-      "reason": "Cache handling is requested (REQ-4), but implementing cache/service-worker removal specifically on logout is an extra behavioral change not explicitly required by the request.",
-      "evidence": [
-        "frontend/src/components/auth/LoginButton.tsx",
-        "frontend/src/pwa/clearPwaCaches.ts"
-      ]
-    }
-  ],
+  "hallucinated_features": [],
   "confidence": 0.62,
   "changed_files": [
-    "backend/main.mo",
-    "backend/migration.mo",
     "frontend-file-summaries.txt",
-    "frontend/public/service-worker.js",
-    "frontend/src/components/auth/LoginButton.tsx",
-    "frontend/src/components/errors/AppErrorBoundary.tsx",
+    "frontend/src/components/karigar/TotalKarigarListDialog.tsx",
     "frontend/src/components/layout/AppShell.tsx",
-    "frontend/src/hooks/useQueries.ts",
-    "frontend/src/pwa/clearPwaCaches.ts",
-    "frontend/src/pwa/registerServiceWorker.ts",
-    "frontend/src/version.ts",
+    "frontend/src/components/masterDesigns/MasterDesignsTable.tsx",
+    "frontend/src/components/orders/OrdersFiltersBar.tsx",
+    "frontend/src/pages/admin/MasterDesignsPage.tsx",
     "project_state.json"
   ]
 }

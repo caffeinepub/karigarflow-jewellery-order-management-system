@@ -1,5 +1,6 @@
 import type { PersistentOrder } from '../../backend';
 import { sanitizeOrders } from './validatePersistentOrder';
+import { formatKarigarName } from './formatKarigarName';
 
 export interface KarigarStats {
   totalOrders: number;
@@ -34,7 +35,7 @@ export function deriveMetrics(orders: PersistentOrder[]): OrderMetrics {
       customerOrdersCount++;
     }
 
-    const karigarName = order.karigarName || 'Unassigned';
+    const karigarName = formatKarigarName(order.karigarId);
     if (!byKarigar[karigarName]) {
       byKarigar[karigarName] = {
         totalOrders: 0,

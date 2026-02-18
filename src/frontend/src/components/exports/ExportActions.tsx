@@ -14,6 +14,7 @@ import { Download, FileText, Image } from 'lucide-react';
 import { exportOrders } from '../../lib/exports/ordersExport';
 import { downloadKarigarPDF, downloadKarigarJPEG } from '../../lib/exports/karigarOrdersDownloads';
 import { deriveMetrics } from '../../lib/orders/deriveMetrics';
+import { formatKarigarName } from '../../lib/orders/formatKarigarName';
 import { toast } from 'sonner';
 import type { PersistentOrder } from '../../backend';
 import { format as formatDate } from 'date-fns';
@@ -43,7 +44,7 @@ export function ExportActions({ filteredOrders, selectedDate }: ExportActionsPro
     setIsExporting(true);
     try {
       const karigarOrders = filteredOrders.filter(
-        (order) => order.karigarName === karigarName || (order.karigarName.trim() === '' && karigarName === 'Unassigned')
+        (order) => formatKarigarName(order.karigarId) === karigarName
       );
 
       if (karigarOrders.length === 0) {

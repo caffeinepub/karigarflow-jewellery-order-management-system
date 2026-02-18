@@ -73,7 +73,7 @@ export function parseOrdersFromPdfText(text: string, uploadDate: Date): Persiste
       orderType,
       designCode,
       genericName,
-      karigarName: currentKarigar,
+      karigarId: currentKarigar,
       weight,
       size,
       qty: BigInt(qty),

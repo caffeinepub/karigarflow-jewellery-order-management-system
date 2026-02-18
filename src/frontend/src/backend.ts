@@ -129,18 +129,22 @@ export interface UnmappedOrderEntry {
     remarks: string;
 }
 export interface PersistentKarigar {
+    id: string;
     name: string;
     isActive: boolean;
+}
+export interface SavedMasterDesignsRequest {
+    masterDesigns: Array<[string, MasterDesignEntry]>;
+}
+export interface UserApprovalInfo {
+    status: ApprovalStatus;
+    principal: Principal;
 }
 export interface ActivityLogEntry {
     action: string;
     userId: Principal;
     timestamp: Time;
     details: string;
-}
-export interface UserApprovalInfo {
-    status: ApprovalStatus;
-    principal: Principal;
 }
 export interface BlockUserRequest {
     user: Principal;
@@ -155,10 +159,10 @@ export interface PersistentOrder {
     orderType: string;
     orderNo: string;
     isCustomerOrder: boolean;
-    karigarName: string;
     genericName: string;
     designCode: string;
     uploadDate: Time;
+    karigarId: string;
     remarks: string;
 }
 export interface UpdateOrderTotalSuppliedRequest {
@@ -168,20 +172,20 @@ export interface UpdateOrderTotalSuppliedRequest {
 export interface PartialFulfillmentRequest {
     entries: Array<PartialFulfillmentQty>;
 }
-export interface MasterDesignEntry {
-    isActive: boolean;
-    karigarName: string;
-    genericName: string;
-}
 export interface PartialFulfillmentQty {
     suppliedQty: bigint;
     orderNo: string;
+}
+export interface MasterDesignEntry {
+    isActive: boolean;
+    genericName: string;
+    karigarId: string;
 }
 export interface UserProfile {
     isCreated: boolean;
     appRole: AppRole;
     name: string;
-    karigarName?: string;
+    karigarId?: string;
 }
 export interface _CaffeineStorageRefillResult {
     success?: boolean;
@@ -220,13 +224,14 @@ export interface backendInterface {
     bulkUpdateOrderStatus(bulkUpdate: BulkOrderUpdate): Promise<void>;
     createKarigar(karigar: PersistentKarigar): Promise<void>;
     createUserProfile(user: Principal, profile: UserProfile): Promise<void>;
-    deleteKarigarByName(karigarName: string): Promise<void>;
+    deleteKarigarById(karigarId: string): Promise<void>;
     getActiveOrdersForKarigar(): Promise<Array<PersistentOrder>>;
     getActivityLog(): Promise<Array<ActivityLogEntry>>;
     getAdminDesignImageMappings(): Promise<Array<[DesignImageMapping, ExternalBlob]>>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     getDesignImageMappings(): Promise<Array<DesignImageMapping>>;
+    getGivenToHallmarkOrders(): Promise<Array<PersistentOrder>>;
     getMasterDesigns(): Promise<Array<[string, MasterDesignEntry]>>;
     getOrders(): Promise<Array<PersistentOrder>>;
     getUnmappedDesignCodes(): Promise<Array<UnmappedOrderEntry>>;
@@ -238,20 +243,20 @@ export interface backendInterface {
     isUserBlocked(user: Principal): Promise<boolean>;
     listApprovals(): Promise<Array<UserApprovalInfo>>;
     listDistinctKarigars(): Promise<Array<PersistentKarigar>>;
+    listKarigarReference(): Promise<Array<PersistentKarigar>>;
     listKarigars(): Promise<Array<PersistentKarigar>>;
-    listKarigarsNames(): Promise<Array<string>>;
     listUserProfiles(): Promise<Array<UserProfile>>;
     markOrderAsDelivered(orderNo: string): Promise<void>;
     processPartialFulfillment(request: PartialFulfillmentRequest): Promise<void>;
     requestApproval(): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     saveDesignImageMappings(parsedMappings: Array<DesignImageMapping>): Promise<Array<DesignImageMapping>>;
-    saveMasterDesigns(masterDesigns: Array<[string, MasterDesignEntry]>): Promise<void>;
+    saveMasterDesigns(request: SavedMasterDesignsRequest): Promise<void>;
     setActiveFlagForMasterDesign(designCode: string, isActive: boolean): Promise<void>;
     setApproval(user: Principal, status: ApprovalStatus): Promise<void>;
     unblockUser(user: Principal): Promise<void>;
     updateOrderTotalSupplied(request: UpdateOrderTotalSuppliedRequest): Promise<void>;
-    updateOrdersForNewKarigar(designCode: string, newKarigarName: string): Promise<void>;
+    updateOrdersForNewKarigar(designCode: string, newKarigarId: string): Promise<void>;
     uploadParsedOrders(parsedOrders: Array<PersistentOrder>): Promise<void>;
 }
 import type { AppRole as _AppRole, ApprovalStatus as _ApprovalStatus, BlockUserRequest as _BlockUserRequest, DesignImageMapping as _DesignImageMapping, ExternalBlob as _ExternalBlob, HallmarkReturnRequest as _HallmarkReturnRequest, PersistentOrder as _PersistentOrder, Time as _Time, UnmappedOrderEntry as _UnmappedOrderEntry, UserApprovalInfo as _UserApprovalInfo, UserProfile as _UserProfile, UserRole as _UserRole, _CaffeineStorageRefillInformation as __CaffeineStorageRefillInformation, _CaffeineStorageRefillResult as __CaffeineStorageRefillResult } from "./declarations/backend.did.d.ts";
@@ -439,17 +444,17 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async deleteKarigarByName(arg0: string): Promise<void> {
+    async deleteKarigarById(arg0: string): Promise<void> {
         if (this.processError) {
             try {
-                const result = await this.actor.deleteKarigarByName(arg0);
+                const result = await this.actor.deleteKarigarById(arg0);
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.deleteKarigarByName(arg0);
+            const result = await this.actor.deleteKarigarById(arg0);
             return result;
         }
     }
@@ -535,6 +540,20 @@ export class Backend implements backendInterface {
         } else {
             const result = await this.actor.getDesignImageMappings();
             return from_candid_vec_n33(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getGivenToHallmarkOrders(): Promise<Array<PersistentOrder>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getGivenToHallmarkOrders();
+                return from_candid_vec_n16(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getGivenToHallmarkOrders();
+            return from_candid_vec_n16(this._uploadFile, this._downloadFile, result);
         }
     }
     async getMasterDesigns(): Promise<Array<[string, MasterDesignEntry]>> {
@@ -691,6 +710,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async listKarigarReference(): Promise<Array<PersistentKarigar>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.listKarigarReference();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.listKarigarReference();
+            return result;
+        }
+    }
     async listKarigars(): Promise<Array<PersistentKarigar>> {
         if (this.processError) {
             try {
@@ -702,20 +735,6 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.listKarigars();
-            return result;
-        }
-    }
-    async listKarigarsNames(): Promise<Array<string>> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.listKarigarsNames();
-                return result;
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.listKarigarsNames();
             return result;
         }
     }
@@ -803,7 +822,7 @@ export class Backend implements backendInterface {
             return from_candid_vec_n33(this._uploadFile, this._downloadFile, result);
         }
     }
-    async saveMasterDesigns(arg0: Array<[string, MasterDesignEntry]>): Promise<void> {
+    async saveMasterDesigns(arg0: SavedMasterDesignsRequest): Promise<void> {
         if (this.processError) {
             try {
                 const result = await this.actor.saveMasterDesigns(arg0);
@@ -956,10 +975,10 @@ function from_candid_record_n18(_uploadFile: (file: ExternalBlob) => Promise<Uin
     orderType: string;
     orderNo: string;
     isCustomerOrder: boolean;
-    karigarName: string;
     genericName: string;
     designCode: string;
     uploadDate: _Time;
+    karigarId: string;
     remarks: string;
 }): {
     qty: bigint;
@@ -970,10 +989,10 @@ function from_candid_record_n18(_uploadFile: (file: ExternalBlob) => Promise<Uin
     orderType: string;
     orderNo: string;
     isCustomerOrder: boolean;
-    karigarName: string;
     genericName: string;
     designCode: string;
     uploadDate: Time;
+    karigarId: string;
     remarks: string;
 } {
     return {
@@ -985,10 +1004,10 @@ function from_candid_record_n18(_uploadFile: (file: ExternalBlob) => Promise<Uin
         orderType: value.orderType,
         orderNo: value.orderNo,
         isCustomerOrder: value.isCustomerOrder,
-        karigarName: value.karigarName,
         genericName: value.genericName,
         designCode: value.designCode,
         uploadDate: value.uploadDate,
+        karigarId: value.karigarId,
         remarks: value.remarks
     };
 }
@@ -1017,18 +1036,18 @@ function from_candid_record_n27(_uploadFile: (file: ExternalBlob) => Promise<Uin
     isCreated: boolean;
     appRole: _AppRole;
     name: string;
-    karigarName: [] | [string];
+    karigarId: [] | [string];
 }): {
     isCreated: boolean;
     appRole: AppRole;
     name: string;
-    karigarName?: string;
+    karigarId?: string;
 } {
     return {
         isCreated: value.isCreated,
         appRole: from_candid_AppRole_n28(_uploadFile, _downloadFile, value.appRole),
         name: value.name,
-        karigarName: record_opt_to_undefined(from_candid_opt_n30(_uploadFile, _downloadFile, value.karigarName))
+        karigarId: record_opt_to_undefined(from_candid_opt_n30(_uploadFile, _downloadFile, value.karigarId))
     };
 }
 function from_candid_record_n36(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
@@ -1191,18 +1210,18 @@ function to_candid_record_n13(_uploadFile: (file: ExternalBlob) => Promise<Uint8
     isCreated: boolean;
     appRole: AppRole;
     name: string;
-    karigarName?: string;
+    karigarId?: string;
 }): {
     isCreated: boolean;
     appRole: _AppRole;
     name: string;
-    karigarName: [] | [string];
+    karigarId: [] | [string];
 } {
     return {
         isCreated: value.isCreated,
         appRole: to_candid_AppRole_n14(_uploadFile, _downloadFile, value.appRole),
         name: value.name,
-        karigarName: value.karigarName ? candid_some(value.karigarName) : candid_none()
+        karigarId: value.karigarId ? candid_some(value.karigarId) : candid_none()
     };
 }
 function to_candid_record_n3(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
@@ -1260,10 +1279,10 @@ function to_candid_record_n54(_uploadFile: (file: ExternalBlob) => Promise<Uint8
     orderType: string;
     orderNo: string;
     isCustomerOrder: boolean;
-    karigarName: string;
     genericName: string;
     designCode: string;
     uploadDate: Time;
+    karigarId: string;
     remarks: string;
 }): {
     qty: bigint;
@@ -1274,10 +1293,10 @@ function to_candid_record_n54(_uploadFile: (file: ExternalBlob) => Promise<Uint8
     orderType: string;
     orderNo: string;
     isCustomerOrder: boolean;
-    karigarName: string;
     genericName: string;
     designCode: string;
     uploadDate: _Time;
+    karigarId: string;
     remarks: string;
 } {
     return {
@@ -1289,10 +1308,10 @@ function to_candid_record_n54(_uploadFile: (file: ExternalBlob) => Promise<Uint8
         orderType: value.orderType,
         orderNo: value.orderNo,
         isCustomerOrder: value.isCustomerOrder,
-        karigarName: value.karigarName,
         genericName: value.genericName,
         designCode: value.designCode,
         uploadDate: value.uploadDate,
+        karigarId: value.karigarId,
         remarks: value.remarks
     };
 }

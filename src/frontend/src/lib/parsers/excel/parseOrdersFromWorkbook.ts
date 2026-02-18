@@ -47,7 +47,7 @@ export function parseOrdersFromWorkbook(workbook: any, uploadDate: Date): { orde
       const orderType = String(row[orderTypeCol] || '').trim();
       const designCode = String(row[designCodeCol] || '').trim();
       const genericName = genericNameCol ? String(row[genericNameCol] || '').trim() : '';
-      const karigarName = karigarNameCol ? String(row[karigarNameCol] || '').trim() : '';
+      const karigarId = karigarNameCol ? String(row[karigarNameCol] || '').trim() : '';
       const remarks = remarksCol ? String(row[remarksCol] || '').trim() : '';
 
       if (!orderNo || !orderType || !designCode) {
@@ -99,7 +99,7 @@ export function parseOrdersFromWorkbook(workbook: any, uploadDate: Date): { orde
         orderType,
         designCode,
         genericName,
-        karigarName,
+        karigarId,
         weight,
         size,
         qty: BigInt(qty),

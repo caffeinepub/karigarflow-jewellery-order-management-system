@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useQueryClient } from '@tanstack/react-query';
-import { useUploadParsedOrdersBatched, useGetMasterDesigns } from '../../hooks/useQueries';
+import { useUploadParsedOrders, useGetMasterDesigns } from '../../hooks/useQueries';
 import { useEffectiveAppRole } from '../../hooks/useEffectiveAppRole';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -35,7 +35,7 @@ export function IngestOrdersPage() {
   const queryClient = useQueryClient();
   const { effectiveRole } = useEffectiveAppRole();
   const { data: masterDesigns = [], isLoading: masterDesignsLoading, isFetched: masterDesignsFetched } = useGetMasterDesigns();
-  const uploadMutation = useUploadParsedOrdersBatched();
+  const uploadMutation = useUploadParsedOrders();
   
   const [uploadDate, setUploadDate] = useState<Date>(new Date());
   const [file, setFile] = useState<File | null>(null);
@@ -118,12 +118,7 @@ export function IngestOrdersPage() {
     });
 
     try {
-      await uploadMutation.mutateAsync({
-        orders: mappedOrders,
-        onProgress: (progress) => {
-          setUploadProgress(progress);
-        },
-      });
+      await uploadMutation.mutateAsync(mappedOrders);
 
       setUploadResult({
         state: 'success',
@@ -289,7 +284,7 @@ export function IngestOrdersPage() {
                   {isUploading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Uploading... {uploadProgress.toFixed(0)}%
+                      Uploading...
                     </>
                   ) : (
                     <>

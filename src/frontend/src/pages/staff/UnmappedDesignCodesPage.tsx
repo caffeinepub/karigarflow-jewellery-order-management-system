@@ -107,7 +107,7 @@ export function UnmappedDesignCodesPage() {
           selectedCode
             ? {
                 code: selectedCode,
-                entry: { genericName: '', karigarName: '', isActive: true },
+                entry: { genericName: '', karigarId: '', isActive: true },
               }
             : null
         }

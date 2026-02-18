@@ -31,15 +31,13 @@ export function KarigarDashboardPage() {
   // Get today's date for default filtering
   const today = new Date();
   
-  const [filters, setFilters] = useState({ 
-    karigar: '', 
-    status: '', 
-    dateFrom: today, 
-    dateTo: today, 
-    orderNoQuery: '', 
-    coFilter: false,
-    rbFilter: false
-  });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [fromDate, setFromDate] = useState<Date | null>(today);
+  const [toDate, setToDate] = useState<Date | null>(today);
+  const [selectedKarigar, setSelectedKarigar] = useState<string | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
+  const [showCOOnly, setShowCOOnly] = useState(false);
+  const [showRBOnly, setShowRBOnly] = useState(false);
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
   const [isClearing, setIsClearing] = useState(false);
 
@@ -63,33 +61,33 @@ export function KarigarDashboardPage() {
 
   const applyFilters = (ordersList: PersistentOrder[]) => {
     return ordersList.filter(order => {
-      if (filters.status && order.status !== filters.status) {
+      if (selectedStatus && order.status !== selectedStatus) {
         return false;
       }
-      if (filters.orderNoQuery && !order.orderNo.toLowerCase().includes(filters.orderNoQuery.toLowerCase())) {
+      if (searchQuery && !order.orderNo.toLowerCase().includes(searchQuery.toLowerCase())) {
         return false;
       }
       
-      if (filters.coFilter && filters.rbFilter) {
+      if (showCOOnly && showRBOnly) {
         if (order.orderType !== 'CO' && order.orderType !== 'RB') {
           return false;
         }
-      } else if (filters.coFilter) {
+      } else if (showCOOnly) {
         if (order.orderType !== 'CO') {
           return false;
         }
-      } else if (filters.rbFilter) {
+      } else if (showRBOnly) {
         if (order.orderType !== 'RB') {
           return false;
         }
       }
       
-      if (filters.dateFrom || filters.dateTo) {
+      if (fromDate || toDate) {
         const orderDate = getOrderTimestamp(order);
-        if (filters.dateFrom && orderDate < startOfDay(filters.dateFrom)) {
+        if (fromDate && orderDate < startOfDay(fromDate)) {
           return false;
         }
-        if (filters.dateTo && orderDate > endOfDay(filters.dateTo)) {
+        if (toDate && orderDate > endOfDay(toDate)) {
           return false;
         }
       }
@@ -234,10 +232,20 @@ export function KarigarDashboardPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <OrdersFiltersBar
-            orders={orders}
-            filters={filters}
-            onFiltersChange={setFilters}
-            showOrderNoSearch
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            fromDate={fromDate}
+            toDate={toDate}
+            onFromDateChange={setFromDate}
+            onToDateChange={setToDate}
+            selectedKarigar={selectedKarigar}
+            onKarigarChange={setSelectedKarigar}
+            selectedStatus={selectedStatus}
+            onStatusChange={setSelectedStatus}
+            showCOOnly={showCOOnly}
+            onCOOnlyChange={setShowCOOnly}
+            showRBOnly={showRBOnly}
+            onRBOnlyChange={setShowRBOnly}
           />
           <div className="flex gap-2">
             <Button
@@ -266,7 +274,6 @@ export function KarigarDashboardPage() {
             selectionMode
             selectedOrders={selectedOrders}
             onSelectionChange={setSelectedOrders}
-            highlightReturnedFromDelivered
           />
         </CardContent>
       </Card>

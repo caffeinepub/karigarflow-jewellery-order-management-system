@@ -1,18 +1,21 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
-import type { 
-  PersistentOrder, 
-  MasterDesignEntry, 
-  UnmappedOrderEntry, 
-  UserProfile, 
-  ActivityLogEntry,
+import { toast } from 'sonner';
+import type {
+  PersistentOrder,
+  MasterDesignEntry,
+  SavedMasterDesignsRequest,
+  HallmarkReturnRequest,
+  PartialFulfillmentRequest,
+  UserProfile,
   UserApprovalInfo,
   ApprovalStatus,
-  PartialFulfillmentRequest,
-  HallmarkReturnRequest,
-  UpdateOrderTotalSuppliedRequest,
-  DesignImageMapping,
+  ActivityLogEntry,
+  UnmappedOrderEntry,
   BulkOrderUpdate,
+  UpdateOrderTotalSuppliedRequest,
+  BlockUserRequest,
+  DesignImageMapping,
   PersistentKarigar,
 } from '../backend';
 import { Principal } from '@dfinity/principal';
@@ -69,27 +72,40 @@ export function useGetMasterDesigns() {
   });
 }
 
-export function useUploadParsedOrdersBatched() {
+export function useListKarigars() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<PersistentKarigar[]>({
+    queryKey: ['karigars'],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.listKarigars();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useListKarigarReference() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<PersistentKarigar[]>({
+    queryKey: ['karigarReference'],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.listKarigarReference();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useUploadParsedOrders() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (variables: { orders: PersistentOrder[]; onProgress?: (progress: number) => void }) => {
+    mutationFn: async (parsedOrders: PersistentOrder[]) => {
       if (!actor) throw new Error('Actor not available');
-      const { orders, onProgress } = variables;
-      
-      const BATCH_SIZE = 50;
-      const batches: PersistentOrder[][] = [];
-      for (let i = 0; i < orders.length; i += BATCH_SIZE) {
-        batches.push(orders.slice(i, i + BATCH_SIZE));
-      }
-
-      for (let i = 0; i < batches.length; i++) {
-        await actor.uploadParsedOrders(batches[i]);
-        if (onProgress) {
-          onProgress(((i + 1) / batches.length) * 100);
-        }
-      }
+      return actor.uploadParsedOrders(parsedOrders);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['orders'] });
@@ -104,22 +120,17 @@ export function useSaveMasterDesigns() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (masterDesigns: [string, MasterDesignEntry][]) => {
+    mutationFn: async (request: SavedMasterDesignsRequest) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.saveMasterDesigns(masterDesigns);
+      return actor.saveMasterDesigns(request);
     },
     onSuccess: () => {
-      // Invalidate and refetch all related queries immediately
       queryClient.invalidateQueries({ queryKey: ['masterDesigns'] });
       queryClient.invalidateQueries({ queryKey: ['orders'] });
       queryClient.invalidateQueries({ queryKey: ['unmappedDesignCodes'] });
       queryClient.invalidateQueries({ queryKey: ['activeOrdersForKarigar'] });
       queryClient.invalidateQueries({ queryKey: ['karigars'] });
-      
-      // Force refetch to ensure UI updates immediately
-      queryClient.refetchQueries({ queryKey: ['orders'] });
-      queryClient.refetchQueries({ queryKey: ['activeOrdersForKarigar'] });
-      queryClient.refetchQueries({ queryKey: ['karigars'] });
+      queryClient.invalidateQueries({ queryKey: ['karigarReference'] });
     },
   });
 }
@@ -129,20 +140,14 @@ export function useUpdateOrdersForNewKarigar() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ designCode, newKarigarName }: { designCode: string; newKarigarName: string }) => {
+    mutationFn: async ({ designCode, newKarigarId }: { designCode: string; newKarigarId: string }) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.updateOrdersForNewKarigar(designCode, newKarigarName);
+      return actor.updateOrdersForNewKarigar(designCode, newKarigarId);
     },
     onSuccess: () => {
-      // Invalidate and refetch all related queries
       queryClient.invalidateQueries({ queryKey: ['orders'] });
-      queryClient.invalidateQueries({ queryKey: ['activeOrdersForKarigar'] });
       queryClient.invalidateQueries({ queryKey: ['masterDesigns'] });
-      queryClient.invalidateQueries({ queryKey: ['karigars'] });
-      
-      // Force refetch to ensure UI updates immediately
-      queryClient.refetchQueries({ queryKey: ['orders'] });
-      queryClient.refetchQueries({ queryKey: ['activeOrdersForKarigar'] });
+      queryClient.invalidateQueries({ queryKey: ['activeOrdersForKarigar'] });
     },
   });
 }
@@ -158,6 +163,86 @@ export function useSetActiveFlagForMasterDesign() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['masterDesigns'] });
+    },
+  });
+}
+
+export function useBulkUpdateOrderStatus() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (bulkUpdate: BulkOrderUpdate) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.bulkUpdateOrderStatus(bulkUpdate);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['activeOrdersForKarigar'] });
+    },
+  });
+}
+
+export function useHandleHallmarkReturns() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (request: HallmarkReturnRequest) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.handleHallmarkReturns(request);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['activeOrdersForKarigar'] });
+    },
+  });
+}
+
+export function useProcessPartialFulfillment() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (request: PartialFulfillmentRequest) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.processPartialFulfillment(request);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['activeOrdersForKarigar'] });
+    },
+  });
+}
+
+export function useMarkOrderAsDelivered() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (orderNo: string) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.markOrderAsDelivered(orderNo);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['activeOrdersForKarigar'] });
+    },
+  });
+}
+
+export function useBulkMarkOrdersAsDelivered() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (orderNos: string[]) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.bulkMarkOrdersAsDelivered(orderNos);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['activeOrdersForKarigar'] });
     },
   });
 }
@@ -199,6 +284,7 @@ export function useRequestApproval() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['isCallerApproved'] });
+      queryClient.invalidateQueries({ queryKey: ['approvals'] });
     },
   });
 }
@@ -231,22 +317,6 @@ export function useSetApproval() {
   });
 }
 
-export function useCreateUserProfile() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ user, profile }: { user: Principal; profile: UserProfile }) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.createUserProfile(user, profile);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['approvals'] });
-      queryClient.invalidateQueries({ queryKey: ['userProfiles'] });
-    },
-  });
-}
-
 export function useIsCallerAdmin() {
   const { actor, isFetching } = useActor();
 
@@ -257,50 +327,22 @@ export function useIsCallerAdmin() {
       return actor.isCallerAdmin();
     },
     enabled: !!actor && !isFetching,
+    retry: false,
   });
 }
 
-export function useCheckUserBlocked() {
-  const { actor, isFetching } = useActor();
-
-  return useQuery<boolean>({
-    queryKey: ['isUserBlocked'],
-    queryFn: async () => {
-      if (!actor) return false;
-      return actor.isUserBlocked(await actor.getCallerUserProfile().then(p => p ? Principal.fromText('2vxsx-fae') : Principal.fromText('2vxsx-fae')));
-    },
-    enabled: !!actor && !isFetching,
-  });
-}
-
-export function useBlockUser() {
+export function useCreateUserProfile() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ user, reason }: { user: Principal; reason?: string }) => {
+    mutationFn: async ({ user, profile }: { user: Principal; profile: UserProfile }) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.blockUser({ user, reason });
+      return actor.createUserProfile(user, profile);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['approvals'] });
       queryClient.invalidateQueries({ queryKey: ['userProfiles'] });
-    },
-  });
-}
-
-export function useUnblockUser() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (user: Principal) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.unblockUser(user);
-    },
-    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['approvals'] });
-      queryClient.invalidateQueries({ queryKey: ['userProfiles'] });
     },
   });
 }
@@ -318,67 +360,49 @@ export function useListUserProfiles() {
   });
 }
 
-export function useProcessPartialFulfillment() {
+export function useBlockUser() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (request: PartialFulfillmentRequest) => {
+    mutationFn: async (request: BlockUserRequest) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.processPartialFulfillment(request);
+      return actor.blockUser(request);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['orders'] });
-      queryClient.invalidateQueries({ queryKey: ['activeOrdersForKarigar'] });
+      queryClient.invalidateQueries({ queryKey: ['userProfiles'] });
+      queryClient.invalidateQueries({ queryKey: ['blockedUsers'] });
     },
   });
 }
 
-export function useHandleHallmarkReturns() {
+export function useUnblockUser() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (request: HallmarkReturnRequest) => {
+    mutationFn: async (user: Principal) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.handleHallmarkReturns(request);
+      return actor.unblockUser(user);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['orders'] });
-      queryClient.invalidateQueries({ queryKey: ['activeOrdersForKarigar'] });
+      queryClient.invalidateQueries({ queryKey: ['userProfiles'] });
+      queryClient.invalidateQueries({ queryKey: ['blockedUsers'] });
     },
   });
 }
 
-export function useBulkUpdateOrderStatus() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
+export function useCheckUserBlocked() {
+  const { actor, isFetching } = useActor();
+  const { identity } = useInternetIdentity();
 
-  return useMutation({
-    mutationFn: async (bulkUpdate: BulkOrderUpdate) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.bulkUpdateOrderStatus(bulkUpdate);
+  return useQuery<boolean>({
+    queryKey: ['isUserBlocked', identity?.getPrincipal().toString()],
+    queryFn: async () => {
+      if (!actor || !identity) return false;
+      return actor.isUserBlocked(identity.getPrincipal());
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['orders'] });
-      queryClient.invalidateQueries({ queryKey: ['activeOrdersForKarigar'] });
-    },
-  });
-}
-
-export function useBulkMarkOrdersAsDelivered() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (orderNos: string[]) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.bulkMarkOrdersAsDelivered(orderNos);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['orders'] });
-      queryClient.invalidateQueries({ queryKey: ['activeOrdersForKarigar'] });
-    },
+    enabled: !!actor && !isFetching && !!identity,
   });
 }
 
@@ -398,19 +422,6 @@ export function useUpdateOrderTotalSupplied() {
   });
 }
 
-export function useGetDesignImageMappings() {
-  const { actor, isFetching } = useActor();
-
-  return useQuery<DesignImageMapping[]>({
-    queryKey: ['designImageMappings'],
-    queryFn: async () => {
-      if (!actor) return [];
-      return actor.getDesignImageMappings();
-    },
-    enabled: !!actor && !isFetching,
-  });
-}
-
 export function useSaveDesignImageMappings() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
@@ -426,71 +437,30 @@ export function useSaveDesignImageMappings() {
   });
 }
 
+export function useGetDesignImageMappings() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<DesignImageMapping[]>({
+    queryKey: ['designImageMappings'],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getDesignImageMappings();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
 export function useGetDesignImageForCode(designCode: string) {
   const { actor, isFetching } = useActor();
 
-  return useQuery({
+  return useQuery<DesignImageMapping | null>({
     queryKey: ['designImage', designCode],
     queryFn: async () => {
       if (!actor) return null;
       const mappings = await actor.getDesignImageMappings();
-      const mapping = mappings.find(m => m.designCode === designCode);
-      return mapping || null;
+      return mappings.find(m => m.designCode === designCode) || null;
     },
     enabled: !!actor && !isFetching && !!designCode,
-  });
-}
-
-// Helper function to normalize karigar names for comparison
-function normalizeKarigarName(name: string): string {
-  return name.trim().replace(/\s+/g, ' ').toLowerCase();
-}
-
-// Karigar management hooks
-export function useListKarigars() {
-  const { actor, isFetching } = useActor();
-
-  return useQuery<PersistentKarigar[]>({
-    queryKey: ['karigars'],
-    queryFn: async () => {
-      if (!actor) return [];
-      
-      // Fetch both PersistentKarigar objects and karigar names from existing data
-      const [karigarObjects, karigarNames] = await Promise.all([
-        actor.listKarigars(),
-        actor.listKarigarsNames(),
-      ]);
-
-      // Create a map to deduplicate and merge (use normalized keys for comparison)
-      const karigarMap = new Map<string, PersistentKarigar>();
-
-      // First, add all PersistentKarigar objects from karigarStorage
-      for (const karigar of karigarObjects) {
-        const normalizedKey = normalizeKarigarName(karigar.name);
-        karigarMap.set(normalizedKey, karigar);
-      }
-
-      // Then, add any names from existing data that aren't already in the map
-      // These are treated as active karigars since they're in use
-      for (const name of karigarNames) {
-        const trimmedName = name.trim();
-        // Skip empty or whitespace-only names
-        if (!trimmedName) continue;
-        
-        const normalizedKey = normalizeKarigarName(trimmedName);
-        if (!karigarMap.has(normalizedKey)) {
-          karigarMap.set(normalizedKey, { name: trimmedName, isActive: true });
-        }
-      }
-
-      // Convert map to array and sort alphabetically
-      return Array.from(karigarMap.values()).sort((a, b) => 
-        a.name.localeCompare(b.name)
-      );
-    },
-    enabled: !!actor && !isFetching,
-    staleTime: 0, // Always fetch fresh data - karigars can be added frequently
-    retry: 2, // Retry failed requests twice
   });
 }
 
@@ -499,14 +469,21 @@ export function useCreateKarigar() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (karigar: PersistentKarigar) => {
+    mutationFn: async (karigar: Omit<PersistentKarigar, 'id'>) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.createKarigar(karigar);
+      const id = karigar.name.trim().replace(/\s+/g, '_').toLowerCase();
+      return actor.createKarigar({ ...karigar, id });
     },
     onSuccess: () => {
-      // Invalidate and immediately refetch to ensure dropdown updates
       queryClient.invalidateQueries({ queryKey: ['karigars'] });
-      queryClient.refetchQueries({ queryKey: ['karigars'] });
+      queryClient.invalidateQueries({ queryKey: ['karigarReference'] });
+      toast.success('Karigar created successfully');
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to create karigar');
     },
   });
 }
+
+// Import useInternetIdentity for useCheckUserBlocked
+import { useInternetIdentity } from './useInternetIdentity';

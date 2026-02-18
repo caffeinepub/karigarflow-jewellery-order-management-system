@@ -1,12 +1,11 @@
 # Specification
 
 ## Summary
-**Goal:** Roll back the Malabar Partner production deployment to match Version 54 exactly (not 55/56), while preserving all existing production canister data and making the deployed version easy to verify.
+**Goal:** Resolve remaining UI overlap issues across the app, including the sidebar/mobile Sheet, calendar date-picker popovers, and Master Designs dialogs/menus.
 
 **Planned changes:**
-- Revert codebase and deployment process so production and any new draft build are created from the Version 54 code snapshot (with no Version 55/56 changes present).
-- Ensure rollback preserves existing persisted canister state (orders, user profiles, master designs, karigars, activity logs, design images/mappings); add an upgrade-only compatible migration only if required to keep data intact.
-- Add a build identifier/version label (e.g., “v54”) that is visible in the frontend UI and exposed by the backend via a status/health query.
-- Fix rollback/rebuild behavior so draft expiry and caching (including service worker/client caches) do not cause the app to rebuild/serve Version 55/56 assets after selecting/deploying Version 54.
+- Adjust global layout/sticky header + sidebar/mobile left Sheet behavior so navigation never obscures or renders content underneath across routes and viewport sizes, while keeping overflow-x controlled (no horizontal scroll).
+- Update date filter calendar popovers so they render above surrounding UI without clipping, automatically close the other calendar when one opens, and close after a date is selected.
+- Fix /admin/master-designs responsive layout and overlays so the “Total Karigar List” dialog fits within the viewport (internal scroll if needed), header/filter/search rows wrap without collisions on narrow screens, and row-level Actions menus/dialogs render above the table without being clipped.
 
-**User-visible outcome:** Users see the Version 54 UI/behavior in production without needing a hard refresh, existing production data remains available, and the app clearly shows it is running “v54” (with a backend method also reporting the same).
+**User-visible outcome:** Pages no longer have content hidden behind the sidebar/header, date-picker calendars don’t overlap or stay open together, and Master Designs dialogs/menus open cleanly and remain fully usable on all screen sizes.

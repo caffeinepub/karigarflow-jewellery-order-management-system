@@ -26,7 +26,7 @@ export function UserManagementPage() {
   const [newUserPrincipal, setNewUserPrincipal] = useState('');
   const [newUserName, setNewUserName] = useState('');
   const [newUserRole, setNewUserRole] = useState<AppRole>(AppRole.Staff);
-  const [newUserKarigarName, setNewUserKarigarName] = useState('');
+  const [newUserKarigarId, setNewUserKarigarId] = useState('');
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,7 +41,7 @@ export function UserManagementPage() {
       const profile: UserProfile = {
         name: newUserName,
         appRole: newUserRole,
-        karigarName: newUserRole === AppRole.Karigar ? newUserKarigarName : undefined,
+        karigarId: newUserRole === AppRole.Karigar ? newUserKarigarId : undefined,
         isCreated: true,
       };
 
@@ -50,7 +50,7 @@ export function UserManagementPage() {
       setNewUserPrincipal('');
       setNewUserName('');
       setNewUserRole(AppRole.Staff);
-      setNewUserKarigarName('');
+      setNewUserKarigarId('');
     } catch (error) {
       console.error('Failed to create user:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to create user');
@@ -146,12 +146,12 @@ export function UserManagementPage() {
 
               {newUserRole === AppRole.Karigar && (
                 <div className="space-y-2">
-                  <Label htmlFor="karigarName">Karigar Name</Label>
+                  <Label htmlFor="karigarId">Karigar ID</Label>
                   <Input
-                    id="karigarName"
-                    value={newUserKarigarName}
-                    onChange={(e) => setNewUserKarigarName(e.target.value)}
-                    placeholder="Enter karigar name"
+                    id="karigarId"
+                    value={newUserKarigarId}
+                    onChange={(e) => setNewUserKarigarId(e.target.value)}
+                    placeholder="Enter karigar ID"
                   />
                 </div>
               )}
@@ -188,7 +188,7 @@ export function UserManagementPage() {
                   <TableRow>
                     <TableHead>Name</TableHead>
                     <TableHead>Role</TableHead>
-                    <TableHead>Karigar Name</TableHead>
+                    <TableHead>Karigar ID</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
@@ -203,7 +203,7 @@ export function UserManagementPage() {
                         <TableCell>
                           <Badge variant="outline">{profile.appRole}</Badge>
                         </TableCell>
-                        <TableCell>{profile.karigarName || '-'}</TableCell>
+                        <TableCell>{profile.karigarId || '-'}</TableCell>
                         <TableCell>
                           {approval && (
                             <Badge 

@@ -2,54 +2,44 @@
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
   "summary": "New project",
-  "architectural_notes": [],
+  "architectural_notes": [
+    "User requested to avoid spending their credits while fixing issues (pause builds until confirmation / only make targeted changes)."
+  ],
   "known_issues": [
-    "Unable to reproduce/restore exact Version 54 deployment via current build/rollback process (implementation attempt failed)."
+    "Sidebar is overlapping content in the UI layout.",
+    "Calendar component is overlapping content in the UI layout.",
+    "On the Master Design page, clicking Karigar List causes overlapping UI.",
+    "On the Master Design page, clicking Action List causes overlapping UI."
   ],
   "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-revert-the-application-codebase-and-production-deployment-to-match-exactly-version-54-not-version-55-56-ensuring-that-any-new-draft-build-is-also-based-on-the-version-54-code-snapshot",
-      "title": "Revert the application codebase and production deployment to match exactly Version 54 (not Version 55/56), ensuring that any new draft build is also based on the Version 54 code snapshot.",
+      "id": "feature-fix-the-global-layout-so-the-navigation-sidebar-including-the-mobile-left-sheet-menu-never-overlaps-or-obscures-page-content-across-routes-and-viewport-sizes",
+      "title": "Fix the global layout so the navigation/sidebar (including the mobile left Sheet menu) never overlaps or obscures page content across routes and viewport sizes.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-add-a-user-visible-and-developer-verifiable-build-identifier-that-clearly-indicates-the-deployed-app-version-e-g-v54-in-both-frontend-and-backend-so-the-team-can-confirm-production-is-running-version-54-after-rollback",
-      "title": "Add a user-visible and developer-verifiable build identifier that clearly indicates the deployed app version (e.g., 'v54') in both frontend and backend, so the team can confirm production is running Version 54 after rollback.",
+      "id": "feature-fix-the-date-picker-calendar-popovers-so-they-do-not-overlap-surrounding-ui-or-each-other-and-ensure-only-one-calendar-popover-can-remain-open-at-a-time-in-date-filter-uis-e-g-from-date-vs-to-date",
+      "title": "Fix the date-picker (calendar) popovers so they do not overlap surrounding UI or each other, and ensure only one calendar popover can remain open at a time in date filter UIs (e.g., From Date vs To Date).",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-the-master-designs-page-overlap-issues-so-that-opening-the-karigar-list-and-any-action-menus-lists-does-not-overlap-or-collide-with-the-page-layout-header-actions-area-filter-badge-row-search-row-card-content-and-table",
+      "title": "Fix the Master Designs page overlap issues so that opening the Karigar List and any action menus/lists does not overlap or collide with the page layout (header/actions area, filter badge row, search row, card content, and table).",
       "reqIds": [
         "REQ-3"
       ],
       "version": 1
-    },
-    {
-      "id": "feature-fix-the-rollback-rebuild-flow-so-that-draft-expiry-and-caching-do-not-prevent-restoring-the-exact-version-54-deployment-including-ensuring-client-caches-service-worker-do-not-keep-serving-version-55-56-assets-after-rollback",
-      "title": "Fix the rollback/rebuild flow so that draft expiry and caching do not prevent restoring the exact Version 54 deployment (including ensuring client caches/service worker do not keep serving Version 55/56 assets after rollback).",
-      "reqIds": [
-        "REQ-4"
-      ],
-      "version": 1
     }
   ],
-  "new_feature_requests": [
-    {
-      "id": "AR-1",
-      "summary": "Rollback production deployment to match exactly Version 54 code/build",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-3",
-      "summary": "Ensure the rollback to Version 54 preserves existing persisted canister state (orders, user profiles, master designs, karigars, activity logs, design images/mappings) and does not wipe/reset data; if Version 54 requires a schema change, implement a compatible conditional upgrade migration that preserves all existing data.",
-      "reqIds": [
-        "REQ-2"
-      ],
-      "status": "pending"
-    }
-  ],
-  "projectName": "Malabar Partner",
+  "new_feature_requests": [],
+  "projectName": "KarigarFlow",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

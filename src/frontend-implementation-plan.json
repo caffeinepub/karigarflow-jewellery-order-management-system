@@ -1,93 +1,78 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Malabar Partner — Frontend rollback hardening to Version 54 + build identifier + cache-safe SW updates",
+  "title": "KarigarFlow: Resolve remaining overlap issues (mobile Sheet nav, calendar popovers, Master Designs dialogs/menus)",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Ensure the frontend code and build output are explicitly pinned to the Version 54 snapshot and self-identify as v54 to avoid accidental v55/56 rebuilds.",
+      "summary": "Adjust global AppShell layout and mobile Sheet navigation layering/scroll behavior so it never obscures or overlaps routed content across viewport sizes.",
       "acceptanceCriteria": [
-        "A new draft build is created from the Version 54 code snapshot (no Version 55/56 changes present).",
-        "Production deployment is updated so runtime behavior and UI match the Version 54 deployment exactly.",
-        "No automated step in the build process silently rebuilds from Version 55/56 after selecting Version 54."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/version.ts",
-          "operation": "create",
-          "description": "Add a single source of truth build identifier constant (e.g., export const BUILD_ID = 'v54') to be used across UI + PWA/service-worker cache naming so the deployed build clearly and consistently matches Version 54."
-        },
-        {
-          "path": "frontend/src/main.tsx",
-          "operation": "modify",
-          "description": "Log the BUILD_ID on app bootstrap (developer-verifiable in console) and ensure any build identifier wiring is initialized early so build snapshot mismatches are immediately visible during QA."
-        },
-        {
-          "path": "frontend/public/service-worker.js",
-          "operation": "modify",
-          "description": "Align service worker cache naming/versioning with the Version 54 build identifier (via a v54 cache name) to prevent v55/56 asset caches from being reused after rollback; keep the cache name change tightly coupled to the build identifier to avoid accidental drift."
-        }
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "summary": "Display a user-visible build identifier (v54) in an existing global UI surface so the team can confirm the deployed version.",
-      "acceptanceCriteria": [
-        "Frontend displays the current app version/build identifier in an existing global UI surface (e.g., AppShell footer/status area) without requiring special permissions.",
-        "Backend exposes a query method (or extends an existing health/status method) returning the app version/build identifier.",
-        "The displayed/reported version is 'v54' after the rollback deployment is complete."
+        "On small screens and mobile Safari, opening/closing the left Sheet menu does not cause main content to visually overlap with the header, sidebar, or any overlay.",
+        "Main content remains readable and clickable while the header stays sticky; no elements render underneath the header unexpectedly.",
+        "No new horizontal scrollbars are introduced (overflow-x remains controlled)."
       ],
       "file_operations": [
         {
           "path": "frontend/src/components/layout/AppShell.tsx",
           "operation": "modify",
-          "description": "Show the BUILD_ID (v54) in the existing AppShell footer (global UI surface) in English so any user can verify what version is deployed without special permissions."
+          "description": "Tighten the global flex layout to prevent overlap: ensure header/main/footer flex children use min-w-0 where needed, and refine the mobile SheetContent sizing/scroll strategy (e.g., viewport-bounded height with internal scrolling) so the left menu cannot visually collide with the sticky header or main content on iOS Safari."
         },
         {
-          "path": "frontend/src/main.tsx",
+          "path": "frontend/src/index.css",
           "operation": "modify",
-          "description": "Import BUILD_ID and include it in a startup console log line so developers can verify the running build quickly in production."
+          "description": "Adjust global overflow + stacking rules to ensure consistent overlay layering without content slipping under the sticky header; keep overflow-x constrained while avoiding any new horizontal scrollbars. Retain and refine the existing Radix overlay z-index rules as needed to support the Sheet menu across routes."
         }
       ]
     },
     {
-      "id": "REQ-4",
-      "summary": "Prevent stale v55/56 assets and draft/caching issues from blocking a clean rollback to Version 54 by improving service worker update + cache clearing behavior.",
+      "id": "REQ-2",
+      "summary": "Make OrdersFiltersBar date picker popovers mutually exclusive, unclipped, and self-closing on selection to prevent calendar overlap/collisions.",
       "acceptanceCriteria": [
-        "After rollback deployment, a hard refresh is not required to see Version 54 UI/assets; the app updates cleanly for users already on the site.",
-        "Service worker cache versioning is updated/handled so stale cached assets from Version 55/56 are not served after rollback.",
-        "Rollback/rebuild does not get forced into rebuilding Version 55 due to draft-expiry handling."
+        "In OrdersFiltersBar date filters, opening 'From Date' closes 'To Date' automatically and vice-versa (no two calendars open simultaneously).",
+        "Calendar popover content is not clipped by parent containers and stays above tables/cards while open.",
+        "After selecting a date, the corresponding popover closes and does not visually collide with other filter controls."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/pwa/clearPwaCaches.ts",
-          "operation": "create",
-          "description": "Add a small utility to clear browser Cache Storage entries and unregister service workers on demand (best-effort) so the app can proactively remove stale v55/56 caches after rollback."
+          "path": "frontend/src/components/orders/OrdersFiltersBar.tsx",
+          "operation": "modify",
+          "description": "Update the controlled Popover open-state logic so opening one calendar explicitly closes the other (e.g., custom onOpenChange handlers per popover), and ensure each popover closes on date selection. Also adjust PopoverContent positioning/collision handling (side/align/offset) to reduce collisions with adjacent controls without editing shadcn ui components."
         },
         {
-          "path": "frontend/public/service-worker.js",
+          "path": "frontend/src/index.css",
           "operation": "modify",
-          "description": "Implement an update flow that avoids serving stale assets after rollback: add a message handler (e.g., SKIP_WAITING), ensure activate removes non-current caches, and adjust fetch strategy for JS/CSS/static assets to prefer fresh network responses with cache fallback to minimize v55/56 asset persistence."
+          "description": "Ensure popover overlays remain above surrounding UI and are not clipped by common parent containers used by filter bars/tables; leverage the existing global Radix popper/z-index rules and extend only if required to prevent calendar clipping/overlap."
+        }
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "summary": "Fix /admin/master-designs responsive layout and overlay rendering so Karigar List dialog and any table-triggered actions render within viewport and above content without clipping.",
+      "acceptanceCriteria": [
+        "On /admin/master-designs, opening 'Total Karigar List' renders a dialog that is fully visible within the viewport (scrolls internally if needed) and does not overlap awkwardly with underlying content.",
+        "On narrow viewports, the Master Designs header title, buttons, filter badge row, and search input wrap/space correctly without overlapping each other.",
+        "Any row-level 'Actions' UI (menus/dialogs triggered from the table) renders above the table and is not clipped by parent containers."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/admin/MasterDesignsPage.tsx",
+          "operation": "modify",
+          "description": "Refine Master Designs header and control layout for narrow viewports: enforce consistent wrapping and spacing for title/actions/badge/search rows (min-w-0, break/wrap behavior, and container overflow visibility) so controls never overlap each other."
         },
         {
-          "path": "frontend/src/pwa/registerServiceWorker.ts",
+          "path": "frontend/src/components/karigar/TotalKarigarListDialog.tsx",
           "operation": "modify",
-          "description": "Enhance registration to actively adopt updated service workers without requiring a hard refresh: when an update is installed and waiting, postMessage to trigger skipWaiting and, upon controllerchange, reload the page once to swap to the new v54-controlled assets."
+          "description": "Make the 'Total Karigar List' dialog viewport-safe on mobile: constrain width/height using viewport units and ensure the dialog content scrolls internally without being cut off; keep the dialog fully visible and usable on small screens."
         },
         {
-          "path": "frontend/src/main.tsx",
+          "path": "frontend/src/components/masterDesigns/MasterDesignsTable.tsx",
           "operation": "modify",
-          "description": "Wire service worker registration at startup by calling registerServiceWorker() so the improved cache/update behavior actually takes effect in production."
+          "description": "Adjust the table wrapper/container overflow behavior to prevent clipping of any table-triggered overlay UI (menus/dialogs) while retaining horizontal scrolling for the table; ensure overlays render above the table region instead of being cut off by overflow settings."
         },
         {
-          "path": "frontend/src/components/auth/LoginButton.tsx",
+          "path": "frontend/src/index.css",
           "operation": "modify",
-          "description": "On logout, in addition to clearing React Query cache, invoke clearPwaCaches (and any existing local caches) to prevent users from remaining stuck on stale cached assets after a rollback."
-        },
-        {
-          "path": "frontend/src/components/errors/AppErrorBoundary.tsx",
-          "operation": "modify",
-          "description": "Extend the existing 'Logout & Clear Session' recovery action to also invoke clearPwaCaches before reloading, ensuring a broken/stale cached build can be recovered without manual hard refresh steps."
+          "description": "If needed after layout adjustments, further tune global Radix overlay and popper stacking/clipping safeguards to ensure dialogs/menus used on Master Designs render above cards/tables and are not clipped by overflow containers."
         }
       ]
     }

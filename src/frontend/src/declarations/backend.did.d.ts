@@ -49,8 +49,8 @@ export interface HealthCheckResponse {
 }
 export interface MasterDesignEntry {
   'isActive' : boolean,
-  'karigarName' : string,
   'genericName' : string,
+  'karigarId' : string,
 }
 export interface PartialFulfillmentQty {
   'suppliedQty' : bigint,
@@ -59,7 +59,11 @@ export interface PartialFulfillmentQty {
 export interface PartialFulfillmentRequest {
   'entries' : Array<PartialFulfillmentQty>,
 }
-export interface PersistentKarigar { 'name' : string, 'isActive' : boolean }
+export interface PersistentKarigar {
+  'id' : string,
+  'name' : string,
+  'isActive' : boolean,
+}
 export interface PersistentOrder {
   'qty' : bigint,
   'weight' : [] | [number],
@@ -69,11 +73,14 @@ export interface PersistentOrder {
   'orderType' : string,
   'orderNo' : string,
   'isCustomerOrder' : boolean,
-  'karigarName' : string,
   'genericName' : string,
   'designCode' : string,
   'uploadDate' : Time,
+  'karigarId' : string,
   'remarks' : string,
+}
+export interface SavedMasterDesignsRequest {
+  'masterDesigns' : Array<[string, MasterDesignEntry]>,
 }
 export type Time = bigint;
 export interface UnmappedOrderEntry {
@@ -100,7 +107,7 @@ export interface UserProfile {
   'isCreated' : boolean,
   'appRole' : AppRole,
   'name' : string,
-  'karigarName' : [] | [string],
+  'karigarId' : [] | [string],
 }
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
@@ -139,7 +146,7 @@ export interface _SERVICE {
   'bulkUpdateOrderStatus' : ActorMethod<[BulkOrderUpdate], undefined>,
   'createKarigar' : ActorMethod<[PersistentKarigar], undefined>,
   'createUserProfile' : ActorMethod<[Principal, UserProfile], undefined>,
-  'deleteKarigarByName' : ActorMethod<[string], undefined>,
+  'deleteKarigarById' : ActorMethod<[string], undefined>,
   'getActiveOrdersForKarigar' : ActorMethod<[], Array<PersistentOrder>>,
   'getActivityLog' : ActorMethod<[], Array<ActivityLogEntry>>,
   'getAdminDesignImageMappings' : ActorMethod<
@@ -149,6 +156,7 @@ export interface _SERVICE {
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getDesignImageMappings' : ActorMethod<[], Array<DesignImageMapping>>,
+  'getGivenToHallmarkOrders' : ActorMethod<[], Array<PersistentOrder>>,
   'getMasterDesigns' : ActorMethod<[], Array<[string, MasterDesignEntry]>>,
   'getOrders' : ActorMethod<[], Array<PersistentOrder>>,
   'getUnmappedDesignCodes' : ActorMethod<[], Array<UnmappedOrderEntry>>,
@@ -160,8 +168,8 @@ export interface _SERVICE {
   'isUserBlocked' : ActorMethod<[Principal], boolean>,
   'listApprovals' : ActorMethod<[], Array<UserApprovalInfo>>,
   'listDistinctKarigars' : ActorMethod<[], Array<PersistentKarigar>>,
+  'listKarigarReference' : ActorMethod<[], Array<PersistentKarigar>>,
   'listKarigars' : ActorMethod<[], Array<PersistentKarigar>>,
-  'listKarigarsNames' : ActorMethod<[], Array<string>>,
   'listUserProfiles' : ActorMethod<[], Array<UserProfile>>,
   'markOrderAsDelivered' : ActorMethod<[string], undefined>,
   'processPartialFulfillment' : ActorMethod<
@@ -174,10 +182,7 @@ export interface _SERVICE {
     [Array<DesignImageMapping>],
     Array<DesignImageMapping>
   >,
-  'saveMasterDesigns' : ActorMethod<
-    [Array<[string, MasterDesignEntry]>],
-    undefined
-  >,
+  'saveMasterDesigns' : ActorMethod<[SavedMasterDesignsRequest], undefined>,
   'setActiveFlagForMasterDesign' : ActorMethod<[string, boolean], undefined>,
   'setApproval' : ActorMethod<[Principal, ApprovalStatus], undefined>,
   'unblockUser' : ActorMethod<[Principal], undefined>,

@@ -40,12 +40,15 @@ export function parseOrdersTableRowWithKarigar(line: string, uploadTimestamp: bi
 
   const isCustomerOrder = orderType.toUpperCase().includes('CO');
 
+  // Create karigarId from karigarName
+  const karigarId = karigarName.trim().replace(/\s+/g, '_').toLowerCase();
+
   return {
     orderNo,
     orderType,
     designCode,
     genericName,
-    karigarName,
+    karigarId,
     weight,
     size,
     qty: BigInt(qty),

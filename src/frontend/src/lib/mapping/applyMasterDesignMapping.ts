@@ -10,8 +10,8 @@ export interface MappingResult {
 
 /**
  * Applies master design mapping to parsed orders.
- * Treats empty, whitespace-only, or "Unassigned" (case-insensitive) karigar names as missing.
- * Preserves meaningful PDF-derived karigar names.
+ * Treats empty, whitespace-only, or "Unassigned" (case-insensitive) karigar IDs as missing.
+ * Preserves meaningful PDF-derived karigar IDs.
  * 
  * This function is idempotent and can be called multiple times with the same raw orders
  * as master designs are loaded or updated.
@@ -36,19 +36,19 @@ export function applyMasterDesignMapping(
     const normalizedOrderCode = normalizeDesignCode(order.designCode);
     const mapping = designMap.get(normalizedOrderCode);
     
-    // Check if PDF-derived karigarName is meaningful
+    // Check if PDF-derived karigarId is meaningful
     // Treat empty, whitespace-only, or "Unassigned" (case-insensitive) as missing
-    const trimmedKarigar = order.karigarName?.trim() || '';
+    const trimmedKarigar = order.karigarId?.trim() || '';
     const isPlaceholder = trimmedKarigar === '' || trimmedKarigar.toLowerCase() === 'unassigned';
-    const hasMeaningfulKarigarName = !isPlaceholder;
+    const hasMeaningfulKarigarId = !isPlaceholder;
     
     if (mapping && mapping.isActive) {
       // Design code is mapped
       const mappedOrder: PersistentOrder = {
         ...order,
         genericName: mapping.genericName,
-        // Use master design karigarName only if order's karigar is missing/placeholder
-        karigarName: hasMeaningfulKarigarName ? order.karigarName : mapping.karigarName,
+        // Use master design karigarId only if order's karigar is missing/placeholder
+        karigarId: hasMeaningfulKarigarId ? order.karigarId : mapping.karigarId,
       };
       mappedOrders.push(mappedOrder);
       previewOrders.push(mappedOrder);

@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useSaveMasterDesigns, useGetMasterDesigns } from '../../hooks/useQueries';
+import { useSaveMasterDesigns, useGetMasterDesigns, useListKarigarReference } from '../../hooks/useQueries';
 import { parseMasterDesignFile } from '../../lib/parsers/masterDesignParser';
 import { toast } from 'sonner';
 import { Upload, CheckCircle, AlertCircle } from 'lucide-react';
@@ -19,6 +19,7 @@ interface MasterDesignImportDialogProps {
 
 export function MasterDesignImportDialog({ open, onOpenChange }: MasterDesignImportDialogProps) {
   const { data: existingDesigns = [] } = useGetMasterDesigns();
+  const { data: karigars = [] } = useListKarigarReference();
   const saveMutation = useSaveMasterDesigns();
   const [file, setFile] = useState<File | null>(null);
   const [isParsing, setIsParsing] = useState(false);
@@ -72,7 +73,7 @@ export function MasterDesignImportDialog({ open, onOpenChange }: MasterDesignImp
     if (!parsedDesigns) return;
 
     try {
-      await saveMutation.mutateAsync(parsedDesigns);
+      await saveMutation.mutateAsync({ masterDesigns: parsedDesigns });
       
       toast.success(`Import complete: ${summary?.created || 0} created, ${summary?.updated || 0} updated`);
       
@@ -94,6 +95,11 @@ export function MasterDesignImportDialog({ open, onOpenChange }: MasterDesignImp
     setParsedDesigns(null);
     setSummary(null);
     setParseError(null);
+  };
+
+  const getKarigarName = (karigarId: string) => {
+    const karigar = karigars.find(k => k.id === karigarId);
+    return karigar ? karigar.name : karigarId;
   };
 
   return (
@@ -158,7 +164,7 @@ export function MasterDesignImportDialog({ open, onOpenChange }: MasterDesignImp
                           <TableRow key={code}>
                             <TableCell className="font-mono text-sm">{code}</TableCell>
                             <TableCell>{entry.genericName || '-'}</TableCell>
-                            <TableCell>{entry.karigarName || '-'}</TableCell>
+                            <TableCell>{getKarigarName(entry.karigarId)}</TableCell>
                             <TableCell>
                               <span className={`text-xs px-2 py-1 rounded ${isNew ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
                                 {isNew ? 'New' : 'Update'}

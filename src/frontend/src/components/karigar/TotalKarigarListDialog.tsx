@@ -10,9 +10,10 @@ import { InlineErrorState } from '../errors/InlineErrorState';
 interface TotalKarigarListDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSelectKarigar?: (karigarId: string) => void;
 }
 
-export function TotalKarigarListDialog({ open, onOpenChange }: TotalKarigarListDialogProps) {
+export function TotalKarigarListDialog({ open, onOpenChange, onSelectKarigar }: TotalKarigarListDialogProps) {
   const { data: karigars = [], isLoading, error, refetch } = useListKarigars();
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -28,23 +29,29 @@ export function TotalKarigarListDialog({ open, onOpenChange }: TotalKarigarListD
     }
     
     return validKarigars.filter(k => 
-      k.name.toLowerCase().includes(query)
+      k.name.toLowerCase().includes(query) || k.id.toLowerCase().includes(query)
     );
   }, [karigars, searchQuery]);
 
+  const handleKarigarClick = (karigarId: string) => {
+    if (onSelectKarigar) {
+      onSelectKarigar(karigarId);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[85vh] sm:max-h-[80vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2 text-amber-900 dark:text-amber-100">
             <Users className="h-5 w-5" />
             Total Karigar List
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex-1 flex flex-col gap-4 overflow-hidden">
+        <div className="flex-1 flex flex-col gap-4 overflow-hidden min-h-0">
           {/* Search Bar */}
-          <div className="relative">
+          <div className="relative flex-shrink-0">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search karigars..."
@@ -54,8 +61,8 @@ export function TotalKarigarListDialog({ open, onOpenChange }: TotalKarigarListD
             />
           </div>
 
-          {/* Content Area */}
-          <div className="flex-1 overflow-y-auto">
+          {/* Content Area with proper scrolling */}
+          <div className="flex-1 overflow-y-auto min-h-0">
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-12 gap-3">
                 <RefreshCw className="h-8 w-8 animate-spin text-amber-600 dark:text-amber-400" />
@@ -99,8 +106,11 @@ export function TotalKarigarListDialog({ open, onOpenChange }: TotalKarigarListD
                 <div className="grid gap-2">
                   {filteredKarigars.map((karigar, index) => (
                     <Card 
-                      key={`${karigar.name}-${index}`}
-                      className="border-amber-100 dark:border-amber-900 hover:border-amber-300 dark:hover:border-amber-700 transition-colors"
+                      key={`${karigar.id}-${index}`}
+                      className={`border-amber-100 dark:border-amber-900 hover:border-amber-300 dark:hover:border-amber-700 transition-colors ${
+                        onSelectKarigar ? 'cursor-pointer hover:bg-amber-50 dark:hover:bg-amber-950/20' : ''
+                      }`}
+                      onClick={() => handleKarigarClick(karigar.id)}
                     >
                       <CardContent className="py-3 px-4">
                         <div className="flex items-center justify-between">

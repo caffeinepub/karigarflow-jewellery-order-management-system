@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useUploadParsedOrdersBatched } from '../hooks/useQueries';
+import { useUploadParsedOrders } from '../hooks/useQueries';
 import { getQueuedIngestions, removeFromQueue } from './db';
+import type { PersistentOrder } from '../backend';
 
 export interface SyncState {
   isSyncing: boolean;
@@ -12,7 +13,7 @@ export interface SyncState {
 
 export function useOfflineSync() {
   const queryClient = useQueryClient();
-  const uploadOrdersMutation = useUploadParsedOrdersBatched();
+  const uploadOrdersMutation = useUploadParsedOrders();
   
   const [syncState, setSyncState] = useState<SyncState>({
     isSyncing: false,
@@ -72,12 +73,7 @@ export function useOfflineSync() {
         try {
           console.log(`[Sync] Uploading batch with ${item.orders.length} orders...`);
           
-          await uploadOrdersMutation.mutateAsync({
-            orders: item.orders,
-            onProgress: (progress) => {
-              console.log(`[Sync] Upload progress: ${progress}%`);
-            },
-          });
+          await uploadOrdersMutation.mutateAsync(item.orders as PersistentOrder[]);
 
           console.log(`[Sync] Batch uploaded successfully (${item.orders.length} orders)`);
           totalUploaded += item.orders.length;
