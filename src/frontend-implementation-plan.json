@@ -1,79 +1,93 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Malabar Partner: Karigar validation fix, responsive admin tabs defaulting to Total Orders, and vendor-portal design-image fetch UI",
+  "title": "Malabar Partner — Frontend rollback hardening to Version 54 + build identifier + cache-safe SW updates",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Ensure Edit Design Mapping uses case/whitespace-insensitive karigar matching and saves the canonical karigar name from the UI list to avoid false 'does not exist' errors.",
+      "summary": "Ensure the frontend code and build output are explicitly pinned to the Version 54 snapshot and self-identify as v54 to avoid accidental v55/56 rebuilds.",
       "acceptanceCriteria": [
-        "In the Edit Design Mapping dialog, selecting an existing karigar (including names that differ only by casing or extra spaces, e.g., \"RAJU SANJAY\" vs \"Raju Sanjay\") does not show a \"does not exist\" error on save.",
-        "Backend validations that check whether a karigar exists accept karigar names that match an existing stored karigar when compared using the same normalization as the frontend (trim + collapse spaces + case-insensitive).",
-        "No regression: creating a new karigar still prevents true duplicates that only differ by casing/whitespace (e.g., cannot create both \"Raju Sanjay\" and \"Raju   SANJAY\")."
+        "A new draft build is created from the Version 54 code snapshot (no Version 55/56 changes present).",
+        "Production deployment is updated so runtime behavior and UI match the Version 54 deployment exactly.",
+        "No automated step in the build process silently rebuilds from Version 55/56 after selecting Version 54."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx",
-          "operation": "modify",
-          "description": "Update karigar selection and save logic to always resolve the chosen karigar to the canonical name from the loaded karigar list using trim + collapse-spaces + case-insensitive normalization (and disable save if the selected karigar is not a normalized match), preventing false 'does not exist' failures."
+          "path": "frontend/src/version.ts",
+          "operation": "create",
+          "description": "Add a single source of truth build identifier constant (e.g., export const BUILD_ID = 'v54') to be used across UI + PWA/service-worker cache naming so the deployed build clearly and consistently matches Version 54."
         },
         {
-          "path": "frontend/src/components/karigar/AddKarigarDialog.tsx",
+          "path": "frontend/src/main.tsx",
           "operation": "modify",
-          "description": "Add client-side duplicate prevention using the same karigar-name normalization against the existing karigar list (via useListKarigars) before calling create, so casing/whitespace-only duplicates are blocked with a friendly message."
+          "description": "Log the BUILD_ID on app bootstrap (developer-verifiable in console) and ensure any build identifier wiring is initialized early so build snapshot mismatches are immediately visible during QA."
         },
         {
-          "path": "frontend/src/hooks/useQueries.ts",
+          "path": "frontend/public/service-worker.js",
           "operation": "modify",
-          "description": "Add/centralize a shared karigar-name normalization helper (trim + collapse spaces + lowercase) for consistent comparisons across karigar listing and dialogs, and ensure any karigar list deduplication continues using the same normalization."
-        }
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "summary": "Make Admin Dashboard tabs mobile-responsive (no overlap) and default to the 'Total Orders' tab on open/refresh.",
-      "acceptanceCriteria": [
-        "On mobile widths (e.g., 360px), the admin tab triggers do not overlap; labels remain readable and tappable.",
-        "Refreshing the Admin Dashboard or reopening the app lands on the \"Total Orders\" tab selected by default.",
-        "Changing tabs still works as before and does not break the existing filtering/metrics behavior for each tab."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/pages/admin/AdminDashboardPage.tsx",
-          "operation": "modify",
-          "description": "Change the default tab state to 'total' and ensure tab selection resets to 'Total Orders' when the Admin Dashboard mounts; adjust TabsList/TabsTrigger layout classes to avoid overlap on small screens (e.g., allow horizontal scrolling or wrapping while preserving existing tab behavior)."
-        },
-        {
-          "path": "frontend/src/index.css",
-          "operation": "modify",
-          "description": "Update the existing Admin Dashboard tab styling rules (.admin-tabs-list, .admin-tab-trigger) to be mobile-responsive (smaller typography/padding on small screens and non-overlapping layout such as scrollable row or wrap) while keeping active-tab styling consistent."
+          "description": "Align service worker cache naming/versioning with the Version 54 build identifier (via a v54 cache name) to prevent v55/56 asset caches from being reused after rollback; keep the cache name change tightly coupled to the build identifier to avoid accidental drift."
         }
       ]
     },
     {
       "id": "REQ-3",
-      "summary": "Add an admin workflow to fetch a design image by design code from the vendor portal via a backend capability, preview it, and save it as a Design Image Mapping without exposing credentials.",
+      "summary": "Display a user-visible build identifier (v54) in an existing global UI surface so the team can confirm the deployed version.",
       "acceptanceCriteria": [
-        "Admin UI provides a clear workflow to fetch an image for a given design code from the vendor portal and save it as a design image mapping in the app (persisted and visible via existing Design Image viewer/mappings table).",
-        "When a design code image is successfully fetched, the Design Image viewer can display it using the existing design-image retrieval flow.",
-        "Failures (login blocked, design code not found, network errors) show an English, user-friendly error without exposing the vendor password in UI, logs, or toast messages.",
-        "The system does not require admins to upload an Excel file to add images when the vendor fetch succeeds."
+        "Frontend displays the current app version/build identifier in an existing global UI surface (e.g., AppShell footer/status area) without requiring special permissions.",
+        "Backend exposes a query method (or extends an existing health/status method) returning the app version/build identifier.",
+        "The displayed/reported version is 'v54' after the rollback deployment is complete."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/backend.d.ts",
+          "path": "frontend/src/components/layout/AppShell.tsx",
           "operation": "modify",
-          "description": "Extend the typed backend interface with a new backend capability signature for fetching a vendor-portal design image by design code (returning an ExternalBlob or equivalent), enabling the frontend to call it without TypeScript unsafe casts."
+          "description": "Show the BUILD_ID (v54) in the existing AppShell footer (global UI surface) in English so any user can verify what version is deployed without special permissions."
         },
         {
-          "path": "frontend/src/hooks/useQueries.ts",
+          "path": "frontend/src/main.tsx",
           "operation": "modify",
-          "description": "Add a React Query mutation hook that calls the new backend capability to fetch a vendor-portal image by design code, returns an ExternalBlob for preview/save, and maps failures to safe user-friendly errors (do not log or surface raw messages that might include credentials). Use the blob-storage ExternalBlob API (getDirectURL) for display/preview; verify the component's usage instructions before implementing."
+          "description": "Import BUILD_ID and include it in a startup console log line so developers can verify the running build quickly in production."
+        }
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "summary": "Prevent stale v55/56 assets and draft/caching issues from blocking a clean rollback to Version 54 by improving service worker update + cache clearing behavior.",
+      "acceptanceCriteria": [
+        "After rollback deployment, a hard refresh is not required to see Version 54 UI/assets; the app updates cleanly for users already on the site.",
+        "Service worker cache versioning is updated/handled so stale cached assets from Version 55/56 are not served after rollback.",
+        "Rollback/rebuild does not get forced into rebuilding Version 55 due to draft-expiry handling."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pwa/clearPwaCaches.ts",
+          "operation": "create",
+          "description": "Add a small utility to clear browser Cache Storage entries and unregister service workers on demand (best-effort) so the app can proactively remove stale v55/56 caches after rollback."
         },
         {
-          "path": "frontend/src/pages/admin/DesignImagesPage.tsx",
+          "path": "frontend/public/service-worker.js",
           "operation": "modify",
-          "description": "Add a new 'Fetch from Vendor Portal' section to the existing Design Images page: input for design code, fetch action with loading/error states, preview of the fetched image, and 'Save mapping' that persists via existing saveDesignImageMappings and refreshes the mappings table; ensure errors are English and never display the vendor password. Use the blob-storage ExternalBlob API for preview and persistence; verify the component's usage instructions before implementing."
+          "description": "Implement an update flow that avoids serving stale assets after rollback: add a message handler (e.g., SKIP_WAITING), ensure activate removes non-current caches, and adjust fetch strategy for JS/CSS/static assets to prefer fresh network responses with cache fallback to minimize v55/56 asset persistence."
+        },
+        {
+          "path": "frontend/src/pwa/registerServiceWorker.ts",
+          "operation": "modify",
+          "description": "Enhance registration to actively adopt updated service workers without requiring a hard refresh: when an update is installed and waiting, postMessage to trigger skipWaiting and, upon controllerchange, reload the page once to swap to the new v54-controlled assets."
+        },
+        {
+          "path": "frontend/src/main.tsx",
+          "operation": "modify",
+          "description": "Wire service worker registration at startup by calling registerServiceWorker() so the improved cache/update behavior actually takes effect in production."
+        },
+        {
+          "path": "frontend/src/components/auth/LoginButton.tsx",
+          "operation": "modify",
+          "description": "On logout, in addition to clearing React Query cache, invoke clearPwaCaches (and any existing local caches) to prevent users from remaining stuck on stale cached assets after a rollback."
+        },
+        {
+          "path": "frontend/src/components/errors/AppErrorBoundary.tsx",
+          "operation": "modify",
+          "description": "Extend the existing 'Logout & Clear Session' recovery action to also invoke clearPwaCaches before reloading, ensuring a broken/stale cached build can be recovered without manual hard refresh steps."
         }
       ]
     }

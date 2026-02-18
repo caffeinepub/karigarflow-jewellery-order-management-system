@@ -27,7 +27,6 @@ export interface BlockUserRequest {
   'reason' : [] | [string],
 }
 export interface BulkOrderUpdate {
-  'isReturnedFromDelivered' : [] | [boolean],
   'orderNos' : Array<string>,
   'newStatus' : string,
 }
@@ -48,7 +47,6 @@ export interface HealthCheckResponse {
   'status' : string,
   'canisterId' : string,
 }
-export interface Karigar { 'name' : string, 'isActive' : boolean }
 export interface MasterDesignEntry {
   'isActive' : boolean,
   'karigarName' : string,
@@ -69,7 +67,6 @@ export interface PersistentOrder {
   'createdAt' : Time,
   'size' : [] | [number],
   'orderType' : string,
-  'isReturnedFromDelivered' : boolean,
   'orderNo' : string,
   'isCustomerOrder' : boolean,
   'karigarName' : string,
@@ -140,7 +137,7 @@ export interface _SERVICE {
   'blockUser' : ActorMethod<[BlockUserRequest], undefined>,
   'bulkMarkOrdersAsDelivered' : ActorMethod<[Array<string>], undefined>,
   'bulkUpdateOrderStatus' : ActorMethod<[BulkOrderUpdate], undefined>,
-  'createKarigar' : ActorMethod<[Karigar], undefined>,
+  'createKarigar' : ActorMethod<[PersistentKarigar], undefined>,
   'createUserProfile' : ActorMethod<[Principal, UserProfile], undefined>,
   'deleteKarigarByName' : ActorMethod<[string], undefined>,
   'getActiveOrdersForKarigar' : ActorMethod<[], Array<PersistentOrder>>,

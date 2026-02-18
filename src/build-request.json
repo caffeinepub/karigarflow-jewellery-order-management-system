@@ -1,79 +1,91 @@
 {
   "kind": "build_request",
-  "title": "Fix karigar validation error, improve admin tabs on mobile, and add vendor-portal design image import by design code",
+  "title": "Rollback production deployment to match Version 54 exactly (without data loss)",
   "projectName": "Malabar Partner",
-  "priority": "normal",
+  "priority": "high",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Fix the false error \"Karigar name '<name>' does not exist\" when editing a design mapping and selecting an existing karigar (example: selecting \"Raju Sanjay\" shows the error even though the karigar exists and has orders). Ensure karigar existence validation is case/whitespace-insensitive and matches the karigar list used in the UI.",
+      "text": "Revert the application codebase and production deployment to match exactly Version 54 (not Version 55/56), ensuring that any new draft build is also based on the Version 54 code snapshot.",
       "target": "both",
       "source": {
         "messageIds": [
-          "msg-6"
+          "msg-9"
         ],
         "quotes": [
-          "when karigar name *Raju Sanjay* is selected while editing in design. Error karigar name doesn’t exists keeps showing, but however this karigar is already on list",
-          "Karigar name 'RAJU SANJAY' does not exist. Please create the karigar first."
+          "Pls pls get to the exact same deployment of v54"
         ]
       },
       "acceptanceCriteria": [
-        "In the Edit Design Mapping dialog, selecting an existing karigar (including names that differ only by casing or extra spaces, e.g., \"RAJU SANJAY\" vs \"Raju Sanjay\") does not show a \"does not exist\" error on save.",
-        "Backend validations that check whether a karigar exists accept karigar names that match an existing stored karigar when compared using the same normalization as the frontend (trim + collapse spaces + case-insensitive).",
-        "No regression: creating a new karigar still prevents true duplicates that only differ by casing/whitespace (e.g., cannot create both \"Raju Sanjay\" and \"RAJU   SANJAY\")."
+        "A new draft build is created from the Version 54 code snapshot (no Version 55/56 changes present).",
+        "Production deployment is updated so runtime behavior and UI match the Version 54 deployment exactly.",
+        "No automated step in the build process silently rebuilds from Version 55/56 after selecting Version 54."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "On the Admin Dashboard page, make the indicator tabs (Delivered / Hallmark / Total Orders / Customer Orders / Karigars) mobile-responsive so they do not overlap or look clumped on small screens. Also set the default selected tab to \"Total Orders\" whenever the Admin Dashboard is opened or refreshed.",
-      "target": "frontend",
+      "text": "Ensure the rollback to Version 54 preserves existing persisted canister state (orders, user profiles, master designs, karigars, activity logs, design images/mappings) and does not wipe/reset data; if Version 54 requires a schema change, implement a compatible conditional upgrade migration that preserves all existing data.",
+      "target": "backend",
       "source": {
         "messageIds": [
-          "msg-6"
+          "project_state.json"
         ],
         "quotes": [
-          "on admin portal page, the indicators tabs looks clumpsy on mobile screen, overlapping each other. And make the tab *Total Orders* selected whenever app is opened or refreshed."
+          "Ensure the rollback does not wipe or reset existing persisted canister state (orders, profiles, master designs, karigars, activity logs, design images/mappings) unless Version 54 requires an explicit compatible migration to preserve data."
         ]
       },
       "acceptanceCriteria": [
-        "On mobile widths (e.g., 360px), the admin tab triggers do not overlap; labels remain readable and tappable.",
-        "Refreshing the Admin Dashboard or reopening the app lands on the \"Total Orders\" tab selected by default.",
-        "Changing tabs still works as before and does not break the existing filtering/metrics behavior for each tab."
+        "After deploying Version 54, existing production data is still present and accessible (no empty lists due to state loss).",
+        "If a migration is required, it runs only on upgrade and converts state without dropping fields/records."
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Add an option to retrieve/extract product images by design code from the vendor portal page https://mpn.malabargroup.com/VendorDesigns.aspx and use them as design images in the app, so admins can avoid relying on Excel embedded-image extraction or manually sharing URLs. Use the provided portal credentials for access (Username: V1000803, Password: 9884472485Si.).",
+      "text": "Add a user-visible and developer-verifiable build identifier that clearly indicates the deployed app version (e.g., 'v54') in both frontend and backend, so the team can confirm production is running Version 54 after rollback.",
       "target": "both",
       "source": {
         "messageIds": [
-          "msg-6"
+          "msg-9"
         ],
         "quotes": [
-          "https://mpn.malabargroup.com/VendorDesigns.aspx",
-          "If u can open this page, all product images as per design code is available if you can actually extract from that and add yourself in the design image it will be very helpful.",
-          "Username: V1000803",
-          "Password: 9884472485Si."
+          "Pls pls get to the exact same deployment of v54"
         ]
       },
       "acceptanceCriteria": [
-        "Admin UI provides a clear workflow to fetch an image for a given design code from the vendor portal and save it as a design image mapping in the app (persisted and visible via existing Design Image viewer/mappings table).",
-        "When a design code image is successfully fetched, the Design Image viewer can display it using the existing design-image retrieval flow.",
-        "Failures (login blocked, design code not found, network errors) show an English, user-friendly error without exposing the vendor password in UI, logs, or toast messages.",
-        "The system does not require admins to upload an Excel file to add images when the vendor fetch succeeds."
+        "Frontend displays the current app version/build identifier in an existing global UI surface (e.g., AppShell footer/status area) without requiring special permissions.",
+        "Backend exposes a query method (or extends an existing health/status method) returning the app version/build identifier.",
+        "The displayed/reported version is 'v54' after the rollback deployment is complete."
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Fix the rollback/rebuild flow so that draft expiry and caching do not prevent restoring the exact Version 54 deployment (including ensuring client caches/service worker do not keep serving Version 55/56 assets after rollback).",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "project_state.json"
+        ],
+        "quotes": [
+          "Rollback attempts are not completing as expected (revert request still results in Draft Version 55 being built).",
+          "Draft app expiry is blocking rebuild/rollback flow (\"Your draft app has expired. Do you want to rebuild it?\")."
+        ]
+      },
+      "acceptanceCriteria": [
+        "After rollback deployment, a hard refresh is not required to see Version 54 UI/assets; the app updates cleanly for users already on the site.",
+        "Service worker cache versioning is updated/handled so stale cached assets from Version 55/56 are not served after rollback.",
+        "Rollback/rebuild does not get forced into rebuilding Version 55 due to draft-expiry handling."
       ]
     }
   ],
   "constraints": [
-    "Backend must remain a single Motoko actor in backend/main.mo; create backend/migration.mo changes only if state schema upgrades are required.",
-    "Do not modify files under frontend/src/components/ui (shadcn components); compose/wrap them instead.",
-    "Do not edit immutable frontend paths listed in SYSTEM_CONTEXT (e.g., frontend/src/hooks/useInternetIdentity.ts(x), frontend/src/hooks/useActor.ts, frontend/src/main.tsx).",
-    "Any handling of the vendor portal credentials must avoid exposing the password in client-visible code paths, UI rendering, or error messages."
+    "Backend must remain a single-actor Motoko canister (all logic in backend/main.mo); only add backend/migration.mo changes if required to preserve state on upgrade.",
+    "Do not edit files under frontend/src/components/ui or any frontend immutablePaths listed in SYSTEM_CONTEXT; compose them instead.",
+    "Use English for any user-facing text."
   ],
   "nonGoals": [
-    "Implement third-party authentication providers (only Internet Identity is supported).",
-    "Add real-time updates (WebSockets/push notifications).",
-    "Replace the entire Excel-based design image import flow; keep it working as-is alongside the new vendor-portal-based option."
+    "Adding new product features unrelated to restoring Version 54.",
+    "Changing authentication away from Internet Identity.",
+    "Resetting or deleting production canister state as a shortcut to achieve rollback."
   ],
   "imageRequirements": {
     "required": [],

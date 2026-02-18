@@ -102,7 +102,6 @@ export function OrdersTable({
         <TableBody>
           {validOrders.map((order) => {
             const isSelected = selectedOrders.has(order.orderNo);
-            const isReturnedFromDelivered = highlightReturnedFromDelivered && order.isReturnedFromDelivered;
             
             return (
               <TableRow
@@ -111,7 +110,6 @@ export function OrdersTable({
                 className={`
                   ${selectionMode ? 'cursor-pointer' : ''}
                   ${isSelected ? 'bg-muted/50' : ''}
-                  ${isReturnedFromDelivered ? 'bg-red-50 dark:bg-red-950/20 border-l-4 border-l-red-500' : ''}
                 `}
               >
                 {selectionMode && (
@@ -126,11 +124,6 @@ export function OrdersTable({
                 )}
                 <TableCell className="font-medium">
                   {order.orderNo}
-                  {isReturnedFromDelivered && (
-                    <Badge variant="destructive" className="ml-2 text-xs">
-                      Returned
-                    </Badge>
-                  )}
                 </TableCell>
                 <TableCell>
                   <Badge variant={order.isCustomerOrder ? 'default' : 'secondary'}>

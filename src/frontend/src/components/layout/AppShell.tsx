@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { ConnectivityStatusBar } from '../status/ConnectivityStatusBar';
 import { BackendStatusIndicator } from '../status/BackendStatusIndicator';
+import { BUILD_ID } from '../../version';
 import { 
   LayoutDashboard, 
   FileText, 
@@ -178,6 +179,9 @@ export function AppShell({ children }: AppShellProps) {
             >
               caffeine.ai
             </a>
+          </p>
+          <p className="mt-2 text-xs opacity-60">
+            Version: {BUILD_ID}
           </p>
         </div>
       </footer>

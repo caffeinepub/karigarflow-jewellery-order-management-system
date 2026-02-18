@@ -1,28 +1,23 @@
 import Nat "mo:core/Nat";
-import Array "mo:core/Array";
 import Map "mo:core/Map";
-import Text "mo:core/Text";
-import Time "mo:core/Time";
 import List "mo:core/List";
-import Iter "mo:core/Iter";
+import Text "mo:core/Text";
+import Array "mo:core/Array";
+import Time "mo:core/Time";
 import Runtime "mo:core/Runtime";
+import Iter "mo:core/Iter";
 import Principal "mo:core/Principal";
-import Migration "migration";
 
 import BlobStorage "blob-storage/Storage";
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
 import UserApproval "user-approval/approval";
 import MixinStorage "blob-storage/Mixin";
+import Migration "migration";
 
-// Apply migration on upgrade via with-clause
 (with migration = Migration.run)
 actor {
-  type PartialFulfillmentQty = {
-    orderNo : Text;
-    suppliedQty : Nat;
-  };
-
+  // Persistent Types
   type PersistentOrder = {
     orderNo : Text;
     orderType : Text;
@@ -37,7 +32,11 @@ actor {
     isCustomerOrder : Bool;
     uploadDate : Time.Time;
     createdAt : Time.Time;
-    isReturnedFromDelivered : Bool;
+  };
+
+  type PartialFulfillmentQty = {
+    orderNo : Text;
+    suppliedQty : Nat;
   };
 
   type MasterDesignEntry = {
@@ -59,6 +58,42 @@ actor {
     createdAt : Time.Time;
   };
 
+  type PersistentKarigar = {
+    name : Text;
+    isActive : Bool;
+  };
+
+  type DesignImage = {
+    imageName : Text;
+    blob : BlobStorage.ExternalBlob;
+  };
+
+  type DesignImageMapping = {
+    designCode : Text;
+    genericName : Text;
+    image : BlobStorage.ExternalBlob;
+    createdBy : Principal;
+    createdAt : Time.Time;
+  };
+
+  let accessControlState = AccessControl.initState();
+  include MixinAuthorization(accessControlState);
+  include MixinStorage();
+  let approvals = UserApproval.initState(accessControlState);
+
+  var userProfiles = Map.empty<Principal, UserProfile>();
+  var masterDesignsMap = Map.empty<Text, MasterDesignEntry>();
+  var ordersMap = Map.empty<Text, PersistentOrder>();
+  var unmappedDesignCodesMap = Map.empty<Text, UnmappedOrderEntry>();
+  var activityLog = List.empty<ActivityLogEntry>();
+
+  var blockedUsers = Map.empty<Principal, BlockedUserInfo>();
+  var designImageMappings = Map.empty<Text, DesignImageMapping>();
+  var designImages = Map.empty<Text, DesignImage>();
+
+  let karigarStorage = Map.empty<Text, PersistentKarigar>();
+
+  // Types
   public type AppRole = {
     #Admin;
     #Staff;
@@ -110,54 +145,12 @@ actor {
   public type BulkOrderUpdate = {
     orderNos : [Text];
     newStatus : Text;
-    isReturnedFromDelivered : ?Bool;
   };
 
   public type UpdateOrderTotalSuppliedRequest = {
     orderNo : Text;
     newTotalSupplied : Nat;
   };
-
-  public type DesignImage = {
-    imageName : Text;
-    blob : BlobStorage.ExternalBlob;
-  };
-
-  public type DesignImageMapping = {
-    designCode : Text;
-    genericName : Text;
-    image : BlobStorage.ExternalBlob;
-    createdBy : Principal;
-    createdAt : Time.Time;
-  };
-
-  public type PersistentKarigar = {
-    name : Text;
-    isActive : Bool;
-  };
-
-  public type Karigar = {
-    name : Text;
-    isActive : Bool;
-  };
-
-  let accessControlState = AccessControl.initState();
-  include MixinAuthorization(accessControlState);
-  include MixinStorage();
-  let approvals = UserApproval.initState(accessControlState);
-
-  var userProfiles = Map.empty<Principal, UserProfile>();
-  var masterDesignsMap = Map.empty<Text, MasterDesignEntry>();
-  var ordersMap = Map.empty<Text, PersistentOrder>();
-  var unmappedDesignCodesMap = Map.empty<Text, UnmappedOrderEntry>();
-  var activityLog = List.empty<ActivityLogEntry>();
-
-  var blockedUsers = Map.empty<Principal, BlockedUserInfo>();
-  var designImageMappings = Map.empty<Text, DesignImageMapping>();
-  var designImages = Map.empty<Text, DesignImage>();
-
-  let karigarStorage = Map.empty<Text, PersistentKarigar>();
-  var maintenanceMode = false;
 
   // Helper Functions
   func validateOrder(order : PersistentOrder) : Bool {
@@ -231,9 +224,9 @@ actor {
   };
 
   // Karigar management functions
-  public shared ({ caller }) func createKarigar(karigar : Karigar) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can create new karigars");
+  public shared ({ caller }) func createKarigar(karigar : PersistentKarigar) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can perform this action");
     };
     if (karigar.name == "") {
       Runtime.trap("Karigar name cannot be empty");
@@ -245,8 +238,8 @@ actor {
   };
 
   public shared ({ caller }) func updateOrdersForNewKarigar(designCode : Text, newKarigarName : Text) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only Admin can update karigar names for design code");
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can perform this action");
     };
 
     let normalizedDesignCode = normalizeDesignCode(designCode);
@@ -268,8 +261,8 @@ actor {
   };
 
   public shared ({ caller }) func deleteKarigarByName(karigarName : Text) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can delete karigar names");
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can perform this action");
     };
     if (not karigarStorage.containsKey(karigarName)) {
       Runtime.trap("Karigar with name " # karigarName # " does not exist. Please enter a valid karigar name");
@@ -304,8 +297,7 @@ actor {
 
   // -- State Queries
   public query func healthCheck() : async HealthCheckResponse {
-    let canisterId = "unknown";
-    { status = "OK"; canisterId };
+    { status = "OK"; canisterId = "reverted-to-v54-compat" };
   };
 
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
@@ -478,28 +470,7 @@ actor {
       };
     };
 
-    // ADDED: Handle cancellation of "delivered" orders (return to active)
-    if (bulkUpdate.newStatus == "pending" and bulkUpdate.isReturnedFromDelivered == ?true) {
-      for (orderNo in bulkUpdate.orderNos.values()) {
-        switch (ordersMap.get(orderNo)) {
-          case (?order) {
-            if (order.status != "delivered") {
-              Runtime.trap("Only orders in delivered status can be cancelled");
-            };
-            let updatedOrder : PersistentOrder = {
-              order with status = "pending";
-              isReturnedFromDelivered = true; // Mark as returned from delivered!
-            };
-            ordersMap.add(orderNo, updatedOrder);
-          };
-          case (null) { Runtime.trap("Order with orderNo " # orderNo # " not found") };
-        };
-      };
-      recordActivity(caller, "bulkUpdateOrderStatus", "Bulk returned from delivered");
-      return;
-    };
-
-    // Update all orders (regular bulk status change)
+    // Update all orders
     for (orderNo in bulkUpdate.orderNos.values()) {
       switch (ordersMap.get(orderNo)) {
         case (?order) {
@@ -782,7 +753,6 @@ actor {
               isCustomerOrder = finalOrder.isCustomerOrder;
               uploadDate = finalOrder.uploadDate;
               createdAt = finalOrder.createdAt;
-              isReturnedFromDelivered = false;
             };
             ordersMap.add(finalOrder.orderNo, correctOrder);
           } else {
@@ -807,8 +777,8 @@ actor {
   };
 
   public shared ({ caller }) func saveMasterDesigns(masterDesigns : [(Text, MasterDesignEntry)]) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only Admin can save master designs");
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can perform this action");
     };
     checkBlockedUser(caller);
 
@@ -842,8 +812,8 @@ actor {
   };
 
   public shared ({ caller }) func setActiveFlagForMasterDesign(designCode : Text, isActive : Bool) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can set active flag");
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can perform this action");
     };
     checkBlockedUser(caller);
 
@@ -885,7 +855,6 @@ actor {
             isCustomerOrder = unmappedOrder.isCustomerOrder;
             uploadDate = unmappedOrder.uploadDate;
             createdAt = unmappedOrder.createdAt;
-            isReturnedFromDelivered = false;
           };
           ordersMap.add(order.orderNo, order);
           unmappedDesignCodesMap.remove(key);
@@ -935,8 +904,8 @@ actor {
   };
 
   public shared ({ caller }) func createUserProfile(user : Principal, profile : UserProfile) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can create user profiles");
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can perform this action");
     };
 
     let accessRole : AccessControl.UserRole = switch (profile.appRole) {
@@ -959,8 +928,8 @@ actor {
 
   // Blocked User Functions
   public shared ({ caller }) func blockUser(request : BlockUserRequest) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can block users");
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can perform this action");
     };
 
     let blockInfo : BlockedUserInfo = {
@@ -973,8 +942,8 @@ actor {
   };
 
   public shared ({ caller }) func unblockUser(user : Principal) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can unblock users");
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can perform this action");
     };
 
     blockedUsers.add(
@@ -989,8 +958,8 @@ actor {
   };
 
   public query ({ caller }) func isUserBlocked(user : Principal) : async Bool {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can check user block status");
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can perform this action");
     };
     switch (blockedUsers.get(user)) {
       case (null) { false };
@@ -1037,8 +1006,8 @@ actor {
 
   // -- Design-to-Image Mapping
   public query ({ caller }) func getAdminDesignImageMappings() : async [(DesignImageMapping, BlobStorage.ExternalBlob)] {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can retrieve design image mappings");
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can perform this action");
     };
 
     let validMappings = designImageMappings.toArray();
@@ -1051,15 +1020,15 @@ actor {
   };
 
   public query ({ caller }) func getDesignImageMappings() : async [DesignImageMapping] {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can retrieve design image mappings");
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can perform this action");
     };
     designImageMappings.values().toArray();
   };
 
   public shared ({ caller }) func saveDesignImageMappings(parsedMappings : [DesignImageMapping]) : async [DesignImageMapping] {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can save design image mappings");
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can perform this action");
     };
 
     let validatedMappings = parsedMappings.filter(
@@ -1089,4 +1058,3 @@ actor {
     designKarigars;
   };
 };
-

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'karigarflow-v2';
+const CACHE_NAME = 'karigarflow-v54';
 const urlsToCache = [
   '/assets/generated/karigarflow-logo.dim_512x512.png',
   '/assets/generated/karigarflow-icon.dim_1024x1024.png',
@@ -6,7 +6,7 @@ const urlsToCache = [
 ];
 
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing service worker v2');
+  console.log('[SW] Installing service worker v54');
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(urlsToCache);
@@ -14,6 +14,14 @@ self.addEventListener('install', (event) => {
   );
   // Force the waiting service worker to become the active service worker
   self.skipWaiting();
+});
+
+// Handle skip waiting message
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    console.log('[SW] Received SKIP_WAITING message');
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener('fetch', (event) => {
@@ -47,28 +55,32 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // For other requests (assets, API calls), use cache-first strategy
-  event.respondWith(
-    caches.match(request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      return fetch(request).then((response) => {
-        // Cache successful responses for static assets
-        if (response.ok && (url.pathname.startsWith('/assets/') || url.pathname.endsWith('.js') || url.pathname.endsWith('.css'))) {
-          const responseToCache = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(request, responseToCache);
-          });
-        }
-        return response;
-      });
-    })
-  );
+  // For JS/CSS/static assets, prefer fresh network with cache fallback
+  if (url.pathname.endsWith('.js') || url.pathname.endsWith('.css') || url.pathname.startsWith('/assets/')) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const responseToCache = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, responseToCache);
+            });
+          }
+          return response;
+        })
+        .catch(() => {
+          return caches.match(request);
+        })
+    );
+    return;
+  }
+
+  // For other requests (API calls), network only
+  event.respondWith(fetch(request));
 });
 
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating service worker v2');
+  console.log('[SW] Activating service worker v54');
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(

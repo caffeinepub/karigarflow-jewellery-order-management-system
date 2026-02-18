@@ -82,7 +82,6 @@ export function parseOrdersFromPdfText(text: string, uploadDate: Date): Persiste
       isCustomerOrder,
       uploadDate: uploadTimestamp,
       createdAt: uploadTimestamp,
-      isReturnedFromDelivered: false,
     });
   }
 

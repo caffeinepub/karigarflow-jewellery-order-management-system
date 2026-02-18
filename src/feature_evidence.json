@@ -2,11 +2,11 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-fix-the-false-error-karigar-name-name-does-not-exist-when-editing-a-design-mapping-and-selecting-an-existing-karigar-example-selecting-raju-sanjay-shows-the-error-even-though-the-karigar-exists-and-has-orders-ensure-karigar-existence-validation-is-case-whitespace-insensitive-and-matches-the-karigar-list-used-in-the-ui",
-      "featureTitle": "Fix the false error \"Karigar name '<name>' does not exist\" when editing a design mapping and selecting an existing karigar (example: selecting \"Raju Sanjay\" shows the error even though the karigar exists and has orders). Ensure karigar existence validation is case/whitespace-insensitive and matches the karigar list used in the UI.",
+      "featureId": "feature-revert-the-application-codebase-and-production-deployment-to-match-exactly-version-54-not-version-55-56-ensuring-that-any-new-draft-build-is-also-based-on-the-version-54-code-snapshot",
+      "featureTitle": "Revert the application codebase and production deployment to match exactly Version 54 (not Version 55/56), ensuring that any new draft build is also based on the Version 54 code snapshot.",
       "files": [
-        "frontend/src/components/karigar/AddKarigarDialog.tsx",
-        "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx"
+        "frontend/public/service-worker.js",
+        "frontend/src/version.ts"
       ],
       "components": [
         "authorization@4.0.0",
@@ -25,32 +25,11 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-on-the-admin-dashboard-page-make-the-indicator-tabs-delivered-hallmark-total-orders-customer-orders-karigars-mobile-responsive-so-they-do-not-overlap-or-look-clumped-on-small-screens-also-set-the-default-selected-tab-to-total-orders-whenever-the-admin-dashboard-is-opened-or-refreshed",
-      "featureTitle": "On the Admin Dashboard page, make the indicator tabs (Delivered / Hallmark / Total Orders / Customer Orders / Karigars) mobile-responsive so they do not overlap or look clumped on small screens. Also set the default selected tab to \"Total Orders\" whenever the Admin Dashboard is opened or refreshed.",
+      "featureId": "feature-add-a-user-visible-and-developer-verifiable-build-identifier-that-clearly-indicates-the-deployed-app-version-e-g-v54-in-both-frontend-and-backend-so-the-team-can-confirm-production-is-running-version-54-after-rollback",
+      "featureTitle": "Add a user-visible and developer-verifiable build identifier that clearly indicates the deployed app version (e.g., 'v54') in both frontend and backend, so the team can confirm production is running Version 54 after rollback.",
       "files": [
-        "frontend/src/index.css",
-        "frontend/src/pages/admin/AdminDashboardPage.tsx"
+        "frontend/src/components/layout/AppShell.tsx"
       ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0",
-        "user-approval@3.0.0",
-        "blob-storage@4.0.0",
-        "http-outcalls@3.0.0"
-      ],
-      "testIds": [
-        "REQ-2"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-add-an-option-to-retrieve-extract-product-images-by-design-code-from-the-vendor-portal-page-https-mpn-malabargroup-com-vendordesigns-aspx-and-use-them-as-design-images-in-the-app-so-admins-can-avoid-relying-on-excel-embedded-image-extraction-or-manually-sharing-urls-use-the-provided-portal-credentials-for-access-username-v1000803-password-9884472485si",
-      "featureTitle": "Add an option to retrieve/extract product images by design code from the vendor portal page https://mpn.malabargroup.com/VendorDesigns.aspx and use them as design images in the app, so admins can avoid relying on Excel embedded-image extraction or manually sharing URLs. Use the provided portal credentials for access (Username: V1000803, Password: 9884472485Si.).",
-      "files": [],
       "components": [
         "authorization@4.0.0",
         "core-infrastructure@1.0.2",
@@ -64,6 +43,32 @@
       ],
       "testIds": [
         "REQ-3"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-fix-the-rollback-rebuild-flow-so-that-draft-expiry-and-caching-do-not-prevent-restoring-the-exact-version-54-deployment-including-ensuring-client-caches-service-worker-do-not-keep-serving-version-55-56-assets-after-rollback",
+      "featureTitle": "Fix the rollback/rebuild flow so that draft expiry and caching do not prevent restoring the exact Version 54 deployment (including ensuring client caches/service worker do not keep serving Version 55/56 assets after rollback).",
+      "files": [
+        "frontend/public/service-worker.js",
+        "frontend/src/components/auth/LoginButton.tsx",
+        "frontend/src/components/errors/AppErrorBoundary.tsx",
+        "frontend/src/pwa/clearPwaCaches.ts",
+        "frontend/src/pwa/registerServiceWorker.ts"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "user-approval@3.0.0",
+        "blob-storage@4.0.0",
+        "http-outcalls@3.0.0"
+      ],
+      "testIds": [
+        "REQ-4"
       ],
       "confidence": "high"
     }

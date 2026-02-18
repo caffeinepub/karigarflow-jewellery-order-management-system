@@ -98,12 +98,16 @@ export function AdminDashboardPage() {
   const bulkUpdateMutation = useBulkUpdateOrderStatus();
   const hallmarkMutation = useHandleHallmarkReturns();
 
-  const allOrders = fetchedOrders || cachedOrders;
-  const { validOrders } = sanitizeOrders(allOrders);
+  const combinedOrders = fetchedOrders || cachedOrders;
   const isLoading = fetchingOrders || loadingCache;
 
-  // Get current filters based on active tab
-  const getCurrentFilters = () => {
+  // Reset selection when tab changes
+  useEffect(() => {
+    setSelectedOrders(new Set());
+    setSelectedKarigar(null);
+  }, [activeTab]);
+
+  const getActiveFilters = () => {
     switch (activeTab) {
       case 'delivered': return deliveredFilters;
       case 'hallmark': return hallmarkFilters;
@@ -114,7 +118,7 @@ export function AdminDashboardPage() {
     }
   };
 
-  const setCurrentFilters = (filters: typeof totalFilters) => {
+  const setActiveFilters = (filters: typeof totalFilters) => {
     switch (activeTab) {
       case 'delivered': setDeliveredFilters(filters); break;
       case 'hallmark': setHallmarkFilters(filters); break;
@@ -124,136 +128,116 @@ export function AdminDashboardPage() {
     }
   };
 
-  const currentFilters = getCurrentFilters();
+  const applyFilters = (orders: PersistentOrder[], filters: typeof totalFilters) => {
+    const { validOrders } = sanitizeOrders(orders);
+    
+    return validOrders.filter(order => {
+      const orderDate = getOrderTimestamp(order);
+      const dateFrom = startOfDay(filters.dateFrom);
+      const dateTo = endOfDay(filters.dateTo);
+      
+      const matchesDate = orderDate >= dateFrom && orderDate <= dateTo;
+      const matchesKarigar = !filters.karigar || order.karigarName === filters.karigar;
+      const matchesStatus = !filters.status || order.status === filters.status;
+      const matchesOrderNo = !filters.orderNoQuery || 
+        order.orderNo.toLowerCase().includes(filters.orderNoQuery.toLowerCase());
+      
+      // CO/RB filter logic
+      let matchesOrderType = true;
+      if (filters.coFilter && filters.rbFilter) {
+        matchesOrderType = true; // Both selected = show all
+      } else if (filters.coFilter) {
+        matchesOrderType = order.orderType.toUpperCase().includes('CO');
+      } else if (filters.rbFilter) {
+        matchesOrderType = order.orderType.toUpperCase().includes('RB');
+      }
+      
+      return matchesDate && matchesKarigar && matchesStatus && matchesOrderNo && matchesOrderType;
+    });
+  };
 
-  // Filter orders based on active tab and filters
+  // Filter orders based on active tab
   const getFilteredOrders = () => {
-    let filtered = validOrders;
+    if (!combinedOrders) return [];
+    
+    const filters = getActiveFilters();
+    let baseOrders = combinedOrders;
 
-    // Tab-specific filtering
     switch (activeTab) {
       case 'delivered':
-        filtered = filtered.filter(o => o.status === 'delivered');
+        baseOrders = combinedOrders.filter(o => o.status === 'delivered');
         break;
       case 'hallmark':
-        filtered = filtered.filter(o => o.status === 'given_to_hallmark');
+        baseOrders = combinedOrders.filter(o => o.status === 'given_to_hallmark');
         break;
       case 'total':
-        // Show all orders
+        baseOrders = combinedOrders;
         break;
       case 'co':
-        filtered = filtered.filter(o => o.isCustomerOrder);
+        baseOrders = combinedOrders.filter(o => o.isCustomerOrder);
         break;
       case 'karigars':
         if (selectedKarigar) {
-          filtered = filtered.filter(o => o.karigarName === selectedKarigar);
+          baseOrders = combinedOrders.filter(o => o.karigarName === selectedKarigar);
+        } else {
+          baseOrders = [];
         }
         break;
     }
 
-    // Apply common filters
-    if (currentFilters.karigar) {
-      filtered = filtered.filter(o => o.karigarName === currentFilters.karigar);
-    }
-    if (currentFilters.status) {
-      filtered = filtered.filter(o => o.status === currentFilters.status);
-    }
-    if (currentFilters.orderNoQuery) {
-      const query = currentFilters.orderNoQuery.toLowerCase();
-      filtered = filtered.filter(o => o.orderNo.toLowerCase().includes(query));
-    }
-
-    // CO/RB filters
-    if (currentFilters.coFilter && !currentFilters.rbFilter) {
-      filtered = filtered.filter(o => o.orderType.includes('CO'));
-    } else if (currentFilters.rbFilter && !currentFilters.coFilter) {
-      filtered = filtered.filter(o => o.orderType === 'RB');
-    }
-
-    // Date filtering
-    if (currentFilters.dateFrom || currentFilters.dateTo) {
-      filtered = filtered.filter(order => {
-        const orderDate = getOrderTimestamp(order);
-        if (!orderDate) return false;
-
-        const orderDayStart = startOfDay(orderDate);
-        const orderDayEnd = endOfDay(orderDate);
-
-        if (currentFilters.dateFrom && currentFilters.dateTo) {
-          const filterStart = startOfDay(currentFilters.dateFrom);
-          const filterEnd = endOfDay(currentFilters.dateTo);
-          return orderDayStart >= filterStart && orderDayEnd <= filterEnd;
-        } else if (currentFilters.dateFrom) {
-          const filterStart = startOfDay(currentFilters.dateFrom);
-          return orderDayStart >= filterStart;
-        } else if (currentFilters.dateTo) {
-          const filterEnd = endOfDay(currentFilters.dateTo);
-          return orderDayEnd <= filterEnd;
-        }
-        return true;
-      });
-    }
-
-    return sortOrdersDesignWise(filtered);
+    return applyFilters(baseOrders, filters);
   };
 
   const filteredOrders = getFilteredOrders();
+  const sortedOrders = sortOrdersDesignWise(filteredOrders);
+
+  // Compute metrics for the currently visible filtered orders
   const metrics = deriveMetrics(filteredOrders);
-  const allMetrics = deriveMetrics(validOrders);
 
-  // Get unique karigars for the Karigars tab
-  const uniqueKarigars = Array.from(
-    new Set(validOrders.map(o => o.karigarName).filter(Boolean))
-  ).sort();
-
-  // Convert byKarigar object to array for karigarStats
-  const karigarStats = Object.entries(metrics.byKarigar).map(([karigarName, stats]) => ({
-    karigarName,
-    ...stats,
-  }));
-
-  const handleBulkStatusUpdate = async (newStatus: string) => {
-    if (selectedOrders.size === 0) {
-      toast.error('No orders selected');
-      return;
+  // Compute breakdown data for the dialog
+  const getBreakdownData = () => {
+    if (!combinedOrders) {
+      return {
+        delivered: 0,
+        hallmark: 0,
+        totalOrders: 0,
+        customerOrders: 0,
+        karigars: 0,
+      };
     }
 
-    try {
-      await bulkUpdateMutation.mutateAsync({
-        orderNos: Array.from(selectedOrders),
-        newStatus,
-      });
-      toast.success(`${selectedOrders.size} orders updated to ${newStatus}`);
-      setSelectedOrders(new Set());
-    } catch (error: any) {
-      toast.error(error?.message || 'Failed to update orders');
-    }
-  };
+    const deliveredOrders = applyFilters(
+      combinedOrders.filter(o => o.status === 'delivered'),
+      deliveredFilters
+    );
+    const hallmarkOrders = applyFilters(
+      combinedOrders.filter(o => o.status === 'given_to_hallmark'),
+      hallmarkFilters
+    );
+    const totalOrdersFiltered = applyFilters(combinedOrders, totalFilters);
+    const coOrdersFiltered = applyFilters(
+      combinedOrders.filter(o => o.isCustomerOrder),
+      coFilters
+    );
+    const karigarOrdersFiltered = selectedKarigar
+      ? applyFilters(
+          combinedOrders.filter(o => o.karigarName === selectedKarigar),
+          karigarFilters
+        )
+      : [];
 
-  const handleHallmarkAction = async (actionType: 'update_status' | 'return_hallmark') => {
-    if (selectedOrders.size === 0) {
-      toast.error('No orders selected');
-      return;
-    }
-
-    try {
-      await hallmarkMutation.mutateAsync({
-        orderNos: Array.from(selectedOrders),
-        actionType: Variant_update_status_return_hallmark[actionType],
-      });
-      const message = actionType === 'update_status' 
-        ? 'Orders sent to hallmark' 
-        : 'Orders returned from hallmark';
-      toast.success(message);
-      setSelectedOrders(new Set());
-    } catch (error: any) {
-      toast.error(error?.message || 'Failed to process hallmark action');
-    }
+    return {
+      delivered: deriveMetrics(deliveredOrders).totalQty,
+      hallmark: deriveMetrics(hallmarkOrders).totalQty,
+      totalOrders: deriveMetrics(totalOrdersFiltered).totalQty,
+      customerOrders: deriveMetrics(coOrdersFiltered).totalQty,
+      karigars: deriveMetrics(karigarOrdersFiltered).totalQty,
+    };
   };
 
   const handleCancelDelivered = async () => {
     if (selectedOrders.size === 0) {
-      toast.error('No orders selected');
+      toast.error('Please select orders to cancel');
       return;
     }
 
@@ -261,12 +245,50 @@ export function AdminDashboardPage() {
       await bulkUpdateMutation.mutateAsync({
         orderNos: Array.from(selectedOrders),
         newStatus: 'pending',
-        isReturnedFromDelivered: true,
       });
-      toast.success(`${selectedOrders.size} orders returned to active status`);
+      toast.success(`${selectedOrders.size} order(s) returned to active status`);
       setSelectedOrders(new Set());
     } catch (error: any) {
-      toast.error(error?.message || 'Failed to cancel delivered orders');
+      console.error('Failed to cancel delivered orders:', error);
+      toast.error(error?.message || 'Failed to cancel orders');
+    }
+  };
+
+  const handleSendToHallmark = async () => {
+    if (selectedOrders.size === 0) {
+      toast.error('Please select orders to send to hallmark');
+      return;
+    }
+
+    try {
+      await hallmarkMutation.mutateAsync({
+        orderNos: Array.from(selectedOrders),
+        actionType: Variant_update_status_return_hallmark.update_status,
+      });
+      toast.success(`${selectedOrders.size} order(s) sent to hallmark`);
+      setSelectedOrders(new Set());
+    } catch (error: any) {
+      console.error('Failed to send orders to hallmark:', error);
+      toast.error(error?.message || 'Failed to send orders to hallmark');
+    }
+  };
+
+  const handleReturnFromHallmark = async () => {
+    if (selectedOrders.size === 0) {
+      toast.error('Please select orders to return from hallmark');
+      return;
+    }
+
+    try {
+      await hallmarkMutation.mutateAsync({
+        orderNos: Array.from(selectedOrders),
+        actionType: Variant_update_status_return_hallmark.return_hallmark,
+      });
+      toast.success(`${selectedOrders.size} order(s) returned from hallmark`);
+      setSelectedOrders(new Set());
+    } catch (error: any) {
+      console.error('Failed to return orders from hallmark:', error);
+      toast.error(error?.message || 'Failed to return orders from hallmark');
     }
   };
 
@@ -281,114 +303,103 @@ export function AdminDashboardPage() {
     }
   };
 
-  const handleViewDesignImage = (order: PersistentOrder) => {
-    setViewingDesignCode(order.designCode);
-  };
-
-  // Calculate breakdown data for all tabs
-  const deliveredOrders = validOrders.filter(o => o.status === 'delivered');
-  const hallmarkOrders = validOrders.filter(o => o.status === 'given_to_hallmark');
-  const customerOrders = validOrders.filter(o => o.isCustomerOrder);
-  
-  const breakdownData = {
-    delivered: deliveredOrders.reduce((sum, o) => sum + Number(o.qty), 0),
-    hallmark: hallmarkOrders.reduce((sum, o) => sum + Number(o.qty), 0),
-    totalOrders: validOrders.reduce((sum, o) => sum + Number(o.qty), 0),
-    customerOrders: customerOrders.reduce((sum, o) => sum + Number(o.qty), 0),
-    karigars: Object.values(allMetrics.byKarigar).reduce((sum, stat) => sum + stat.totalQty, 0),
-  };
-
   if (isError) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center space-y-4">
-          <p className="text-destructive">Failed to load orders</p>
-          <p className="text-sm text-muted-foreground">{error?.message || 'Unknown error'}</p>
+      <div className="p-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Error Loading Orders</CardTitle>
+            <CardDescription>
+              {error instanceof Error ? error.message : 'An unknown error occurred'}
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading orders...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
-          <p className="text-muted-foreground mt-2">
-            Manage orders, track progress, and export data
-          </p>
-        </div>
-        <ExportActions filteredOrders={filteredOrders} selectedDate={selectedDate} />
-      </div>
-
+    <div className="p-4 md:p-8 space-y-6">
       {invalidOrdersSkippedCount > 0 && (
-        <OrdersDataWarningBanner 
+        <OrdersDataWarningBanner
           skippedCount={invalidOrdersSkippedCount}
           onClearCache={handleClearCache}
           isClearing={isClearing}
         />
       )}
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+          <p className="text-muted-foreground">Manage orders and track progress</p>
+        </div>
+        <ExportActions filteredOrders={filteredOrders} selectedDate={selectedDate} />
+      </div>
+
+      {/* Metrics Cards */}
+      <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Weight</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{metrics.totalWeight.toFixed(2)}g</div>
+            <div className="text-2xl font-bold">{metrics.totalOrders}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Qty</CardTitle>
-            <Eye className="h-4 w-4 text-muted-foreground" />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-4 w-4 p-0"
+              onClick={() => setTotalQtyDialogOpen(true)}
+              title="View breakdown"
+            >
+              <Eye className="h-4 w-4 text-muted-foreground" />
+            </Button>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{metrics.totalQty}</div>
-            <Button
-              variant="link"
-              size="sm"
-              className="h-auto p-0 text-xs text-muted-foreground hover:text-foreground"
-              onClick={() => setTotalQtyDialogOpen(true)}
-            >
-              View breakdown
-            </Button>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Karigars</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Weight</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{karigarStats.length}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Selected Orders</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{selectedOrders.size}</div>
+            <div className="text-2xl font-bold">{metrics.totalWeight.toFixed(2)}g</div>
           </CardContent>
         </Card>
       </div>
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ActiveTab)} className="space-y-4">
         <TabsList className="admin-tabs-list">
-          <TabsTrigger value="delivered" className="admin-tab-trigger">
+          <TabsTrigger value="delivered" className="admin-tabs-trigger">
             Delivered
           </TabsTrigger>
-          <TabsTrigger value="hallmark" className="admin-tab-trigger">
+          <TabsTrigger value="hallmark" className="admin-tabs-trigger">
             Hallmark
           </TabsTrigger>
-          <TabsTrigger value="total" className="admin-tab-trigger">
+          <TabsTrigger value="total" className="admin-tabs-trigger">
             Total Orders
           </TabsTrigger>
-          <TabsTrigger value="co" className="admin-tab-trigger">
+          <TabsTrigger value="co" className="admin-tabs-trigger">
             Customer Orders
           </TabsTrigger>
-          <TabsTrigger value="karigars" className="admin-tab-trigger">
+          <TabsTrigger value="karigars" className="admin-tabs-trigger">
             Karigars
           </TabsTrigger>
         </TabsList>
@@ -396,52 +407,55 @@ export function AdminDashboardPage() {
         <TabsContent value="delivered" className="space-y-4">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
                   <CardTitle>Delivered Orders</CardTitle>
-                  <CardDescription>
-                    {filteredOrders.length} orders • {metrics.totalQty} qty • {metrics.totalWeight.toFixed(2)}g
-                  </CardDescription>
+                  <CardDescription>Orders that have been delivered</CardDescription>
                 </div>
-                {selectedOrders.size > 0 && (
+                <div className="flex gap-2">
                   <Button
                     variant="outline"
-                    size="sm"
                     onClick={handleCancelDelivered}
-                    disabled={bulkUpdateMutation.isPending}
+                    disabled={selectedOrders.size === 0 || bulkUpdateMutation.isPending}
                   >
                     {bulkUpdateMutation.isPending ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Cancelling...
+                        Canceling...
                       </>
                     ) : (
-                      `Cancel ${selectedOrders.size} Order${selectedOrders.size > 1 ? 's' : ''}`
+                      `Cancel (${selectedOrders.size})`
                     )}
                   </Button>
-                )}
+                  <Button
+                    onClick={handleSendToHallmark}
+                    disabled={selectedOrders.size === 0 || hallmarkMutation.isPending}
+                  >
+                    {hallmarkMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      `Send to Hallmark (${selectedOrders.size})`
+                    )}
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <OrdersFiltersBar
                 filters={deliveredFilters}
                 onFiltersChange={setDeliveredFilters}
-                orders={validOrders}
+                orders={combinedOrders || []}
               />
-              {isLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                </div>
-              ) : (
-                <OrdersTable
-                  orders={filteredOrders}
-                  selectionMode={true}
-                  selectedOrders={selectedOrders}
-                  onSelectionChange={setSelectedOrders}
-                  onEditRbSupplied={setEditingRbOrder}
-                  onViewDesignImage={handleViewDesignImage}
-                />
-              )}
+              <OrdersTable
+                orders={sortedOrders}
+                selectionMode
+                selectedOrders={selectedOrders}
+                onSelectionChange={setSelectedOrders}
+                onViewDesignImage={(order) => setViewingDesignCode(order.designCode)}
+              />
             </CardContent>
           </Card>
         </TabsContent>
@@ -449,52 +463,39 @@ export function AdminDashboardPage() {
         <TabsContent value="hallmark" className="space-y-4">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
                   <CardTitle>Hallmark Orders</CardTitle>
-                  <CardDescription>
-                    {filteredOrders.length} orders • {metrics.totalQty} qty • {metrics.totalWeight.toFixed(2)}g
-                  </CardDescription>
+                  <CardDescription>Orders sent to hallmark</CardDescription>
                 </div>
-                {selectedOrders.size > 0 && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleHallmarkAction('return_hallmark')}
-                    disabled={hallmarkMutation.isPending}
-                  >
-                    {hallmarkMutation.isPending ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Returning...
-                      </>
-                    ) : (
-                      `Return ${selectedOrders.size} from Hallmark`
-                    )}
-                  </Button>
-                )}
+                <Button
+                  onClick={handleReturnFromHallmark}
+                  disabled={selectedOrders.size === 0 || hallmarkMutation.isPending}
+                >
+                  {hallmarkMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Returning...
+                    </>
+                  ) : (
+                    `Return from Hallmark (${selectedOrders.size})`
+                  )}
+                </Button>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <OrdersFiltersBar
                 filters={hallmarkFilters}
                 onFiltersChange={setHallmarkFilters}
-                orders={validOrders}
+                orders={combinedOrders || []}
               />
-              {isLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                </div>
-              ) : (
-                <OrdersTable
-                  orders={filteredOrders}
-                  selectionMode={true}
-                  selectedOrders={selectedOrders}
-                  onSelectionChange={setSelectedOrders}
-                  onEditRbSupplied={setEditingRbOrder}
-                  onViewDesignImage={handleViewDesignImage}
-                />
-              )}
+              <OrdersTable
+                orders={sortedOrders}
+                selectionMode
+                selectedOrders={selectedOrders}
+                onSelectionChange={setSelectedOrders}
+                onViewDesignImage={(order) => setViewingDesignCode(order.designCode)}
+              />
             </CardContent>
           </Card>
         </TabsContent>
@@ -502,54 +503,21 @@ export function AdminDashboardPage() {
         <TabsContent value="total" className="space-y-4">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Total Orders</CardTitle>
-                  <CardDescription>
-                    {filteredOrders.length} orders • {metrics.totalQty} qty • {metrics.totalWeight.toFixed(2)}g
-                  </CardDescription>
-                </div>
-                {selectedOrders.size > 0 && (
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleHallmarkAction('update_status')}
-                      disabled={hallmarkMutation.isPending}
-                    >
-                      {hallmarkMutation.isPending ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Sending...
-                        </>
-                      ) : (
-                        `Send ${selectedOrders.size} to Hallmark`
-                      )}
-                    </Button>
-                  </div>
-                )}
-              </div>
+              <CardTitle>All Orders</CardTitle>
+              <CardDescription>Complete order list</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <OrdersFiltersBar
                 filters={totalFilters}
                 onFiltersChange={setTotalFilters}
-                orders={validOrders}
+                orders={combinedOrders || []}
               />
-              {isLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                </div>
-              ) : (
-                <OrdersTable
-                  orders={filteredOrders}
-                  selectionMode={true}
-                  selectedOrders={selectedOrders}
-                  onSelectionChange={setSelectedOrders}
-                  onEditRbSupplied={setEditingRbOrder}
-                  onViewDesignImage={handleViewDesignImage}
-                />
-              )}
+              <OrdersTable
+                orders={sortedOrders}
+                onEditRbSupplied={(order) => setEditingRbOrder(order)}
+                onViewDesignImage={(order) => setViewingDesignCode(order.designCode)}
+                allowRbEditStatuses={['pending']}
+              />
             </CardContent>
           </Card>
         </TabsContent>
@@ -558,135 +526,93 @@ export function AdminDashboardPage() {
           <Card>
             <CardHeader>
               <CardTitle>Customer Orders</CardTitle>
-              <CardDescription>
-                {filteredOrders.length} orders • {metrics.totalQty} qty • {metrics.totalWeight.toFixed(2)}g
-              </CardDescription>
+              <CardDescription>Orders marked as customer orders (CO)</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <OrdersFiltersBar
                 filters={coFilters}
                 onFiltersChange={setCoFilters}
-                orders={validOrders}
+                orders={combinedOrders || []}
               />
-              {isLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                </div>
-              ) : (
-                <OrdersTable
-                  orders={filteredOrders}
-                  selectionMode={true}
-                  selectedOrders={selectedOrders}
-                  onSelectionChange={setSelectedOrders}
-                  onEditRbSupplied={setEditingRbOrder}
-                  onViewDesignImage={handleViewDesignImage}
-                />
-              )}
+              <OrdersTable
+                orders={sortedOrders}
+                onViewDesignImage={(order) => setViewingDesignCode(order.designCode)}
+              />
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="karigars" className="space-y-4">
-          {!selectedKarigar ? (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {karigarStats.map((stat) => (
-                <Card
-                  key={stat.karigarName}
-                  className="cursor-pointer hover:bg-accent transition-colors"
-                  onClick={() => setSelectedKarigar(stat.karigarName)}
-                >
-                  <CardHeader>
-                    <CardTitle className="text-lg">{formatKarigarName(stat.karigarName)}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Orders:</span>
-                      <span className="font-medium">{stat.totalOrders}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Qty:</span>
-                      <span className="font-medium">{stat.totalQty}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Weight:</span>
-                      <span className="font-medium">{stat.totalWeight.toFixed(2)}g</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>{formatKarigarName(selectedKarigar)}</CardTitle>
-                    <CardDescription>
-                      {filteredOrders.length} orders • {metrics.totalQty} qty • {metrics.totalWeight.toFixed(2)}g
-                    </CardDescription>
-                  </div>
-                  <div className="flex gap-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Karigar-wise Orders</CardTitle>
+              <CardDescription>View orders by karigar</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-wrap gap-2">
+                {Object.keys(metrics.byKarigar).sort().map((karigarName) => {
+                  const stat = metrics.byKarigar[karigarName];
+                  return (
+                    <Badge
+                      key={karigarName}
+                      variant={selectedKarigar === karigarName ? 'default' : 'outline'}
+                      className="cursor-pointer"
+                      onClick={() => setSelectedKarigar(karigarName)}
+                    >
+                      {formatKarigarName(karigarName)} ({stat.totalOrders})
+                    </Badge>
+                  );
+                })}
+              </div>
+
+              {selectedKarigar && (
+                <>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold">
+                      Orders for {formatKarigarName(selectedKarigar)}
+                    </h3>
                     <KarigarDrilldownExportBar
+                      allOrders={sortedOrders}
                       karigarName={selectedKarigar}
-                      allOrders={filteredOrders}
                       selectedDate={selectedDate}
                     />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setSelectedKarigar(null)}
-                    >
-                      Back to All Karigars
-                    </Button>
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <OrdersFiltersBar
-                  filters={karigarFilters}
-                  onFiltersChange={setKarigarFilters}
-                  orders={validOrders}
-                />
-                {isLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                  </div>
-                ) : (
-                  <OrdersTable
-                    orders={filteredOrders}
-                    selectionMode={true}
-                    selectedOrders={selectedOrders}
-                    onSelectionChange={setSelectedOrders}
-                    onEditRbSupplied={setEditingRbOrder}
-                    onViewDesignImage={handleViewDesignImage}
+                  <OrdersFiltersBar
+                    filters={karigarFilters}
+                    onFiltersChange={setKarigarFilters}
+                    orders={combinedOrders || []}
                   />
-                )}
-              </CardContent>
-            </Card>
-          )}
+                  <OrdersTable
+                    orders={sortedOrders}
+                    onViewDesignImage={(order) => setViewingDesignCode(order.designCode)}
+                  />
+                </>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 
       {editingRbOrder && (
         <RbSuppliedQtyEditDialog
-          order={editingRbOrder}
           open={!!editingRbOrder}
           onOpenChange={(open) => !open && setEditingRbOrder(null)}
+          order={editingRbOrder}
         />
       )}
 
       {viewingDesignCode && (
         <DesignImageViewerDialog
-          designCode={viewingDesignCode}
           open={!!viewingDesignCode}
           onOpenChange={(open) => !open && setViewingDesignCode(null)}
+          designCode={viewingDesignCode}
         />
       )}
 
       <TotalQtyBreakdownDialog
         open={totalQtyDialogOpen}
         onOpenChange={setTotalQtyDialogOpen}
-        breakdownData={breakdownData}
+        breakdownData={getBreakdownData()}
       />
     </div>
   );

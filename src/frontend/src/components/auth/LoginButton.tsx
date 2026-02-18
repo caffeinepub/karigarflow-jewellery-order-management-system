@@ -2,6 +2,7 @@ import { useInternetIdentity } from '../../hooks/useInternetIdentity';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { LogIn, LogOut } from 'lucide-react';
+import { clearPwaCaches } from '../../pwa/clearPwaCaches';
 
 export function LoginButton() {
   const { login, clear, loginStatus, identity } = useInternetIdentity();
@@ -14,6 +15,8 @@ export function LoginButton() {
     if (isAuthenticated) {
       await clear();
       queryClient.clear();
+      // Clear PWA caches on logout to prevent stale cached assets
+      await clearPwaCaches();
     } else {
       try {
         await login();

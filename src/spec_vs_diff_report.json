@@ -1,49 +1,73 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-17T19:57:38.188Z",
-  "summary": "REQ-1 is partially implemented on the frontend via normalized karigar matching and duplicate prevention. REQ-2 appears implemented via new mobile-responsive tab CSS and default active tab state, but the diff is truncated so exact wiring in the dashboard markup can’t be fully verified. REQ-3 (vendor-portal design image fetch by design code) is not evidenced in the provided diff summary.",
+  "generatedAt": "2026-02-18T05:18:52.120Z",
+  "summary": "Diff adds a v54 build identifier in the frontend and substantial PWA/service-worker cache handling aimed at preventing stale assets after rollback. It also introduces a backend migration module and wires it into backend/main.mo. However, the diff does not provide evidence that the overall codebase/deployment is reverted to match Version 54 exactly, that the backend exposes a version/build query returning 'v54', nor that the rollback/draft-build process is fixed to avoid rebuilding from Version 55/56. The diff summary also indicates multiple UI/behavior changes (dashboards, role gates, etc.) that appear unrelated to rollback verification/caching.",
   "missing_requirements": [
     {
       "id": "REQ-1",
-      "requirement": "Backend karigar existence validation must be case/whitespace-insensitive (trim + collapse spaces + case-insensitive) and align with frontend normalization; no regression on preventing duplicates differing only by casing/whitespace.",
-      "reason": "Frontend normalization is shown, but there is no evidence in the provided backend/main.mo diff snippet of backend-side normalization for karigar existence checks or duplicate prevention logic.",
+      "requirement": "Revert the application codebase and production deployment to match exactly Version 54 (not Version 55/56), ensuring that any new draft build is also based on the Version 54 code snapshot.",
+      "reason": "The diff shows new changes (e.g., adding migration, PWA cache clearing utilities, service worker update logic, and various UI behavior changes) but does not provide evidence of reverting to an exact Version 54 snapshot or removing Version 55/56 changes. There is also no build/CI/draft-build flow change shown that guarantees drafts build from Version 54 only.",
       "evidence": [
-        "backend/main.mo (truncated)"
+        "frontend-file-summaries.txt",
+        "backend/main.mo",
+        "frontend/src/pwa/registerServiceWorker.ts",
+        "frontend/public/service-worker.js",
+        "frontend/src/version.ts"
       ]
     },
     {
-      "id": "REQ-3",
-      "requirement": "Add a workflow to fetch/extract design images by design code from the vendor portal and persist them as design image mappings without exposing the vendor password in UI/logs/errors.",
-      "reason": "No new frontend UI, hooks, or backend endpoints for vendor-portal fetching are shown; diff only shows karigar/admin tab changes and a migration scaffold.",
-      "evidence": [
-        "frontend-file-summaries.txt (no vendor-portal fetch mentioned)",
-        "backend/main.mo (truncated; no vendor-portal related code shown)"
-      ]
-    }
-  ],
-  "hallucinated_features": [
-    {
-      "description": "Added backend/migration.mo and applied it in backend/main.mo even though no state schema change is evident (migration run returns old state unchanged).",
-      "reason": "BuildRequest allows migration changes only if schema upgrades are required; the shown migration appears to be a no-op with identical OldActor/NewActor types and `run(old) : NewActor { old; }`.",
+      "id": "REQ-2",
+      "requirement": "Ensure the rollback to Version 54 preserves existing persisted canister state and does not wipe/reset data; if Version 54 requires a schema change, implement a compatible conditional upgrade migration that preserves all existing data.",
+      "reason": "A migration module is added and wired into backend/main.mo, but the provided diff excerpt does not show the stable variable declarations, preupgrade/postupgrade hooks, or the exact persistence schema used in Version 54 vs current. Based on the truncated backend/main.mo, it is not developer-verifiable from this diff summary alone that production state will be preserved without loss.",
       "evidence": [
         "backend/migration.mo",
         "backend/main.mo"
       ]
     },
     {
-      "description": "Global theme/color palette changes in frontend CSS (new warm neutral/gold OKLCH variables).",
-      "reason": "BuildRequest did not request a visual theme overhaul; only admin tabs mobile responsiveness was requested.",
+      "id": "REQ-3",
+      "requirement": "Backend exposes a query method (or extends an existing health/status method) returning the app version/build identifier, and the value reported is 'v54'.",
+      "reason": "Frontend BUILD_ID is added and imported in AppShell, but the backend-side version/build identifier query (or extension to an existing status/health method) is not shown in the diff excerpt. backend/main.mo includes a HealthCheckResponse type but no visible query method returning a build identifier.",
       "evidence": [
-        "frontend/src/index.css"
+        "frontend/src/version.ts",
+        "frontend/src/components/layout/AppShell.tsx",
+        "backend/main.mo"
       ]
     },
     {
-      "description": "New/mentioned feature to bulk reassign/update orders for a new karigar (useUpdateOrdersForNewKarigar).",
-      "reason": "Not requested in REQ-1/REQ-2/REQ-3; only fixing validation error and UI behavior was requested for karigar/design editing.",
+      "id": "REQ-4",
+      "requirement": "Fix the rollback/rebuild flow so that draft expiry and caching do not prevent restoring the exact Version 54 deployment (including ensuring the rollback/rebuild does not get forced into rebuilding Version 55 due to draft-expiry handling).",
+      "reason": "The diff addresses service worker cache versioning/activation and adds cache-clearing utilities, but it does not show any change to the draft build/rollback process or draft-expiry handling that could force rebuilding Version 55/56.",
       "evidence": [
-        "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx (imports useUpdateOrdersForNewKarigar)",
-        "frontend-file-summaries.txt (mentions new useUpdateOrdersForNewKarigar mutation)"
+        "frontend/src/pwa/registerServiceWorker.ts",
+        "frontend/public/service-worker.js",
+        "frontend/src/pwa/clearPwaCaches.ts",
+        "frontend-file-summaries.txt"
+      ]
+    }
+  ],
+  "hallucinated_features": [
+    {
+      "description": "Multiple admin/staff dashboard behavior changes (reordered tabs, default tab selection, date filtering defaults, new metrics logic, selection support, and various prop-name corrections).",
+      "reason": "These appear to be functional/UI changes unrelated to the stated rollback-only non-goal ('Adding new product features unrelated to restoring Version 54'). The diff summary suggests enhancements/fixes beyond rollback verification/caching/state preservation.",
+      "evidence": [
+        "frontend-file-summaries.txt"
+      ]
+    },
+    {
+      "description": "New/expanded error boundary UX including 'Logout & Clear Session' flow that clears PWA caches, localStorage, sessionStorage, and forces navigation/reload.",
+      "reason": "While cache-clearing relates to REQ-4, this specific new user-facing flow and session-clearing behavior is not explicitly requested as part of the rollback requirements and could be considered additional product behavior.",
+      "evidence": [
+        "frontend/src/components/errors/AppErrorBoundary.tsx"
+      ]
+    },
+    {
+      "description": "Additional logout behavior to clear React Query cache and unregister service workers/clear Cache Storage on logout.",
+      "reason": "Cache handling is requested (REQ-4), but implementing cache/service-worker removal specifically on logout is an extra behavioral change not explicitly required by the request.",
+      "evidence": [
+        "frontend/src/components/auth/LoginButton.tsx",
+        "frontend/src/pwa/clearPwaCaches.ts"
       ]
     }
   ],
@@ -52,10 +76,14 @@
     "backend/main.mo",
     "backend/migration.mo",
     "frontend-file-summaries.txt",
-    "frontend/src/components/karigar/AddKarigarDialog.tsx",
-    "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx",
-    "frontend/src/index.css",
-    "frontend/src/pages/admin/AdminDashboardPage.tsx",
+    "frontend/public/service-worker.js",
+    "frontend/src/components/auth/LoginButton.tsx",
+    "frontend/src/components/errors/AppErrorBoundary.tsx",
+    "frontend/src/components/layout/AppShell.tsx",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pwa/clearPwaCaches.ts",
+    "frontend/src/pwa/registerServiceWorker.ts",
+    "frontend/src/version.ts",
     "project_state.json"
   ]
 }

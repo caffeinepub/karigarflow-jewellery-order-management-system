@@ -29,11 +29,13 @@ export const BlockUserRequest = IDL.Record({
   'reason' : IDL.Opt(IDL.Text),
 });
 export const BulkOrderUpdate = IDL.Record({
-  'isReturnedFromDelivered' : IDL.Opt(IDL.Bool),
   'orderNos' : IDL.Vec(IDL.Text),
   'newStatus' : IDL.Text,
 });
-export const Karigar = IDL.Record({ 'name' : IDL.Text, 'isActive' : IDL.Bool });
+export const PersistentKarigar = IDL.Record({
+  'name' : IDL.Text,
+  'isActive' : IDL.Bool,
+});
 export const AppRole = IDL.Variant({
   'Staff' : IDL.Null,
   'Admin' : IDL.Null,
@@ -53,7 +55,6 @@ export const PersistentOrder = IDL.Record({
   'createdAt' : Time,
   'size' : IDL.Opt(IDL.Float64),
   'orderType' : IDL.Text,
-  'isReturnedFromDelivered' : IDL.Bool,
   'orderNo' : IDL.Text,
   'isCustomerOrder' : IDL.Bool,
   'karigarName' : IDL.Text,
@@ -113,10 +114,6 @@ export const UserApprovalInfo = IDL.Record({
   'status' : ApprovalStatus,
   'principal' : IDL.Principal,
 });
-export const PersistentKarigar = IDL.Record({
-  'name' : IDL.Text,
-  'isActive' : IDL.Bool,
-});
 export const PartialFulfillmentQty = IDL.Record({
   'suppliedQty' : IDL.Nat,
   'orderNo' : IDL.Text,
@@ -161,7 +158,7 @@ export const idlService = IDL.Service({
   'blockUser' : IDL.Func([BlockUserRequest], [], []),
   'bulkMarkOrdersAsDelivered' : IDL.Func([IDL.Vec(IDL.Text)], [], []),
   'bulkUpdateOrderStatus' : IDL.Func([BulkOrderUpdate], [], []),
-  'createKarigar' : IDL.Func([Karigar], [], []),
+  'createKarigar' : IDL.Func([PersistentKarigar], [], []),
   'createUserProfile' : IDL.Func([IDL.Principal, UserProfile], [], []),
   'deleteKarigarByName' : IDL.Func([IDL.Text], [], []),
   'getActiveOrdersForKarigar' : IDL.Func([], [IDL.Vec(PersistentOrder)], []),
@@ -258,11 +255,13 @@ export const idlFactory = ({ IDL }) => {
     'reason' : IDL.Opt(IDL.Text),
   });
   const BulkOrderUpdate = IDL.Record({
-    'isReturnedFromDelivered' : IDL.Opt(IDL.Bool),
     'orderNos' : IDL.Vec(IDL.Text),
     'newStatus' : IDL.Text,
   });
-  const Karigar = IDL.Record({ 'name' : IDL.Text, 'isActive' : IDL.Bool });
+  const PersistentKarigar = IDL.Record({
+    'name' : IDL.Text,
+    'isActive' : IDL.Bool,
+  });
   const AppRole = IDL.Variant({
     'Staff' : IDL.Null,
     'Admin' : IDL.Null,
@@ -282,7 +281,6 @@ export const idlFactory = ({ IDL }) => {
     'createdAt' : Time,
     'size' : IDL.Opt(IDL.Float64),
     'orderType' : IDL.Text,
-    'isReturnedFromDelivered' : IDL.Bool,
     'orderNo' : IDL.Text,
     'isCustomerOrder' : IDL.Bool,
     'karigarName' : IDL.Text,
@@ -342,10 +340,6 @@ export const idlFactory = ({ IDL }) => {
     'status' : ApprovalStatus,
     'principal' : IDL.Principal,
   });
-  const PersistentKarigar = IDL.Record({
-    'name' : IDL.Text,
-    'isActive' : IDL.Bool,
-  });
   const PartialFulfillmentQty = IDL.Record({
     'suppliedQty' : IDL.Nat,
     'orderNo' : IDL.Text,
@@ -390,7 +384,7 @@ export const idlFactory = ({ IDL }) => {
     'blockUser' : IDL.Func([BlockUserRequest], [], []),
     'bulkMarkOrdersAsDelivered' : IDL.Func([IDL.Vec(IDL.Text)], [], []),
     'bulkUpdateOrderStatus' : IDL.Func([BulkOrderUpdate], [], []),
-    'createKarigar' : IDL.Func([Karigar], [], []),
+    'createKarigar' : IDL.Func([PersistentKarigar], [], []),
     'createUserProfile' : IDL.Func([IDL.Principal, UserProfile], [], []),
     'deleteKarigarByName' : IDL.Func([IDL.Text], [], []),
     'getActiveOrdersForKarigar' : IDL.Func([], [IDL.Vec(PersistentOrder)], []),

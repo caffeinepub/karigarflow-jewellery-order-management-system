@@ -13,7 +13,7 @@ import type {
   UpdateOrderTotalSuppliedRequest,
   DesignImageMapping,
   BulkOrderUpdate,
-  Karigar,
+  PersistentKarigar,
 } from '../backend';
 import { Principal } from '@dfinity/principal';
 
@@ -450,21 +450,21 @@ function normalizeKarigarName(name: string): string {
 export function useListKarigars() {
   const { actor, isFetching } = useActor();
 
-  return useQuery<Karigar[]>({
+  return useQuery<PersistentKarigar[]>({
     queryKey: ['karigars'],
     queryFn: async () => {
       if (!actor) return [];
       
-      // Fetch both Karigar objects and karigar names from existing data
+      // Fetch both PersistentKarigar objects and karigar names from existing data
       const [karigarObjects, karigarNames] = await Promise.all([
         actor.listKarigars(),
         actor.listKarigarsNames(),
       ]);
 
       // Create a map to deduplicate and merge (use normalized keys for comparison)
-      const karigarMap = new Map<string, Karigar>();
+      const karigarMap = new Map<string, PersistentKarigar>();
 
-      // First, add all Karigar objects from karigarStorage
+      // First, add all PersistentKarigar objects from karigarStorage
       for (const karigar of karigarObjects) {
         const normalizedKey = normalizeKarigarName(karigar.name);
         karigarMap.set(normalizedKey, karigar);
@@ -499,7 +499,7 @@ export function useCreateKarigar() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (karigar: Karigar) => {
+    mutationFn: async (karigar: PersistentKarigar) => {
       if (!actor) throw new Error('Actor not available');
       return actor.createKarigar(karigar);
     },

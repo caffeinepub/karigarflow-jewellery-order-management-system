@@ -22,7 +22,6 @@ export interface DesignImageMapping {
     designCode: string;
 }
 export interface BulkOrderUpdate {
-    isReturnedFromDelivered?: boolean;
     orderNos: Array<string>;
     newStatus: string;
 }
@@ -30,10 +29,6 @@ export type Time = bigint;
 export interface HealthCheckResponse {
     status: string;
     canisterId: string;
-}
-export interface Karigar {
-    name: string;
-    isActive: boolean;
 }
 export interface HallmarkReturnRequest {
     actionType: Variant_update_status_return_hallmark;
@@ -76,7 +71,6 @@ export interface PersistentOrder {
     createdAt: Time;
     size?: number;
     orderType: string;
-    isReturnedFromDelivered: boolean;
     orderNo: string;
     isCustomerOrder: boolean;
     karigarName: string;
@@ -131,7 +125,7 @@ export interface backendInterface {
     blockUser(request: BlockUserRequest): Promise<void>;
     bulkMarkOrdersAsDelivered(orderNos: Array<string>): Promise<void>;
     bulkUpdateOrderStatus(bulkUpdate: BulkOrderUpdate): Promise<void>;
-    createKarigar(karigar: Karigar): Promise<void>;
+    createKarigar(karigar: PersistentKarigar): Promise<void>;
     createUserProfile(user: Principal, profile: UserProfile): Promise<void>;
     deleteKarigarByName(karigarName: string): Promise<void>;
     getActiveOrdersForKarigar(): Promise<Array<PersistentOrder>>;

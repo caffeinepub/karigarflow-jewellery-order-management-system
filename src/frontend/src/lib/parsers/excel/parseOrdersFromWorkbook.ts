@@ -108,7 +108,6 @@ export function parseOrdersFromWorkbook(workbook: any, uploadDate: Date): { orde
         isCustomerOrder,
         uploadDate: uploadTimestamp,
         createdAt: uploadTimestamp,
-        isReturnedFromDelivered: false,
       });
     } catch (error) {
       errors.push(`Row ${index + 2}: ${error instanceof Error ? error.message : 'Unknown error'}`);

@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { AlertCircle, LogOut } from 'lucide-react';
 import { presentError } from '@/utils/errorPresentation';
 import { ErrorDetailsPanel } from './ErrorDetailsPanel';
+import { clearPwaCaches } from '../../pwa/clearPwaCaches';
 
 interface Props {
   children: ReactNode;
@@ -29,6 +30,8 @@ export class AppErrorBoundary extends Component<Props, State> {
 
   handleLogout = async () => {
     try {
+      // Clear PWA caches before clearing storage
+      await clearPwaCaches();
       // Clear local storage and session
       localStorage.clear();
       sessionStorage.clear();

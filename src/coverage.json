@@ -1,74 +1,89 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-17T19:57:38.191Z",
+  "generatedAt": "2026-02-18T05:18:52.123Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 3,
+    "total": 4,
     "implemented": 3,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Fix the false error \"Karigar name '<name>' does not exist\" when editing a design mapping and selecting an existing karigar (example: selecting \"Raju Sanjay\" shows the error even though the karigar exists and has orders). Ensure karigar existence validation is case/whitespace-insensitive and matches the karigar list used in the UI.",
+        "summary": "Revert the application codebase and production deployment to match exactly Version 54 (not Version 55/56), ensuring that any new draft build is also based on the Version 54 code snapshot.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx",
-          "frontend/src/components/karigar/AddKarigarDialog.tsx",
-          "frontend/src/hooks/useQueries.ts"
+          "frontend/src/version.ts",
+          "frontend/src/main.tsx",
+          "frontend/public/service-worker.js"
         ],
         "matchedFiles": [
-          "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx",
-          "frontend/src/components/karigar/AddKarigarDialog.tsx"
+          "frontend/src/version.ts",
+          "frontend/public/service-worker.js"
         ]
       },
       {
         "id": "REQ-2",
-        "summary": "On the Admin Dashboard page, make the indicator tabs (Delivered / Hallmark / Total Orders / Customer Orders / Karigars) mobile-responsive so they do not overlap or look clumped on small screens. Also set the default selected tab to \"Total Orders\" whenever the Admin Dashboard is opened or refreshed.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/pages/admin/AdminDashboardPage.tsx",
-          "frontend/src/index.css"
-        ],
-        "matchedFiles": [
-          "frontend/src/pages/admin/AdminDashboardPage.tsx",
-          "frontend/src/index.css"
-        ]
+        "summary": "Ensure the rollback to Version 54 preserves existing persisted canister state (orders, user profiles, master designs, karigars, activity logs, design images/mappings) and does not wipe/reset data; if Version 54 requires a schema change, implement a compatible conditional upgrade migration that preserves all existing data.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
       },
       {
         "id": "REQ-3",
-        "summary": "Add an option to retrieve/extract product images by design code from the vendor portal page https://mpn.malabargroup.com/VendorDesigns.aspx and use them as design images in the app, so admins can avoid relying on Excel embedded-image extraction or manually sharing URLs. Use the provided portal credentials for access (Username: V1000803, Password: 9884472485Si.).",
+        "summary": "Add a user-visible and developer-verifiable build identifier that clearly indicates the deployed app version (e.g., 'v54') in both frontend and backend, so the team can confirm production is running Version 54 after rollback.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/backend.d.ts",
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/pages/admin/DesignImagesPage.tsx"
+          "frontend/src/components/layout/AppShell.tsx",
+          "frontend/src/main.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/backend.d.ts"
+          "frontend/src/components/layout/AppShell.tsx"
+        ]
+      },
+      {
+        "id": "REQ-4",
+        "summary": "Fix the rollback/rebuild flow so that draft expiry and caching do not prevent restoring the exact Version 54 deployment (including ensuring client caches/service worker do not keep serving Version 55/56 assets after rollback).",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pwa/clearPwaCaches.ts",
+          "frontend/public/service-worker.js",
+          "frontend/src/pwa/registerServiceWorker.ts",
+          "frontend/src/main.tsx",
+          "frontend/src/components/auth/LoginButton.tsx",
+          "frontend/src/components/errors/AppErrorBoundary.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/pwa/clearPwaCaches.ts",
+          "frontend/public/service-worker.js",
+          "frontend/src/pwa/registerServiceWorker.ts",
+          "frontend/src/components/auth/LoginButton.tsx",
+          "frontend/src/components/errors/AppErrorBoundary.tsx"
         ]
       }
     ]
   },
   "changedFiles": [
-    "backend/http-outcalls/outcall.mo",
     "backend/main.mo",
     "backend/migration.mo",
     "build-request.json",
-    "caffeine.lock.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
+    "frontend/public/service-worker.js",
     "frontend/src/backend.d.ts",
     "frontend/src/backend.ts",
-    "frontend/src/components/karigar/AddKarigarDialog.tsx",
-    "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx",
+    "frontend/src/components/auth/LoginButton.tsx",
+    "frontend/src/components/errors/AppErrorBoundary.tsx",
+    "frontend/src/components/layout/AppShell.tsx",
     "frontend/src/declarations/backend.did.d.ts",
     "frontend/src/declarations/backend.did.js",
-    "frontend/src/index.css",
-    "frontend/src/pages/admin/AdminDashboardPage.tsx",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pwa/clearPwaCaches.ts",
+    "frontend/src/pwa/registerServiceWorker.ts",
+    "frontend/src/version.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",
