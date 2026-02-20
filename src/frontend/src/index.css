@@ -4,75 +4,58 @@
 
 @layer base {
   :root {
-    /* Modern vibrant color palette using OKLCH */
-    --background: oklch(98% 0.01 240);
-    --foreground: oklch(20% 0.02 240);
-    --card: oklch(100% 0 0);
-    --card-foreground: oklch(20% 0.02 240);
-    --popover: oklch(100% 0 0);
-    --popover-foreground: oklch(20% 0.02 240);
-    
-    /* Vibrant primary - bright blue */
-    --primary: oklch(60% 0.25 250);
-    --primary-foreground: oklch(100% 0 0);
-    
-    /* Vibrant secondary - purple */
-    --secondary: oklch(65% 0.22 290);
-    --secondary-foreground: oklch(100% 0 0);
-    
-    /* Vibrant accent - teal */
-    --accent: oklch(70% 0.18 180);
-    --accent-foreground: oklch(100% 0 0);
-    
-    --muted: oklch(96% 0.01 240);
-    --muted-foreground: oklch(50% 0.02 240);
-    --border: oklch(90% 0.01 240);
-    --input: oklch(90% 0.01 240);
-    --ring: oklch(60% 0.25 250);
+    /* Cyber Bunker theme - Deep black with electric purple/cyan accents */
+    --background: oklch(0% 0 0); /* Pure black #000000 */
+    --foreground: oklch(98% 0 0); /* Near-white for maximum contrast */
+    --card: oklch(12% 0.01 270); /* Dark charcoal #1F1F1F */
+    --card-foreground: oklch(98% 0 0); /* Near-white */
+    --popover: oklch(12% 0.01 270); /* Dark charcoal */
+    --popover-foreground: oklch(98% 0 0); /* Near-white */
+    --primary: oklch(58% 0.24 285); /* Electric purple #7C3AED */
+    --primary-foreground: oklch(100% 0 0); /* Pure white */
+    --secondary: oklch(60% 0.15 195); /* Cyan/teal #14B8A6 */
+    --secondary-foreground: oklch(100% 0 0); /* Pure white */
+    --accent: oklch(60% 0.15 195); /* Cyan/teal #14B8A6 */
+    --accent-foreground: oklch(100% 0 0); /* Pure white */
+    --muted: oklch(25% 0.02 270); /* Darker gray */
+    --muted-foreground: oklch(85% 0.01 270); /* Very light gray for readability */
+    --destructive: oklch(55% 0.22 25); /* Red for errors */
+    --destructive-foreground: oklch(100% 0 0); /* Pure white */
+    --success: oklch(60% 0.15 145); /* Green for success */
+    --success-foreground: oklch(100% 0 0); /* Pure white */
+    --warning: oklch(70% 0.18 80); /* Yellow for warnings */
+    --warning-foreground: oklch(20% 0.02 80); /* Dark text */
+    --border: oklch(20% 0.03 285); /* Subtle purple border */
+    --input: oklch(20% 0.03 285); /* Subtle purple border */
+    --ring: oklch(58% 0.24 285); /* Electric purple ring */
     --radius: 0.5rem;
-    
-    /* Status colors - vibrant */
-    --success: oklch(65% 0.20 145);
-    --success-foreground: oklch(100% 0 0);
-    --warning: oklch(75% 0.18 80);
-    --warning-foreground: oklch(20% 0.02 80);
-    --destructive: oklch(60% 0.25 25);
-    --destructive-foreground: oklch(100% 0 0);
   }
 
   .dark {
-    --background: oklch(18% 0.02 240);
-    --foreground: oklch(95% 0.01 240);
-    --card: oklch(20% 0.02 240);
-    --card-foreground: oklch(95% 0.01 240);
-    --popover: oklch(20% 0.02 240);
-    --popover-foreground: oklch(95% 0.01 240);
-    
-    /* Vibrant primary - bright blue (adjusted for dark) */
-    --primary: oklch(65% 0.25 250);
-    --primary-foreground: oklch(100% 0 0);
-    
-    /* Vibrant secondary - purple (adjusted for dark) */
-    --secondary: oklch(70% 0.22 290);
-    --secondary-foreground: oklch(100% 0 0);
-    
-    /* Vibrant accent - teal (adjusted for dark) */
-    --accent: oklch(75% 0.18 180);
-    --accent-foreground: oklch(100% 0 0);
-    
-    --muted: oklch(25% 0.02 240);
-    --muted-foreground: oklch(65% 0.02 240);
-    --border: oklch(30% 0.02 240);
-    --input: oklch(30% 0.02 240);
-    --ring: oklch(65% 0.25 250);
-    
-    /* Status colors - vibrant (adjusted for dark) */
-    --success: oklch(70% 0.20 145);
-    --success-foreground: oklch(100% 0 0);
-    --warning: oklch(80% 0.18 80);
-    --warning-foreground: oklch(20% 0.02 80);
-    --destructive: oklch(65% 0.25 25);
-    --destructive-foreground: oklch(100% 0 0);
+    /* Dark mode uses same Cyber Bunker theme */
+    --background: oklch(0% 0 0); /* Pure black #000000 */
+    --foreground: oklch(98% 0 0); /* Near-white for maximum contrast */
+    --card: oklch(12% 0.01 270); /* Dark charcoal #1F1F1F */
+    --card-foreground: oklch(98% 0 0); /* Near-white */
+    --popover: oklch(12% 0.01 270); /* Dark charcoal */
+    --popover-foreground: oklch(98% 0 0); /* Near-white */
+    --primary: oklch(58% 0.24 285); /* Electric purple #7C3AED */
+    --primary-foreground: oklch(100% 0 0); /* Pure white */
+    --secondary: oklch(60% 0.15 195); /* Cyan/teal #14B8A6 */
+    --secondary-foreground: oklch(100% 0 0); /* Pure white */
+    --accent: oklch(60% 0.15 195); /* Cyan/teal #14B8A6 */
+    --accent-foreground: oklch(100% 0 0); /* Pure white */
+    --muted: oklch(25% 0.02 270); /* Darker gray */
+    --muted-foreground: oklch(85% 0.01 270); /* Very light gray for readability */
+    --destructive: oklch(55% 0.22 25); /* Red for errors */
+    --destructive-foreground: oklch(100% 0 0); /* Pure white */
+    --success: oklch(60% 0.15 145); /* Green for success */
+    --success-foreground: oklch(100% 0 0); /* Pure white */
+    --warning: oklch(70% 0.18 80); /* Yellow for warnings */
+    --warning-foreground: oklch(20% 0.02 80); /* Dark text */
+    --border: oklch(20% 0.03 285); /* Subtle purple border */
+    --input: oklch(20% 0.03 285); /* Subtle purple border */
+    --ring: oklch(58% 0.24 285); /* Electric purple ring */
   }
 }
 
@@ -80,136 +63,76 @@
   * {
     @apply border-border;
   }
-  html {
-    -webkit-text-size-adjust: 100%;
-    text-size-adjust: 100%;
-  }
+  html,
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1;
     -webkit-text-size-adjust: 100%;
-    text-size-adjust: 100%;
+  }
+
+  /* Subtle grid pattern background */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    background-image: 
+      linear-gradient(rgba(124, 58, 237, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(124, 58, 237, 0.03) 1px, transparent 1px);
+    background-size: 50px 50px;
+    pointer-events: none;
+  }
+
+  /* Icon styling - white by default, purple on hover */
+  svg.lucide,
+  .lucide {
+    color: oklch(98% 0 0);
+    transition: color 0.2s ease;
+  }
+
+  button:hover svg.lucide,
+  button:hover .lucide,
+  a:hover svg.lucide,
+  a:hover .lucide {
+    color: oklch(58% 0.24 285);
   }
 }
 
-/* Z-index system using CSS custom properties */
-:root {
-  --z-sidebar: 40;
-  --z-header: 40;
-  --z-dropdown: 50;
-  --z-popover: 100;
-  --z-modal: 200;
-  --z-toast: 300;
-}
-
-/* Gradient card styles - vibrant colors */
-.gradient-card-violet {
-  @apply bg-gradient-to-br from-violet-500 via-violet-600 to-purple-600 border-0;
-}
-
-.gradient-card-pink {
-  @apply bg-gradient-to-br from-pink-500 via-pink-600 to-rose-600 border-0;
-}
-
-.gradient-card-gold {
-  @apply bg-gradient-to-br from-amber-500 via-orange-500 to-yellow-600 border-0;
-}
-
-.gradient-card-green {
-  @apply bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 border-0;
-}
-
-/* Admin tabs styling - vibrant pill design */
+/* Admin tabs styling */
 .admin-tabs-list {
-  @apply inline-flex h-12 items-center justify-center rounded-full bg-gradient-to-r from-primary/10 via-accent/10 to-secondary/10 p-1.5 text-muted-foreground shadow-md border border-primary/20;
+  @apply flex-nowrap;
 }
 
 .admin-tabs-trigger {
-  @apply inline-flex items-center justify-center whitespace-nowrap rounded-full px-5 py-2 text-sm font-semibold ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:via-accent data-[state=active]:to-secondary data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-muted/50;
+  @apply whitespace-nowrap px-4 py-2 text-sm font-medium transition-colors;
+  @apply data-[state=active]:bg-primary data-[state=active]:text-primary-foreground;
+  @apply hover:bg-muted;
+  touch-action: manipulation;
+  user-select: none;
 }
 
-/* Tab content slide animation */
 .tab-content-slide {
-  animation: slideIn 0.3s ease-out;
+  animation: slideIn 0.2s ease-out;
 }
 
 @keyframes slideIn {
   from {
     opacity: 0;
-    transform: translateX(10px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
-    transform: translateX(0);
+    transform: translateY(0);
   }
 }
 
-/* Touch-friendly swipe container */
-.swipe-container {
-  touch-action: pan-y;
-  user-select: none;
+/* Purple glow effect for cards */
+.card-glow {
+  box-shadow: 0 0 20px rgba(124, 58, 237, 0.3);
 }
 
-/* Improved overlay backdrop for better visibility */
-.dialog-overlay,
-.sheet-overlay {
-  @apply bg-black/40 backdrop-blur-sm;
-}
-
-/* Better spacing and layout utilities */
-.section-spacing {
-  @apply space-y-8;
-}
-
-.card-spacing {
-  @apply space-y-6;
-}
-
-.content-spacing {
-  @apply space-y-4;
-}
-
-/* Improved typography hierarchy */
-h1 {
-  @apply scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl;
-}
-
-h2 {
-  @apply scroll-m-20 text-3xl font-semibold tracking-tight;
-}
-
-h3 {
-  @apply scroll-m-20 text-2xl font-semibold tracking-tight;
-}
-
-h4 {
-  @apply scroll-m-20 text-xl font-semibold tracking-tight;
-}
-
-/* Enhanced focus states for better accessibility */
-*:focus-visible {
-  @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
-}
-
-/* Smooth transitions */
-* {
-  @apply transition-colors duration-200;
-}
-
-/* Better scrollbar styling */
-::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-
-::-webkit-scrollbar-track {
-  @apply bg-muted/30;
-}
-
-::-webkit-scrollbar-thumb {
-  @apply bg-muted-foreground/30 rounded-full;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  @apply bg-muted-foreground/50;
+.card-glow-subtle {
+  box-shadow: 0 0 10px rgba(124, 58, 237, 0.15);
 }

@@ -18,6 +18,9 @@ import {
   Menu,
   Gem,
   Image,
+  FileSpreadsheet,
+  Scan,
+  ClipboardCheck,
   type LucideIcon
 } from 'lucide-react';
 import { AppRole } from '../../backend';
@@ -47,6 +50,9 @@ export function AppShell({ children }: AppShellProps) {
         { label: 'Dashboard', icon: LayoutDashboard, path: '/admin' },
         { label: 'Master Designs', icon: FileText, path: '/admin/master-designs' },
         { label: 'Design Images', icon: Image, path: '/admin/design-images' },
+        { label: 'Excel Reconciliation', icon: FileSpreadsheet, path: '/admin/excel-reconciliation' },
+        { label: 'Barcode Tagging', icon: Scan, path: '/admin/barcode-tagging' },
+        { label: 'Hallmark Management', icon: ClipboardCheck, path: '/admin/hallmark-management' },
         { label: 'Users', icon: Users, path: '/admin/users' },
         { label: 'Ingest Orders', icon: Upload, path: '/staff/ingest' },
         { label: 'Unmapped Codes', icon: AlertCircle, path: '/staff/unmapped' }
@@ -70,7 +76,7 @@ export function AppShell({ children }: AppShellProps) {
         <Button
           key={item.path}
           variant="ghost"
-          className="w-full justify-start hover:bg-primary/10 hover:text-primary"
+          className="w-full justify-start hover:bg-primary/10 hover:text-primary text-white"
           onClick={() => {
             navigate({ to: item.path });
             setMobileMenuOpen(false);
@@ -91,7 +97,7 @@ export function AppShell({ children }: AppShellProps) {
           variant="ghost"
           size="sm"
           onClick={() => navigate({ to: item.path })}
-          className="hover:bg-primary/10 hover:text-primary font-medium"
+          className="hover:bg-primary/10 hover:text-primary font-medium text-white"
         >
           <item.icon className="mr-2 h-4 w-4" />
           {item.label}
@@ -102,20 +108,20 @@ export function AppShell({ children }: AppShellProps) {
 
   return (
     <div className="flex flex-col min-h-screen w-full max-w-full overflow-x-hidden bg-background">
-      {/* Sticky header with improved styling */}
-      <header className="sticky top-0 z-header w-full border-b bg-card/95 backdrop-blur-md supports-[backdrop-filter]:bg-card/80 shadow-sm">
+      {/* Sticky header with cyber bunker styling */}
+      <header className="sticky top-0 z-header w-full border-b border-primary/20 bg-card/95 backdrop-blur-md supports-[backdrop-filter]:bg-card/80 shadow-lg card-glow-subtle">
         <div className="container flex h-16 items-center justify-between px-4 gap-4 max-w-full">
           <div className="flex items-center gap-4 min-w-0">
             {navItems.length > 0 && (
               <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                 <SheetTrigger asChild className="lg:hidden flex-shrink-0">
-                  <Button variant="ghost" size="icon" className="hover:bg-primary/10">
+                  <Button variant="ghost" size="icon" className="hover:bg-primary/10 text-white">
                     <Menu className="h-5 w-5" />
                   </Button>
                 </SheetTrigger>
                 <SheetContent 
                   side="left" 
-                  className="w-72 bg-card max-h-screen overflow-y-auto flex flex-col backdrop-blur-md"
+                  className="w-72 bg-card max-h-screen overflow-y-auto flex flex-col backdrop-blur-md border-primary/20"
                 >
                   <div className="mb-8 flex-shrink-0">
                     <div className="flex items-center gap-3 mb-6">
@@ -128,8 +134,8 @@ export function AppShell({ children }: AppShellProps) {
                     </div>
                     {userProfile && (
                       <div className="space-y-2 text-sm p-4 rounded-lg bg-muted/50">
-                        <p className="font-semibold text-base">{userProfile.name}</p>
-                        <Badge variant="outline" className="text-xs">
+                        <p className="font-semibold text-base text-white">{userProfile.name}</p>
+                        <Badge variant="outline" className="text-xs text-white">
                           {effectiveRole || userProfile.appRole}
                         </Badge>
                       </div>
@@ -164,8 +170,8 @@ export function AppShell({ children }: AppShellProps) {
             {userProfile && (
               <div className="hidden sm:flex items-center gap-3">
                 <div className="text-right text-sm">
-                  <p className="font-semibold truncate max-w-[140px]">{userProfile.name}</p>
-                  <Badge variant="outline" className="text-xs">
+                  <p className="font-semibold truncate max-w-[140px] text-white">{userProfile.name}</p>
+                  <Badge variant="outline" className="text-xs text-white">
                     {effectiveRole || userProfile.appRole}
                   </Badge>
                 </div>
@@ -178,14 +184,14 @@ export function AppShell({ children }: AppShellProps) {
 
       <ConnectivityStatusBar />
 
-      {/* Main content area with improved spacing */}
+      {/* Main content area */}
       <main className="flex-1 w-full max-w-full overflow-x-hidden">
         <div className="container py-8 px-4 max-w-full">
           {children}
         </div>
       </main>
 
-      <footer className="border-t mt-auto w-full bg-card/50">
+      <footer className="border-t border-primary/20 mt-auto w-full bg-card/50">
         <div className="container py-8 px-4 text-center text-sm text-muted-foreground">
           <p className="mb-2">
             © {new Date().getFullYear()} KarigarFlow. Built with ❤️ using{' '}
@@ -193,7 +199,7 @@ export function AppShell({ children }: AppShellProps) {
               href={`https://caffeine.ai/?utm_source=Caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(window.location.hostname)}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="underline hover:text-foreground transition-colors"
+              className="underline hover:text-primary transition-colors"
             >
               caffeine.ai
             </a>

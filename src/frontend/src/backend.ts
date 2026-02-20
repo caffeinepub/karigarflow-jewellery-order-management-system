@@ -257,6 +257,7 @@ export interface backendInterface {
     blockUser(request: BlockUserRequest): Promise<void>;
     bulkMarkOrdersAsDelivered(orderNos: Array<string>): Promise<void>;
     bulkUpdateOrderStatus(bulkUpdate: BulkOrderUpdate): Promise<void>;
+    cancelDeliveredOrders(orderNos: Array<string>): Promise<void>;
     createKarigar(karigar: PersistentKarigar): Promise<void>;
     createUserProfile(user: Principal, profile: UserProfile): Promise<void>;
     deleteKarigarById(karigarId: string): Promise<void>;
@@ -282,9 +283,11 @@ export interface backendInterface {
     listKarigarReference(): Promise<Array<PersistentKarigar>>;
     listKarigars(): Promise<Array<PersistentKarigar>>;
     listUserProfiles(): Promise<Array<UserProfile>>;
+    markGivenToHallmark(orderNos: Array<string>): Promise<void>;
     markOrderAsDelivered(orderNo: string): Promise<void>;
     processPartialFulfillment(request: PartialFulfillmentRequest): Promise<void>;
     requestApproval(): Promise<void>;
+    returnFromHallmark(orderNos: Array<string>): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     saveDesignImageMappings(parsedMappings: Array<DesignImageMapping>): Promise<Array<DesignImageMapping>>;
     saveMasterDesigns(request: SavedMasterDesignsRequest): Promise<void>;
@@ -449,6 +452,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.bulkUpdateOrderStatus(arg0);
+            return result;
+        }
+    }
+    async cancelDeliveredOrders(arg0: Array<string>): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.cancelDeliveredOrders(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.cancelDeliveredOrders(arg0);
             return result;
         }
     }
@@ -802,6 +819,20 @@ export class Backend implements backendInterface {
             return from_candid_vec_n47(this._uploadFile, this._downloadFile, result);
         }
     }
+    async markGivenToHallmark(arg0: Array<string>): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.markGivenToHallmark(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.markGivenToHallmark(arg0);
+            return result;
+        }
+    }
     async markOrderAsDelivered(arg0: string): Promise<void> {
         if (this.processError) {
             try {
@@ -841,6 +872,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.requestApproval();
+            return result;
+        }
+    }
+    async returnFromHallmark(arg0: Array<string>): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.returnFromHallmark(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.returnFromHallmark(arg0);
             return result;
         }
     }

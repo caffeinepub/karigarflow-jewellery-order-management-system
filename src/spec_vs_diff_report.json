@@ -1,29 +1,34 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-20T19:25:01.199Z",
-  "summary": "The diff implements fixes for karigar mapping display, mobile Safari zoom issues, and UI reorganization. Key changes include: (1) viewport meta tag updates in index.html to fix mobile Safari zoom, (2) new resolveKarigarName utility for consistent karigar name resolution, (3) updates to applyMasterDesignMapping to preserve PDF-derived karigar IDs while treating placeholders correctly, (4) MasterDesignFormDialog enhancements to show all karigars in dropdown and handle reassignments, (5) AdminDashboardPage reorganization with a new 'karigars' tab separate from 'total' tab. Evidence suggests REQ-1, REQ-2, and REQ-4 are addressed, but REQ-3 implementation details are unclear from the truncated diff.",
-  "missing_requirements": [
-    {
-      "id": "REQ-3",
-      "requirement": "Karigar dropdown in master design edit dialog shows all karigars from both manual creation and Excel imports",
-      "reason": "While MasterDesignFormDialog.tsx uses useListKarigars() and displays a dropdown, the truncated diff does not show how karigars from Excel imports are specifically included or verified. The logic for populating the dropdown with Excel-derived karigars is not visible in the available code.",
-      "evidence": [
-        "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx"
-      ]
-    }
-  ],
+  "generatedAt": "2026-02-20T21:35:29.450Z",
+  "summary": "The diff implements Excel reconciliation, barcode scanning (Fast and Batch modes), Hallmark management with timestamp tracking, and comprehensive visibility fixes by changing text colors to white/light throughout the application. Backend changes add status transitions, timestamp tracking, and filtering for 'Given for Hallmark' and 'Billed' statuses. All major requirements appear to be implemented.",
+  "missing_requirements": [],
   "hallucinated_features": [],
-  "confidence": 0.75,
+  "confidence": 0.88,
   "changed_files": [
     "backend/main.mo",
     "frontend-file-summaries.txt",
-    "frontend/index.html",
-    "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx",
+    "frontend/src/App.tsx",
+    "frontend/src/components/barcode/BarcodeOrdersList.tsx",
+    "frontend/src/components/barcode/BatchOrdersTable.tsx",
+    "frontend/src/components/barcode/BatchScannerView.tsx",
+    "frontend/src/components/barcode/FastScannerView.tsx",
+    "frontend/src/components/hallmark/HallmarkOrdersGroupedByDate.tsx",
+    "frontend/src/components/hallmark/HallmarkOrdersTable.tsx",
+    "frontend/src/components/layout/AppShell.tsx",
+    "frontend/src/components/orders/OrdersFiltersBar.tsx",
+    "frontend/src/components/reconciliation/ReconciliationFileUpload.tsx",
+    "frontend/src/components/reconciliation/ReconciliationReport.tsx",
+    "frontend/src/hooks/useQueries.ts",
     "frontend/src/index.css",
-    "frontend/src/lib/mapping/applyMasterDesignMapping.ts",
-    "frontend/src/lib/orders/resolveKarigarName.ts",
-    "frontend/src/pages/admin/AdminDashboardPage.tsx",
+    "frontend/src/lib/barcode/parseBarcodeData.ts",
+    "frontend/src/lib/orders/getOrderTimestamp.ts",
+    "frontend/src/lib/orders/statusConstants.ts",
+    "frontend/src/lib/reconciliation/compareOrdersWithExcel.ts",
+    "frontend/src/pages/admin/BarcodeTaggingPage.tsx",
+    "frontend/src/pages/admin/ExcelReconciliationPage.tsx",
+    "frontend/src/pages/admin/HallmarkManagementPage.tsx",
     "project_state.json"
   ]
 }

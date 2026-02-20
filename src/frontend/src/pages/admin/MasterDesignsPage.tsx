@@ -7,18 +7,20 @@ import { MasterDesignsTable } from '../../components/masterDesigns/MasterDesigns
 import { MasterDesignFormDialog } from '../../components/masterDesigns/MasterDesignFormDialog';
 import { MasterDesignImportDialog } from '../../components/masterDesigns/MasterDesignImportDialog';
 import { TotalKarigarListDialog } from '../../components/karigar/TotalKarigarListDialog';
-import { useGetMasterDesigns, useListKarigarReference } from '../../hooks/useQueries';
+import { useGetMasterDesigns, useListKarigarReference, useSaveMasterDesigns } from '../../hooks/useQueries';
 import { Plus, Upload, Search, Users } from 'lucide-react';
+import { toast } from 'sonner';
 import type { MasterDesignEntry } from '../../backend';
 
 export function MasterDesignsPage() {
   const { data: masterDesigns = [], isLoading } = useGetMasterDesigns();
   const { data: karigars = [] } = useListKarigarReference();
+  const saveMasterDesignsMutation = useSaveMasterDesigns();
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [isKarigarListOpen, setIsKarigarListOpen] = useState(false);
-  const [editingDesign, setEditingDesign] = useState<{ code: string; entry: MasterDesignEntry } | null>(null);
+  const [editingDesign, setEditingDesign] = useState<{ designCode: string; entry: MasterDesignEntry } | null>(null);
   const [selectedKarigarFilter, setSelectedKarigarFilter] = useState<string | null>(null);
 
   const filteredDesigns = useMemo(() => {
@@ -42,11 +44,24 @@ export function MasterDesignsPage() {
   }, [masterDesigns, searchQuery, selectedKarigarFilter]);
 
   const handleEdit = (code: string, entry: MasterDesignEntry) => {
-    setEditingDesign({ code, entry });
+    setEditingDesign({ designCode: code, entry });
   };
 
   const handleCloseEditDialog = () => {
     setEditingDesign(null);
+  };
+
+  const handleSave = async (designCode: string, entry: MasterDesignEntry) => {
+    try {
+      await saveMasterDesignsMutation.mutateAsync({
+        masterDesigns: [[designCode, entry]],
+      });
+      toast.success('Master design saved successfully');
+      setIsAddDialogOpen(false);
+      setEditingDesign(null);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to save master design');
+    }
   };
 
   const handleSelectKarigar = (karigarId: string) => {
@@ -130,6 +145,8 @@ export function MasterDesignsPage() {
       <MasterDesignFormDialog
         open={isAddDialogOpen}
         onOpenChange={setIsAddDialogOpen}
+        editingDesign={null}
+        onSave={handleSave}
       />
 
       <MasterDesignFormDialog
@@ -138,6 +155,7 @@ export function MasterDesignsPage() {
           if (!open) handleCloseEditDialog();
         }}
         editingDesign={editingDesign}
+        onSave={handleSave}
       />
 
       <MasterDesignImportDialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen} />

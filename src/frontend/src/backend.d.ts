@@ -164,6 +164,7 @@ export interface backendInterface {
     blockUser(request: BlockUserRequest): Promise<void>;
     bulkMarkOrdersAsDelivered(orderNos: Array<string>): Promise<void>;
     bulkUpdateOrderStatus(bulkUpdate: BulkOrderUpdate): Promise<void>;
+    cancelDeliveredOrders(orderNos: Array<string>): Promise<void>;
     createKarigar(karigar: PersistentKarigar): Promise<void>;
     createUserProfile(user: Principal, profile: UserProfile): Promise<void>;
     deleteKarigarById(karigarId: string): Promise<void>;
@@ -189,9 +190,11 @@ export interface backendInterface {
     listKarigarReference(): Promise<Array<PersistentKarigar>>;
     listKarigars(): Promise<Array<PersistentKarigar>>;
     listUserProfiles(): Promise<Array<UserProfile>>;
+    markGivenToHallmark(orderNos: Array<string>): Promise<void>;
     markOrderAsDelivered(orderNo: string): Promise<void>;
     processPartialFulfillment(request: PartialFulfillmentRequest): Promise<void>;
     requestApproval(): Promise<void>;
+    returnFromHallmark(orderNos: Array<string>): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     saveDesignImageMappings(parsedMappings: Array<DesignImageMapping>): Promise<Array<DesignImageMapping>>;
     saveMasterDesigns(request: SavedMasterDesignsRequest): Promise<void>;

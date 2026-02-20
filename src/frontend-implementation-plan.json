@@ -1,130 +1,276 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Fix karigar mapping display, mobile Safari zoom issues, and separate karigar tabs from total orders",
+  "title": "Excel reconciliation, barcode scanner, and visibility fixes",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Fix karigar mapping not displaying correctly across all tabs by ensuring karigar name resolution from master design mappings",
+      "summary": "Fix critical black-on-black text visibility issue across the entire application by changing all text colors to white or light colors",
       "acceptanceCriteria": [
-        "Orders in all tabs display the correct karigar name from master design mappings",
-        "Karigar resolution works consistently across Today, Delivered, Hallmark, Total Orders, Customer Orders, and individual Karigar tabs",
-        "Empty or unassigned karigar fields display as 'Unassigned'",
-        "Karigar names are correctly derived from design code mappings in the backend"
+        "All text content is readable with white or light colors against black backgrounds",
+        "Tables, cards, dialogs, and all UI components have proper text contrast",
+        "Icons and badges are visible with appropriate colors",
+        "No black text appears on black backgrounds anywhere in the app"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/lib/orders/resolveKarigarName.ts",
+          "path": "frontend/src/index.css",
           "operation": "modify",
-          "description": "Update resolveKarigarName function to handle edge cases where karigarId might be empty string, null, undefined, or whitespace-only. Ensure it consistently returns 'Unassigned' for these cases and properly looks up karigar names from the karigars list."
+          "description": "Update CSS custom properties to ensure all text colors use white or light variants (e.g., --foreground set to oklch(98% 0 0)). Update all semantic color variables (muted-foreground, card-foreground, popover-foreground, primary-foreground, secondary-foreground, accent-foreground, destructive-foreground) to use light values with proper contrast against dark backgrounds."
         },
         {
-          "path": "frontend/src/lib/mapping/applyMasterDesignMapping.ts",
+          "path": "frontend/tailwind.config.js",
           "operation": "modify",
-          "description": "Review and strengthen the master design mapping application logic to ensure karigarId is properly assigned from master designs. Verify that empty or 'Unassigned' karigar values are treated as missing and mapped correctly. Ensure the mapping preserves meaningful PDF-derived karigar assignments while applying master design mappings."
-        },
-        {
-          "path": "frontend/src/pages/admin/AdminDashboardPage.tsx",
-          "operation": "modify",
-          "description": "Verify that all tab views (Today, Delivered, Hallmark, Total Orders, Customer Orders, and individual Karigar tabs) use the resolveKarigarName function consistently when displaying orders. Ensure the karigar name resolution happens after applying master design mappings and before rendering the OrdersTable component."
-        },
-        {
-          "path": "frontend/src/pages/staff/StaffDashboardPage.tsx",
-          "operation": "modify",
-          "description": "Verify that all staff tab views use the resolveKarigarName function consistently when displaying orders. Ensure karigar name resolution is applied to all filtered order sets before rendering."
-        },
-        {
-          "path": "frontend/src/pages/karigar/KarigarDashboardPage.tsx",
-          "operation": "modify",
-          "description": "Ensure that the karigar dashboard correctly resolves karigar names for orders filtered by the current karigar's ID. Verify that the karigar name display in the metrics and table views uses the resolveKarigarName function."
+          "description": "Verify that all color references point to the updated CSS custom properties. Ensure no hardcoded dark text colors are present in the Tailwind configuration."
         },
         {
           "path": "frontend/src/components/orders/OrdersTable.tsx",
           "operation": "modify",
-          "description": "Verify that the karigar column in the orders table displays the resolved karigar name using resolveKarigarName. Ensure that orders with missing or empty karigarId values show 'Unassigned' consistently."
+          "description": "Update text color classes to use white or light colors (text-white, text-gray-100, text-gray-200) instead of any dark variants. Ensure table headers, cell content, and status badges all use light colors for visibility against the dark Cyber Bunker theme background."
+        },
+        {
+          "path": "frontend/src/components/admin/MetricsChart.tsx",
+          "operation": "modify",
+          "description": "Update metric card text colors to white or light variants. Ensure all labels, values, and icons use colors like text-white, text-gray-100, or text-purple-200 for proper contrast."
+        },
+        {
+          "path": "frontend/src/components/admin/KarigarSummaryCards.tsx",
+          "operation": "modify",
+          "description": "Update all text elements to use white or light color classes. Ensure karigar names, order counts, quantity badges, and all card content have proper contrast against dark backgrounds."
+        },
+        {
+          "path": "frontend/src/components/orders/OrdersFiltersBar.tsx",
+          "operation": "modify",
+          "description": "Update all filter input labels, placeholders, and selected values to use white or light text colors. Ensure dropdown menus, date pickers, and search inputs have light text for readability."
+        },
+        {
+          "path": "frontend/src/components/layout/AppShell.tsx",
+          "operation": "modify",
+          "description": "Update navigation links, user profile text, and all header elements to use white or light text colors. Ensure mobile menu items are also visible with light colors."
+        },
+        {
+          "path": "frontend/src/pages/admin/AdminDashboardPage.tsx",
+          "operation": "modify",
+          "description": "Update all tab labels, action button text, and section headings to use white or light colors. Ensure all text elements within the admin dashboard have proper contrast."
+        },
+        {
+          "path": "frontend/src/components/admin/TotalQtyBreakdownDialog.tsx",
+          "operation": "modify",
+          "description": "Update dialog content text colors to white or light variants. Ensure category labels, quantity values, and the grand total are all readable with light colors."
+        },
+        {
+          "path": "frontend/src/components/karigar/KarigarOrderViewDialog.tsx",
+          "operation": "modify",
+          "description": "Update all order detail labels and values to use white or light text colors for proper contrast in the dialog."
+        },
+        {
+          "path": "frontend/src/components/masterDesigns/MasterDesignsTable.tsx",
+          "operation": "modify",
+          "description": "Update table text colors to white or light variants. Ensure design codes, generic names, karigar names, and status indicators all use light colors."
+        },
+        {
+          "path": "frontend/src/components/errors/InlineErrorState.tsx",
+          "operation": "modify",
+          "description": "Update error message text to use white or light colors. Ensure error details remain readable with proper contrast."
+        },
+        {
+          "path": "frontend/src/components/auth/NoProfileBlockedScreen.tsx",
+          "operation": "modify",
+          "description": "Update Principal ID display and instruction text to use white or light colors for readability."
+        },
+        {
+          "path": "frontend/src/pages/staff/StaffDashboardPage.tsx",
+          "operation": "modify",
+          "description": "Update all staff dashboard text elements (tabs, filters, order counts, action buttons) to use white or light text colors."
+        },
+        {
+          "path": "frontend/src/pages/karigar/KarigarDashboardPage.tsx",
+          "operation": "modify",
+          "description": "Update karigar dashboard text elements to use white or light colors, ensuring all order details and action buttons are readable."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "Fix mobile Safari rendering issues where the application displays at 50% zoom by configuring viewport settings correctly",
+      "summary": "Create an Excel Order Reconciliation page that allows uploading customer portal Excel files and comparing them against existing orders (excluding 'Billed' status)",
       "acceptanceCriteria": [
-        "Application renders at 100% zoom on Safari iPhone",
-        "All UI elements are visible and properly sized on mobile screens",
-        "No horizontal scrolling required on mobile devices",
-        "Viewport meta tags are correctly configured for mobile display",
-        "Touch interactions work smoothly without zoom interference"
+        "Upload interface accepts Excel files from customer portals",
+        "System compares uploaded Excel rows against all existing orders except those with 'Billed' status",
+        "Flags potential duplicates where both design code AND order number combination already exists",
+        "Treats rows with design codes not found in the system as unmapped/new designs for separate review",
+        "Displays reconciliation report showing matched vs missing order counts",
+        "Provides one-click bulk import functionality for missing orders"
       ],
       "file_operations": [
         {
-          "path": "frontend/index.html",
-          "operation": "modify",
-          "description": "Update the viewport meta tag to prevent iOS Safari zoom issues. Change from the current configuration to include 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no' to ensure the app renders at 100% zoom and prevents unwanted scaling on mobile devices."
+          "path": "frontend/src/pages/admin/ExcelReconciliationPage.tsx",
+          "operation": "create",
+          "description": "Create new page component for Excel reconciliation with file upload area accepting .xlsx/.xls files. Display upload status, parse Excel using the existing parseOrdersFromWorkbook parser from frontend/src/lib/parsers/excel/parseOrdersFromWorkbook.ts. After parsing, compare parsed orders against orders fetched from useOrders hook, filtering out orders with normalizeStatus(order.status) === 'billed'. Display three sections: 1) Matched orders (design code + order number combo already exists in non-billed orders), 2) Missing orders (design code + order number not found), 3) Unmapped designs (design codes not in master designs). Show summary counts and provide a 'Bulk Import Missing Orders' button that calls uploadParsedOrders mutation with the missing orders array. Use white/light text colors throughout."
         },
         {
-          "path": "frontend/src/index.css",
+          "path": "frontend/src/components/reconciliation/ReconciliationReport.tsx",
+          "operation": "create",
+          "description": "Create component that displays reconciliation results in three collapsible sections: Matched Orders, Missing Orders, and Unmapped Designs. Show count badges for each section. Matched Orders section displays a table with design code, order number, and status. Missing Orders section displays a similar table with a bulk import button. Unmapped Designs section shows design codes that don't exist in master designs with a link to create mappings. Use white/light text colors for all table content and section headers."
+        },
+        {
+          "path": "frontend/src/components/reconciliation/ReconciliationFileUpload.tsx",
+          "operation": "create",
+          "description": "Create file upload component specifically for Excel reconciliation with drag-and-drop support. Accept .xlsx and .xls files only. Show upload progress and file name after selection. Display parsing status with loading spinner. Use white/light text colors for labels and file names."
+        },
+        {
+          "path": "frontend/src/lib/reconciliation/compareOrdersWithExcel.ts",
+          "operation": "create",
+          "description": "Create utility function compareOrdersWithExcel(parsedOrders: PersistentOrder[], existingOrders: SavedOrder[], masterDesigns: Array<[string, MasterDesignEntry]>) that returns { matched: PersistentOrder[], missing: PersistentOrder[], unmapped: PersistentOrder[] }. Filter existingOrders to exclude any with normalizeStatus(order.status) === 'billed'. For each parsed order, normalize design code and check if the combination of normalizeDesignCode(designCode) + orderNo exists in filtered existing orders. If found, it's matched. If design code is not in masterDesigns (normalized comparison), add to unmapped. Otherwise, add to missing. Import normalizeDesignCode from frontend/src/lib/mapping/normalizeDesignCode.ts and normalizeStatus from frontend/src/lib/orders/normalizeStatus.ts."
+        },
+        {
+          "path": "frontend/src/App.tsx",
           "operation": "modify",
-          "description": "Add CSS rules to prevent text size adjustment on iOS Safari. Include '-webkit-text-size-adjust: 100%' on the html and body elements to ensure consistent text rendering at 100% zoom across mobile devices."
+          "description": "Add new route for /excel-reconciliation that renders ExcelReconciliationPage. Wrap the route with RoleGate requiring Admin role since reconciliation is an admin-only feature."
         },
         {
           "path": "frontend/src/components/layout/AppShell.tsx",
           "operation": "modify",
-          "description": "Review and adjust mobile-responsive styles to ensure all UI elements fit within the viewport without requiring horizontal scrolling. Verify that touch targets are appropriately sized for mobile interaction and that the layout adapts properly to mobile screen widths."
-        },
-        {
-          "path": "frontend/tailwind.config.js",
-          "operation": "modify",
-          "description": "Review Tailwind configuration to ensure mobile breakpoints and responsive utilities are properly configured for iOS Safari. Verify that custom spacing and sizing values work correctly on mobile devices."
+          "description": "Add navigation link 'Excel Reconciliation' to the Admin role navigation items. Place it after 'Design Images' and before 'Master Designs'. Use white text color for the link to ensure visibility."
         }
       ]
     },
     {
       "id": "REQ-3",
-      "summary": "Auto-populate karigar name from Excel imports when editing master design assignments",
+      "summary": "Build a Barcode Tagging section with Fast Scanner Mode that continuously scans Code 128 barcodes and marks orders as 'Given for Hallmark' status",
       "acceptanceCriteria": [
-        "Karigar dropdown in master design edit dialog shows all karigars from both manual creation and Excel imports",
-        "Pre-existing karigar assignments from Excel files are visible when editing a master design",
-        "Updating a design code's karigar assignment immediately reflects the new mapping",
-        "All karigars derived from Excel uploads are available for selection"
+        "Fast Scanner Mode opens camera once and stays active for continuous scanning",
+        "Supports Code 128 linear barcodes from mobile camera and USB barcode scanners",
+        "Automatically extracts design code and order number from scanned barcode data",
+        "Instantly highlights matching order in a list when barcode is scanned",
+        "Provides 'Mark for Hallmark' button to change status to 'Given for Hallmark'",
+        "Scanner remains open and ready for next barcode after marking an order",
+        "Shows running count of scanned items in current session",
+        "Displays ALL orders regardless of current status (Pending, Delivered, etc.)",
+        "Prevents scanning the same item twice in one session with duplicate detection"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx",
-          "operation": "modify",
-          "description": "Update the karigar selection dropdown to include all karigars from the listKarigars query, ensuring karigars imported from Excel files are available. When opening the dialog in edit mode for an existing master design, pre-populate the karigar field with the current karigarId from the master design entry. Ensure the dropdown shows both manually created and Excel-imported karigars."
+          "path": "frontend/src/pages/admin/BarcodeTaggingPage.tsx",
+          "operation": "create",
+          "description": "Create new page component for barcode tagging with two mode tabs: 'Fast Scanner' and 'Batch Scanner'. For Fast Scanner mode, use the camera component to support Code 128 barcode scanning. The camera component usage instructions specify support for QR codes; verify the qr-code/useQRScanner.ts component's usage instructions before implementing to ensure barcode format support. Display camera preview with explicit dimensions (e.g., aspect-ratio wrapper with min-height) to prevent layout collapse. Show a list of ALL orders from useOrders hook (no status filtering). When a barcode is scanned, parse the scanned data to extract design code and order number (format: DESIGNCODE ORDERNUMBER as shown in IMG_6031.jpeg with 'CHIMN40103 1308'). Normalize the design code and search for matching order in the orders list. If found, highlight the matching row and show a 'Mark for Hallmark' button. On click, call markGivenToHallmark mutation with [orderNo]. After successful marking, add the order number to a session-scanned set (useState) to prevent duplicate scans in the same session. Display a running count of scanned items at the top. Keep camera active after marking. Use white/light text colors throughout the interface."
+        },
+        {
+          "path": "frontend/src/components/barcode/FastScannerView.tsx",
+          "operation": "create",
+          "description": "Create component for Fast Scanner mode UI. Include camera preview section with video element and controls (start/stop/switch camera buttons). Display scanned count badge prominently at top. Show a scrollable orders list below the camera preview with search functionality. When a barcode is scanned and matched, highlight the matching order row with a distinct background color (e.g., bg-purple-900/50) and show inline 'Mark for Hallmark' button. Use white/light text for all labels, order details, and button text. Ensure the component verifies the camera component's usage instructions before implementation."
+        },
+        {
+          "path": "frontend/src/components/barcode/BarcodeOrdersList.tsx",
+          "operation": "create",
+          "description": "Create component that displays a searchable list of all orders for barcode matching. Show design code, order number, generic name, karigar name, current status, and quantity for each order. Support filtering by search term (matches design code or order number). Apply highlighted styling to the order passed as highlightedOrderNo prop. Use white text colors for all order details and status badges."
+        },
+        {
+          "path": "frontend/src/lib/barcode/parseBarcodeData.ts",
+          "operation": "create",
+          "description": "Create utility function parseBarcodeData(scannedText: string): { designCode: string, orderNumber: string } | null that parses Code 128 barcode data. Based on the tag image (IMG_6031.jpeg showing 'CHIMN40103 1308'), split the scanned text by whitespace to extract design code (first token) and order number (second token). Return null if the format is invalid or tokens are missing. Apply basic validation to ensure non-empty values."
         },
         {
           "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Verify that the useListKarigars query returns all karigars including those imported from Excel. Ensure the query cache is properly invalidated after master design imports so newly imported karigars appear in the dropdown immediately."
+          "description": "Add mutation hook useMarkGivenToHallmark that wraps the backend's markGivenToHallmark(orderNos: string[]) method. On success, invalidate 'orders' and 'givenToHallmarkOrders' query keys to refresh order lists. Return mutation object with mutate, isLoading, and error properties."
         },
         {
-          "path": "frontend/src/components/masterDesigns/MasterDesignsTable.tsx",
+          "path": "frontend/src/App.tsx",
           "operation": "modify",
-          "description": "Ensure that when the edit action opens the MasterDesignFormDialog, it passes the complete master design entry including the karigarId so the dialog can pre-populate the karigar field. Verify that the karigar name column displays the resolved karigar name using the karigars list."
+          "description": "Add new route for /barcode-tagging that renders BarcodeTaggingPage. Wrap the route with RoleGate requiring Admin role since barcode tagging is an admin operation for hallmark processing."
+        },
+        {
+          "path": "frontend/src/components/layout/AppShell.tsx",
+          "operation": "modify",
+          "description": "Add navigation link 'Barcode Tagging' to the Admin role navigation items. Place it after 'Excel Reconciliation'. Use white text color for proper visibility."
         }
       ]
     },
     {
       "id": "REQ-4",
-      "summary": "Remove individual karigar tabs from Total Orders and create a dedicated Karigar Orders tab in admin dashboard",
+      "summary": "Add Batch Scanner Mode to the Barcode Tagging section that allows scanning multiple barcodes to build a list and bulk marking all as 'Given for Hallmark' at once",
       "acceptanceCriteria": [
-        "Total Orders tab no longer displays individual karigar sub-tabs",
-        "A new dedicated tab exists in the admin dashboard for viewing orders by karigar",
-        "The new karigar-focused tab shows all individual karigar tabs and their respective orders",
-        "Navigation between Total Orders and the new Karigar Orders tab is intuitive",
-        "Total Orders tab displays only aggregate data without karigar segmentation"
+        "Batch Scanner Mode allows scanning multiple barcodes without immediately marking status",
+        "Builds a reviewable list of all scanned items",
+        "Shows order details for each scanned item in the batch list",
+        "Provides bulk action button to mark all scanned items as 'Given for Hallmark' at once",
+        "Prevents duplicate items in the batch list",
+        "Allows removing individual items from batch before bulk marking"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/pages/admin/AdminDashboardPage.tsx",
-          "operation": "modify",
-          "description": "Restructure the admin dashboard tabs to separate Total Orders from individual karigar views. Remove the karigar sub-tabs from the Total Orders tab. Add a new top-level tab called 'Karigar Orders' or 'By Karigar' that contains all the individual karigar sub-tabs with their respective filtered orders. Update the tab state management to handle the new tab structure. Ensure the Total Orders tab shows only aggregate order data without karigar-specific segmentation. Update touch gesture support to work with the new tab structure."
+          "path": "frontend/src/components/barcode/BatchScannerView.tsx",
+          "operation": "create",
+          "description": "Create component for Batch Scanner mode UI. Include camera preview section at the top with start/stop/switch controls. Display a 'Scanned Batch' section below showing all scanned orders in a table format. For each scanned order, show design code, order number, generic name, karigar name, current status, and quantity, with a remove button (X icon) to delete from batch. Prevent adding duplicate orders (by order number) to the batch list. At the bottom, show a 'Mark All for Hallmark' button (disabled when batch is empty) that calls markGivenToHallmark mutation with all order numbers in the batch. After successful bulk marking, clear the batch list and show success toast. Use white/light text colors throughout. When barcode is scanned, parse using parseBarcodeData utility, match against orders list, and add to batch state (useState<SavedOrder[]>). Verify the camera component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/components/admin/KarigarSummaryCards.tsx",
+          "path": "frontend/src/components/barcode/BatchOrdersTable.tsx",
+          "operation": "create",
+          "description": "Create table component that displays the batch of scanned orders. Show columns for design code, order number, generic name, karigar name, status, quantity, and a remove action column. Each row should have a remove icon button that removes the order from the batch. Use white text colors for all table content and ensure proper contrast with the dark background."
+        },
+        {
+          "path": "frontend/src/pages/admin/BarcodeTaggingPage.tsx",
           "operation": "modify",
-          "description": "Update the KarigarSummaryCards component to support navigation to the new Karigar Orders tab when a karigar card is clicked. Modify the click handler to switch to the new dedicated karigar tab instead of switching within the Total Orders context."
+          "description": "Add Batch Scanner tab alongside Fast Scanner tab. When Batch Scanner tab is active, render BatchScannerView component. Ensure tab switching properly unmounts and remounts components to reset camera and scanning state. Use white text for tab labels."
+        }
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "summary": "Implement day-wise timestamp tracking for 'Given for Hallmark' status and add functionality to select multiple 'Given for Hallmark' orders and bulk change their status to 'Billed'",
+      "acceptanceCriteria": [
+        "System automatically records the current date and timestamp when an order is marked 'Given for Hallmark'",
+        "Provides interface to view 'Given for Hallmark' orders grouped by date",
+        "Allows selecting multiple 'Given for Hallmark' orders via checkboxes",
+        "Provides bulk action button to change selected orders' status to 'Billed'",
+        "Once orders are marked 'Billed', they are excluded from future Excel reconciliation comparisons",
+        "Billed orders are hidden from the barcode scanner interface"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/admin/HallmarkManagementPage.tsx",
+          "operation": "create",
+          "description": "Create new page component for managing hallmark orders. Fetch orders with 'Given for Hallmark' status using useGivenToHallmarkOrders hook. Group orders by date using getOrderTimestamp utility (check lastStatusChange field). Display date groups in collapsible sections, with each section showing orders for that date in a selectable table. Support multi-select via checkboxes (useState<string[]> for selected order numbers). Show a bulk action bar at the top with 'Mark as Billed' button (enabled only when orders are selected). On click, call bulkUpdateOrderStatus mutation with { orderNos: selectedOrderNos, newStatus: 'Billed' } (referencing STATUS_BILLED constant from statusConstants.ts). After success, clear selection and show success toast. Use white/light text colors for all content including date headers, order details, and action buttons."
+        },
+        {
+          "path": "frontend/src/components/hallmark/HallmarkOrdersGroupedByDate.tsx",
+          "operation": "create",
+          "description": "Create component that groups and displays 'Given for Hallmark' orders by date. Use getOrderTimestamp to extract order dates and group orders using a Map<string, SavedOrder[]> where keys are formatted date strings (e.g., 'Feb 15, 2026'). Render collapsible sections for each date with a count badge showing number of orders. Within each section, render HallmarkOrdersTable component with the orders for that date. Use white text for date headers and count badges."
+        },
+        {
+          "path": "frontend/src/components/hallmark/HallmarkOrdersTable.tsx",
+          "operation": "create",
+          "description": "Create selectable table component for hallmark orders. Show columns: checkbox, design code, order number, generic name, karigar name, quantity, weight, size, and timestamp (formatted using lastStatusChange). Support row selection via checkboxes with a select-all checkbox in the header. Emit selection changes to parent via onSelectionChange callback. Use white text colors for all table content and headers."
+        },
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Add query hook useGivenToHallmarkOrders that wraps the backend's getGivenToHallmarkOrders() method. Enable the query only when actor is available. Return query object with data as SavedOrder[], isLoading, and error properties. Add mutation hook useBulkUpdateOrderStatus that wraps bulkUpdateOrderStatus(bulkUpdate: BulkOrderUpdate). On success, invalidate 'orders', 'givenToHallmarkOrders', and 'barcodeOrders' query keys."
+        },
+        {
+          "path": "frontend/src/App.tsx",
+          "operation": "modify",
+          "description": "Add new route for /hallmark-management that renders HallmarkManagementPage. Wrap the route with RoleGate requiring Admin role since hallmark billing is an admin operation."
+        },
+        {
+          "path": "frontend/src/components/layout/AppShell.tsx",
+          "operation": "modify",
+          "description": "Add navigation link 'Hallmark Management' to the Admin role navigation items. Place it after 'Barcode Tagging'. Use white text color for visibility."
+        },
+        {
+          "path": "frontend/src/lib/orders/statusConstants.ts",
+          "operation": "modify",
+          "description": "Add STATUS_BILLED constant with value 'billed' to the existing status constants. Export it for use in billing operations."
+        },
+        {
+          "path": "frontend/src/pages/admin/BarcodeTaggingPage.tsx",
+          "operation": "modify",
+          "description": "Update the orders list query to filter out orders with normalizeStatus(order.status) === 'billed' so that billed orders are hidden from the barcode scanner interface. Apply the filter in both Fast Scanner and Batch Scanner views."
+        },
+        {
+          "path": "frontend/src/lib/orders/getOrderTimestamp.ts",
+          "operation": "modify",
+          "description": "Update the utility to also check lastStatusChange field if available, preferring it over uploadDate and createdAt for hallmark timestamp tracking. Ensure the function returns the most recent relevant timestamp for grouping 'Given for Hallmark' orders by date."
         }
       ]
     }

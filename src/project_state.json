@@ -1,49 +1,56 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Admin dashboard application for managing karigars (workers), orders, and design codes with Excel import functionality",
+  "summary": "Order management system with Excel reconciliation (excluding Billed orders), dual-mode barcode scanner (Code 128 format) for Hallmark order tagging with day-wise tracking and bulk status changes, and fixing critical black-on-black visibility issues in Cyber Bunker theme",
   "architectural_notes": [
-    "Excel import system for karigar and design code data",
-    "Multi-tab admin dashboard (orders, karigars)",
-    "Mobile-responsive design required for Safari iPhone"
+    "Barcode format: Code 128 linear barcodes encoding design code + order number (e.g., 'CHIMN40103 1308')",
+    "Excel reconciliation compares against all order statuses EXCEPT Billed status",
+    "Given for Hallmark status tracked with day-wise timestamps",
+    "Billed orders excluded from Excel validations and hidden from barcode scanner interface",
+    "Dual-mode barcode scanner: Fast Mode (continuous) and Batch Mode (review then bulk action)"
   ],
   "known_issues": [
-    "Karigar mapping not displaying correctly across order tabs",
-    "Mobile Safari rendering issues - app shows at 50% zoom",
-    "Karigar names from Excel not auto-populating when updating/assigning design codes",
-    "Karigar tab names incorrectly appearing in total orders tab"
+    "CRITICAL: Black text on black background in Cyber Bunker theme making all data unreadable - needs immediate white/light text color fix across entire app"
   ],
   "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-fix-karigar-mapping-not-displaying-correctly-when-viewing-orders-across-all-tabs-today-delivered-hallmark-total-orders-customer-orders-and-individual-karigar-tabs-ensure-that-when-orders-are-filtered-or-displayed-in-any-tab-the-karigar-name-is-correctly-resolved-and-shown-from-the-master-design-mappings",
-      "title": "Fix karigar mapping not displaying correctly when viewing orders across all tabs (Today, Delivered, Hallmark, Total Orders, Customer Orders, and individual Karigar tabs). Ensure that when orders are filtered or displayed in any tab, the karigar name is correctly resolved and shown from the master design mappings.",
+      "id": "feature-fix-critical-black-on-black-text-visibility-issue-across-the-entire-application-by-changing-all-text-colors-to-white-or-light-colors-that-contrast-properly-with-the-dark-cyber-bunker-theme-background",
+      "title": "Fix critical black-on-black text visibility issue across the entire application by changing all text colors to white or light colors that contrast properly with the dark Cyber Bunker theme background",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-fix-mobile-safari-rendering-issues-where-the-application-displays-at-50-zoom-ensure-the-viewport-is-configured-correctly-so-the-entire-application-interface-is-visible-on-a-single-page-without-requiring-zoom-adjustments-on-mobile-screens",
-      "title": "Fix mobile Safari rendering issues where the application displays at 50% zoom. Ensure the viewport is configured correctly so the entire application interface is visible on a single page without requiring zoom adjustments on mobile screens.",
+      "id": "feature-create-an-excel-order-reconciliation-page-that-allows-uploading-customer-portal-excel-files-and-comparing-them-against-existing-orders-excluding-orders-with-billed-status-to-identify-missing-orders-and-potential-duplicates",
+      "title": "Create an Excel Order Reconciliation page that allows uploading customer portal Excel files and comparing them against existing orders (excluding orders with 'Billed' status) to identify missing orders and potential duplicates",
       "reqIds": [
         "REQ-2"
       ],
       "version": 1
     },
     {
-      "id": "feature-when-updating-or-assigning-a-design-code-to-a-different-karigar-in-the-master-designs-management-interface-automatically-populate-and-display-the-karigar-name-that-was-already-derived-from-the-uploaded-excel-file-the-karigar-dropdown-or-selection-field-should-show-all-existing-karigars-including-those-imported-from-excel",
-      "title": "When updating or assigning a design code to a different karigar in the master designs management interface, automatically populate and display the karigar name that was already derived from the uploaded Excel file. The karigar dropdown or selection field should show all existing karigars including those imported from Excel.",
+      "id": "feature-build-a-barcode-tagging-section-with-fast-scanner-mode-that-continuously-scans-code-128-barcodes-from-mobile-camera-or-usb-scanner-automatically-matches-orders-by-extracting-design-code-and-order-number-from-scanned-data-and-marks-selected-orders-as-given-for-hallmark-status",
+      "title": "Build a Barcode Tagging section with Fast Scanner Mode that continuously scans Code 128 barcodes (from mobile camera or USB scanner), automatically matches orders by extracting design code and order number from scanned data, and marks selected orders as 'Given for Hallmark' status",
       "reqIds": [
         "REQ-3"
       ],
       "version": 1
     },
     {
-      "id": "feature-remove-individual-karigar-tab-names-from-the-total-orders-tab-in-the-admin-dashboard-create-a-separate-dedicated-tab-in-the-admin-dashboard-that-displays-all-karigar-specific-views-and-their-orders-keeping-the-total-orders-tab-clean-and-showing-only-aggregate-order-data-without-karigar-specific-tabs",
-      "title": "Remove individual karigar tab names from the Total Orders tab in the admin dashboard. Create a separate dedicated tab in the admin dashboard that displays all karigar-specific views and their orders, keeping the Total Orders tab clean and showing only aggregate order data without karigar-specific tabs.",
+      "id": "feature-add-batch-scanner-mode-to-the-barcode-tagging-section-that-allows-scanning-multiple-barcodes-to-build-a-list-reviewing-all-scanned-items-together-and-bulk-marking-all-as-given-for-hallmark-at-once",
+      "title": "Add Batch Scanner Mode to the Barcode Tagging section that allows scanning multiple barcodes to build a list, reviewing all scanned items together, and bulk marking all as 'Given for Hallmark' at once",
       "reqIds": [
         "REQ-4"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-day-wise-timestamp-tracking-for-given-for-hallmark-status-changes-and-add-functionality-to-select-multiple-given-for-hallmark-orders-and-bulk-change-their-status-to-billed",
+      "title": "Implement day-wise timestamp tracking for 'Given for Hallmark' status changes and add functionality to select multiple 'Given for Hallmark' orders and bulk change their status to 'Billed'",
+      "reqIds": [
+        "REQ-5"
       ],
       "version": 1
     }
@@ -51,12 +58,32 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Separate karigar tabs from total orders tab in admin dashboard",
+      "summary": "Excel Order Reconciliation: Upload customer portal Excel files, compare against all order statuses except Billed, flag duplicates (design code + order number combination), treat unmapped design codes as new items, show reconciliation report, one-click bulk import for missing orders",
       "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Dual-Mode Barcode Scanner: Fast Scanner Mode (continuous scanning, instant match, mark Given for Hallmark, ready for next) and Batch Scanner Mode (scan multiple, review list, bulk mark all), Code 128 format support, auto-split scanned data to extract design code + order number",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Barcode Scanner Features: Show all orders regardless of status, prevent duplicate scanning in same session, day-wise timestamp tracking for Given for Hallmark status, bulk status change from Given for Hallmark to Billed, exclude Billed orders from future Excel validations and hide from scanner",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-9",
+      "summary": "Store and manage 'Given for Hallmark' and 'Billed' statuses in the backend with proper timestamp tracking and status transition validation",
+      "reqIds": [
+        "REQ-6"
+      ],
       "status": "pending"
     }
   ],
-  "projectName": "Fix karigar mapping display, mobile Safari zoom issues, and separate karigar tabs from total orders",
+  "projectName": "KarigarFlow",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

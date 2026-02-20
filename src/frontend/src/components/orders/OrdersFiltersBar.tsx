@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -6,10 +7,9 @@ import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { CalendarIcon, Search, X } from 'lucide-react';
+import { CalendarIcon, X, Search } from 'lucide-react';
 import { format } from 'date-fns';
-import { ALL_STATUS_OPTIONS, getStatusLabel } from '../../lib/orders/statusConstants';
-import { normalizeStatus } from '../../lib/orders/normalizeStatus';
+import { ORDER_STATUS, getStatusLabel } from '../../lib/orders/statusConstants';
 import type { PersistentKarigar } from '../../backend';
 
 interface OrdersFiltersBarProps {
@@ -29,7 +29,6 @@ interface OrdersFiltersBarProps {
   onRBOnlyChange: (value: boolean) => void;
   karigars: PersistentKarigar[];
   onClearFilters: () => void;
-  availableStatuses?: string[];
 }
 
 export function OrdersFiltersBar({
@@ -49,141 +48,161 @@ export function OrdersFiltersBar({
   onRBOnlyChange,
   karigars,
   onClearFilters,
-  availableStatuses,
 }: OrdersFiltersBarProps) {
   const [fromDateOpen, setFromDateOpen] = useState(false);
   const [toDateOpen, setToDateOpen] = useState(false);
 
-  const hasActiveFilters =
-    searchQuery !== '' ||
-    fromDate !== null ||
-    toDate !== null ||
-    selectedKarigar !== null ||
-    selectedStatus !== null ||
-    showCOOnly ||
-    showRBOnly;
+  const hasActiveFilters = searchQuery || fromDate || toDate || selectedKarigar || selectedStatus || showCOOnly || showRBOnly;
 
-  const handleFromDateSelect = (date: Date | undefined) => {
-    onFromDateChange(date || null);
-    setFromDateOpen(false);
-  };
-
-  const handleToDateSelect = (date: Date | undefined) => {
-    onToDateChange(date || null);
-    setToDateOpen(false);
-  };
-
-  const handleFromDateOpen = (open: boolean) => {
-    if (open && toDateOpen) {
-      setToDateOpen(false);
-    }
-    setFromDateOpen(open);
-  };
-
-  const handleToDateOpen = (open: boolean) => {
-    if (open && fromDateOpen) {
-      setFromDateOpen(false);
-    }
-    setToDateOpen(open);
-  };
-
-  // Use provided status options or default to all
-  const statusOptions = availableStatuses || ALL_STATUS_OPTIONS;
+  const statusOptions = [
+    { value: ORDER_STATUS.PENDING, label: getStatusLabel(ORDER_STATUS.PENDING) },
+    { value: ORDER_STATUS.DELIVERED, label: getStatusLabel(ORDER_STATUS.DELIVERED) },
+    { value: ORDER_STATUS.GIVEN_TO_HALLMARK, label: getStatusLabel(ORDER_STATUS.GIVEN_TO_HALLMARK) },
+    { value: ORDER_STATUS.RETURNED_FROM_HALLMARK, label: getStatusLabel(ORDER_STATUS.RETURNED_FROM_HALLMARK) },
+    { value: ORDER_STATUS.BILLED, label: getStatusLabel(ORDER_STATUS.BILLED) },
+  ];
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-3">
-        {/* Search */}
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search orders..."
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-9"
-          />
+    <Card>
+      <CardContent className="pt-6">
+        <div className="space-y-4">
+          <div className="flex items-center gap-4 flex-wrap">
+            {/* Search */}
+            <div className="flex-1 min-w-[200px]">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search orders..."
+                  value={searchQuery}
+                  onChange={(e) => onSearchChange(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+            </div>
+
+            {/* Date Range */}
+            <div className="flex items-center gap-2">
+              <Label className="text-sm whitespace-nowrap">From:</Label>
+              <Popover open={fromDateOpen} onOpenChange={setFromDateOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2 min-w-[140px]">
+                    <CalendarIcon className="h-4 w-4" />
+                    {fromDate ? format(fromDate, 'PP') : 'Select date'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 z-[9999]" align="start">
+                  <div className="fixed inset-0 bg-black/20 z-[9998]" onClick={() => setFromDateOpen(false)} />
+                  <div className="relative z-[9999] bg-card">
+                    <Calendar
+                      mode="single"
+                      selected={fromDate || undefined}
+                      onSelect={(date) => {
+                        onFromDateChange(date || null);
+                        setFromDateOpen(false);
+                      }}
+                      initialFocus
+                    />
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Label className="text-sm whitespace-nowrap">To:</Label>
+              <Popover open={toDateOpen} onOpenChange={setToDateOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2 min-w-[140px]">
+                    <CalendarIcon className="h-4 w-4" />
+                    {toDate ? format(toDate, 'PP') : 'Select date'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 z-[9999]" align="start">
+                  <div className="fixed inset-0 bg-black/20 z-[9998]" onClick={() => setToDateOpen(false)} />
+                  <div className="relative z-[9999] bg-card">
+                    <Calendar
+                      mode="single"
+                      selected={toDate || undefined}
+                      onSelect={(date) => {
+                        onToDateChange(date || null);
+                        setToDateOpen(false);
+                      }}
+                      initialFocus
+                    />
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {/* Karigar Filter */}
+            <div className="flex items-center gap-2">
+              <Label className="text-sm whitespace-nowrap">Karigar:</Label>
+              <Select value={selectedKarigar || 'all'} onValueChange={(v) => onKarigarChange(v === 'all' ? null : v)}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Karigars</SelectItem>
+                  {karigars.map((k) => (
+                    <SelectItem key={k.id} value={k.id}>
+                      {k.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Status Filter */}
+            <div className="flex items-center gap-2">
+              <Label className="text-sm whitespace-nowrap">Status:</Label>
+              <Select value={selectedStatus || 'all'} onValueChange={(v) => onStatusChange(v === 'all' ? null : v)}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  {statusOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Checkboxes */}
+          <div className="flex items-center gap-6 flex-wrap">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="co-only"
+                checked={showCOOnly}
+                onCheckedChange={onCOOnlyChange}
+              />
+              <Label htmlFor="co-only" className="text-sm cursor-pointer">
+                Customer Orders Only
+              </Label>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="rb-only"
+                checked={showRBOnly}
+                onCheckedChange={onRBOnlyChange}
+              />
+              <Label htmlFor="rb-only" className="text-sm cursor-pointer">
+                RB Orders Only
+              </Label>
+            </div>
+
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" onClick={onClearFilters} className="gap-2">
+                <X className="h-4 w-4" />
+                Clear Filters
+              </Button>
+            )}
+          </div>
         </div>
-
-        {/* From Date */}
-        <Popover open={fromDateOpen} onOpenChange={handleFromDateOpen}>
-          <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className="min-w-[140px] justify-start">
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {fromDate ? format(fromDate, 'PP') : 'From Date'}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0 z-[100]" align="start" collisionPadding={16}>
-            <Calendar mode="single" selected={fromDate || undefined} onSelect={handleFromDateSelect} initialFocus />
-          </PopoverContent>
-        </Popover>
-
-        {/* To Date */}
-        <Popover open={toDateOpen} onOpenChange={handleToDateOpen}>
-          <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className="min-w-[140px] justify-start">
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {toDate ? format(toDate, 'PP') : 'To Date'}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0 z-[100]" align="start" collisionPadding={16}>
-            <Calendar mode="single" selected={toDate || undefined} onSelect={handleToDateSelect} initialFocus />
-          </PopoverContent>
-        </Popover>
-
-        {/* Karigar Filter */}
-        <Select value={selectedKarigar || 'all'} onValueChange={(v) => onKarigarChange(v === 'all' ? null : v)}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="All Karigars" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Karigars</SelectItem>
-            {karigars.map((karigar) => (
-              <SelectItem key={karigar.id} value={karigar.id}>
-                {karigar.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        {/* Status Filter */}
-        <Select value={selectedStatus || 'all'} onValueChange={(v) => onStatusChange(v === 'all' ? null : v)}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="All Statuses" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
-            {statusOptions.map((status) => (
-              <SelectItem key={status} value={status}>
-                {getStatusLabel(status)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        {/* Clear Filters */}
-        {hasActiveFilters && (
-          <Button variant="ghost" size="sm" onClick={onClearFilters} className="gap-2">
-            <X className="h-4 w-4" />
-            Clear Filters
-          </Button>
-        )}
-      </div>
-
-      {/* Order Type Checkboxes */}
-      <div className="flex items-center gap-6">
-        <div className="flex items-center gap-2">
-          <Checkbox id="co-only" checked={showCOOnly} onCheckedChange={(checked) => onCOOnlyChange(checked === true)} />
-          <Label htmlFor="co-only" className="text-sm cursor-pointer">
-            Customer Orders Only
-          </Label>
-        </div>
-        <div className="flex items-center gap-2">
-          <Checkbox id="rb-only" checked={showRBOnly} onCheckedChange={(checked) => onRBOnlyChange(checked === true)} />
-          <Label htmlFor="rb-only" className="text-sm cursor-pointer">
-            RB Orders Only
-          </Label>
-        </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

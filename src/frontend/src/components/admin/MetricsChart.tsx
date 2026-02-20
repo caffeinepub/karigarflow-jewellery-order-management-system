@@ -24,43 +24,47 @@ export function MetricsChart({ orders }: MetricsChartProps) {
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      <Card className="gradient-card-violet text-white shadow-lg">
+      <Card className="bg-card border-primary/20 card-glow-subtle">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
-          <Package className="h-5 w-5 opacity-90" />
+          <CardTitle className="text-sm font-medium text-foreground">Total Orders</CardTitle>
+          <Package className="h-5 w-5 text-primary" />
         </CardHeader>
         <CardContent>
-          <div className="text-3xl font-bold">{metrics.totalOrders}</div>
+          <div className="text-2xl font-bold text-foreground">{metrics.totalOrders}</div>
+          <p className="text-xs text-muted-foreground">Active orders in system</p>
         </CardContent>
       </Card>
 
-      <Card className="gradient-card-pink text-white shadow-lg">
+      <Card className="bg-card border-accent/20 card-glow-subtle">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Total Quantity</CardTitle>
-          <Hash className="h-5 w-5 opacity-90" />
+          <CardTitle className="text-sm font-medium text-foreground">Total Quantity</CardTitle>
+          <Hash className="h-5 w-5 text-accent" />
         </CardHeader>
         <CardContent>
-          <div className="text-3xl font-bold">{metrics.totalQty}</div>
+          <div className="text-2xl font-bold text-foreground">{metrics.totalQty}</div>
+          <p className="text-xs text-muted-foreground">Total pieces</p>
         </CardContent>
       </Card>
 
-      <Card className="gradient-card-gold text-white shadow-lg">
+      <Card className="bg-card border-secondary/20 card-glow-subtle">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Total Weight</CardTitle>
-          <Weight className="h-5 w-5 opacity-90" />
+          <CardTitle className="text-sm font-medium text-foreground">Total Weight</CardTitle>
+          <Weight className="h-5 w-5 text-secondary" />
         </CardHeader>
         <CardContent>
-          <div className="text-3xl font-bold">{metrics.totalWeight}g</div>
+          <div className="text-2xl font-bold text-foreground">{metrics.totalWeight}g</div>
+          <p className="text-xs text-muted-foreground">Combined weight</p>
         </CardContent>
       </Card>
 
-      <Card className="gradient-card-green text-white shadow-lg">
+      <Card className="bg-card border-primary/20 card-glow-subtle">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Customer Orders</CardTitle>
-          <ShoppingCart className="h-5 w-5 opacity-90" />
+          <CardTitle className="text-sm font-medium text-foreground">Customer Orders</CardTitle>
+          <ShoppingCart className="h-5 w-5 text-primary" />
         </CardHeader>
         <CardContent>
-          <div className="text-3xl font-bold">{metrics.customerOrders}</div>
+          <div className="text-2xl font-bold text-foreground">{metrics.customerOrders}</div>
+          <p className="text-xs text-muted-foreground">Custom orders</p>
         </CardContent>
       </Card>
     </div>

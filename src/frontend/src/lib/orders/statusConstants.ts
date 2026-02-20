@@ -1,34 +1,39 @@
-/**
- * Constants defining all valid order status strings used throughout the application.
- * Ensures consistency between backend data and frontend filters/actions.
- */
+export const STATUS_PENDING = 'pending';
+export const STATUS_DELIVERED = 'delivered';
+export const STATUS_GIVEN_TO_HALLMARK = 'given_to_hallmark';
+export const STATUS_RETURNED_FROM_HALLMARK = 'returned_from_hallmark';
+export const STATUS_BILLED = 'billed';
 
 export const ORDER_STATUS = {
-  PENDING: 'pending',
-  DELIVERED: 'delivered',
-  GIVEN_TO_HALLMARK: 'given_to_hallmark',
-  RETURNED_FROM_HALLMARK: 'returned_from_hallmark',
-  SUBMITTED_IN_HALLMARK: 'submitted_in_hallmark',
-  CANCEL: 'cancel',
+  PENDING: STATUS_PENDING,
+  DELIVERED: STATUS_DELIVERED,
+  GIVEN_TO_HALLMARK: STATUS_GIVEN_TO_HALLMARK,
+  RETURNED_FROM_HALLMARK: STATUS_RETURNED_FROM_HALLMARK,
+  BILLED: STATUS_BILLED,
 } as const;
 
-export type OrderStatus = typeof ORDER_STATUS[keyof typeof ORDER_STATUS];
-
-/**
- * All available status options for dropdowns and filters
- */
-export const ALL_STATUS_OPTIONS: string[] = [
-  ORDER_STATUS.PENDING,
-  ORDER_STATUS.DELIVERED,
-  ORDER_STATUS.GIVEN_TO_HALLMARK,
-  ORDER_STATUS.RETURNED_FROM_HALLMARK,
-  ORDER_STATUS.SUBMITTED_IN_HALLMARK,
-  ORDER_STATUS.CANCEL,
-];
-
-/**
- * Display-friendly status labels
- */
 export function getStatusLabel(status: string): string {
-  return status.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+  const normalized = status.toLowerCase().trim();
+  switch (normalized) {
+    case STATUS_PENDING:
+      return 'Pending';
+    case STATUS_DELIVERED:
+      return 'Delivered';
+    case STATUS_GIVEN_TO_HALLMARK:
+      return 'Given to Hallmark';
+    case STATUS_RETURNED_FROM_HALLMARK:
+      return 'Returned from Hallmark';
+    case STATUS_BILLED:
+      return 'Billed';
+    default:
+      return status;
+  }
 }
+
+export const STATUS_OPTIONS = [
+  { value: STATUS_PENDING, label: 'Pending' },
+  { value: STATUS_DELIVERED, label: 'Delivered' },
+  { value: STATUS_GIVEN_TO_HALLMARK, label: 'Given to Hallmark' },
+  { value: STATUS_RETURNED_FROM_HALLMARK, label: 'Returned from Hallmark' },
+  { value: STATUS_BILLED, label: 'Billed' },
+];

@@ -2,34 +2,11 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-fix-karigar-mapping-not-displaying-correctly-when-viewing-orders-across-all-tabs-today-delivered-hallmark-total-orders-customer-orders-and-individual-karigar-tabs-ensure-that-when-orders-are-filtered-or-displayed-in-any-tab-the-karigar-name-is-correctly-resolved-and-shown-from-the-master-design-mappings",
-      "featureTitle": "Fix karigar mapping not displaying correctly when viewing orders across all tabs (Today, Delivered, Hallmark, Total Orders, Customer Orders, and individual Karigar tabs). Ensure that when orders are filtered or displayed in any tab, the karigar name is correctly resolved and shown from the master design mappings.",
+      "featureId": "feature-fix-critical-black-on-black-text-visibility-issue-across-the-entire-application-by-changing-all-text-colors-to-white-or-light-colors-that-contrast-properly-with-the-dark-cyber-bunker-theme-background",
+      "featureTitle": "Fix critical black-on-black text visibility issue across the entire application by changing all text colors to white or light colors that contrast properly with the dark Cyber Bunker theme background",
       "files": [
-        "frontend/src/lib/mapping/applyMasterDesignMapping.ts",
-        "frontend/src/lib/orders/resolveKarigarName.ts",
-        "frontend/src/pages/admin/AdminDashboardPage.tsx"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0",
-        "user-approval@3.0.0",
-        "blob-storage@4.0.0",
-        "http-outcalls@3.0.0"
-      ],
-      "testIds": [
-        "REQ-1"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-fix-mobile-safari-rendering-issues-where-the-application-displays-at-50-zoom-ensure-the-viewport-is-configured-correctly-so-the-entire-application-interface-is-visible-on-a-single-page-without-requiring-zoom-adjustments-on-mobile-screens",
-      "featureTitle": "Fix mobile Safari rendering issues where the application displays at 50% zoom. Ensure the viewport is configured correctly so the entire application interface is visible on a single page without requiring zoom adjustments on mobile screens.",
-      "files": [
-        "frontend/index.html",
+        "frontend/src/components/layout/AppShell.tsx",
+        "frontend/src/components/orders/OrdersFiltersBar.tsx",
         "frontend/src/index.css"
       ],
       "components": [
@@ -41,7 +18,38 @@
         "github-export-icp-cli@1.0.0",
         "user-approval@3.0.0",
         "blob-storage@4.0.0",
-        "http-outcalls@3.0.0"
+        "http-outcalls@3.0.0",
+        "camera@1.0.0",
+        "qr-code@1.0.0"
+      ],
+      "testIds": [
+        "REQ-1"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-create-an-excel-order-reconciliation-page-that-allows-uploading-customer-portal-excel-files-and-comparing-them-against-existing-orders-excluding-orders-with-billed-status-to-identify-missing-orders-and-potential-duplicates",
+      "featureTitle": "Create an Excel Order Reconciliation page that allows uploading customer portal Excel files and comparing them against existing orders (excluding orders with 'Billed' status) to identify missing orders and potential duplicates",
+      "files": [
+        "frontend/src/App.tsx",
+        "frontend/src/components/layout/AppShell.tsx",
+        "frontend/src/components/reconciliation/ReconciliationFileUpload.tsx",
+        "frontend/src/components/reconciliation/ReconciliationReport.tsx",
+        "frontend/src/lib/reconciliation/compareOrdersWithExcel.ts",
+        "frontend/src/pages/admin/ExcelReconciliationPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "user-approval@3.0.0",
+        "blob-storage@4.0.0",
+        "http-outcalls@3.0.0",
+        "camera@1.0.0",
+        "qr-code@1.0.0"
       ],
       "testIds": [
         "REQ-2"
@@ -49,10 +57,16 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-when-updating-or-assigning-a-design-code-to-a-different-karigar-in-the-master-designs-management-interface-automatically-populate-and-display-the-karigar-name-that-was-already-derived-from-the-uploaded-excel-file-the-karigar-dropdown-or-selection-field-should-show-all-existing-karigars-including-those-imported-from-excel",
-      "featureTitle": "When updating or assigning a design code to a different karigar in the master designs management interface, automatically populate and display the karigar name that was already derived from the uploaded Excel file. The karigar dropdown or selection field should show all existing karigars including those imported from Excel.",
+      "featureId": "feature-build-a-barcode-tagging-section-with-fast-scanner-mode-that-continuously-scans-code-128-barcodes-from-mobile-camera-or-usb-scanner-automatically-matches-orders-by-extracting-design-code-and-order-number-from-scanned-data-and-marks-selected-orders-as-given-for-hallmark-status",
+      "featureTitle": "Build a Barcode Tagging section with Fast Scanner Mode that continuously scans Code 128 barcodes (from mobile camera or USB scanner), automatically matches orders by extracting design code and order number from scanned data, and marks selected orders as 'Given for Hallmark' status",
       "files": [
-        "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx"
+        "frontend/src/App.tsx",
+        "frontend/src/components/barcode/BarcodeOrdersList.tsx",
+        "frontend/src/components/barcode/FastScannerView.tsx",
+        "frontend/src/components/layout/AppShell.tsx",
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/lib/barcode/parseBarcodeData.ts",
+        "frontend/src/pages/admin/BarcodeTaggingPage.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -63,7 +77,9 @@
         "github-export-icp-cli@1.0.0",
         "user-approval@3.0.0",
         "blob-storage@4.0.0",
-        "http-outcalls@3.0.0"
+        "http-outcalls@3.0.0",
+        "camera@1.0.0",
+        "qr-code@1.0.0"
       ],
       "testIds": [
         "REQ-3"
@@ -71,10 +87,12 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-remove-individual-karigar-tab-names-from-the-total-orders-tab-in-the-admin-dashboard-create-a-separate-dedicated-tab-in-the-admin-dashboard-that-displays-all-karigar-specific-views-and-their-orders-keeping-the-total-orders-tab-clean-and-showing-only-aggregate-order-data-without-karigar-specific-tabs",
-      "featureTitle": "Remove individual karigar tab names from the Total Orders tab in the admin dashboard. Create a separate dedicated tab in the admin dashboard that displays all karigar-specific views and their orders, keeping the Total Orders tab clean and showing only aggregate order data without karigar-specific tabs.",
+      "featureId": "feature-add-batch-scanner-mode-to-the-barcode-tagging-section-that-allows-scanning-multiple-barcodes-to-build-a-list-reviewing-all-scanned-items-together-and-bulk-marking-all-as-given-for-hallmark-at-once",
+      "featureTitle": "Add Batch Scanner Mode to the Barcode Tagging section that allows scanning multiple barcodes to build a list, reviewing all scanned items together, and bulk marking all as 'Given for Hallmark' at once",
       "files": [
-        "frontend/src/pages/admin/AdminDashboardPage.tsx"
+        "frontend/src/components/barcode/BatchOrdersTable.tsx",
+        "frontend/src/components/barcode/BatchScannerView.tsx",
+        "frontend/src/pages/admin/BarcodeTaggingPage.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -85,10 +103,44 @@
         "github-export-icp-cli@1.0.0",
         "user-approval@3.0.0",
         "blob-storage@4.0.0",
-        "http-outcalls@3.0.0"
+        "http-outcalls@3.0.0",
+        "camera@1.0.0",
+        "qr-code@1.0.0"
       ],
       "testIds": [
         "REQ-4"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-implement-day-wise-timestamp-tracking-for-given-for-hallmark-status-changes-and-add-functionality-to-select-multiple-given-for-hallmark-orders-and-bulk-change-their-status-to-billed",
+      "featureTitle": "Implement day-wise timestamp tracking for 'Given for Hallmark' status changes and add functionality to select multiple 'Given for Hallmark' orders and bulk change their status to 'Billed'",
+      "files": [
+        "frontend/src/App.tsx",
+        "frontend/src/components/hallmark/HallmarkOrdersGroupedByDate.tsx",
+        "frontend/src/components/hallmark/HallmarkOrdersTable.tsx",
+        "frontend/src/components/layout/AppShell.tsx",
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/lib/orders/getOrderTimestamp.ts",
+        "frontend/src/lib/orders/statusConstants.ts",
+        "frontend/src/pages/admin/BarcodeTaggingPage.tsx",
+        "frontend/src/pages/admin/HallmarkManagementPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "user-approval@3.0.0",
+        "blob-storage@4.0.0",
+        "http-outcalls@3.0.0",
+        "camera@1.0.0",
+        "qr-code@1.0.0"
+      ],
+      "testIds": [
+        "REQ-5"
       ],
       "confidence": "high"
     }

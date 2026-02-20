@@ -1,98 +1,153 @@
 {
   "kind": "build_request",
-  "title": "Fix karigar mapping display, mobile Safari zoom issues, and separate karigar tabs from total orders",
+  "title": "Excel reconciliation, barcode scanner, and visibility fixes",
+  "projectName": "KarigarFlow",
   "priority": "high",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Fix karigar mapping not displaying correctly when viewing orders across all tabs (Today, Delivered, Hallmark, Total Orders, Customer Orders, and individual Karigar tabs). Ensure that when orders are filtered or displayed in any tab, the karigar name is correctly resolved and shown from the master design mappings.",
-      "target": "both",
+      "text": "Fix critical black-on-black text visibility issue across the entire application by changing all text colors to white or light colors that contrast properly with the dark Cyber Bunker theme background",
+      "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-6"
+          "user-current"
         ],
         "quotes": [
-          "Karigar mapping is not happening while display orders across tabs. Check front end n back end and solve this."
+          "new development still shows texts and background in black so no data is clearly visible",
+          "I'm attaching app screenshots with currently prevail"
         ]
       },
       "acceptanceCriteria": [
-        "Orders in all tabs display the correct karigar name from master design mappings",
-        "Karigar resolution works consistently across Today, Delivered, Hallmark, Total Orders, Customer Orders, and individual Karigar tabs",
-        "Empty or unassigned karigar fields display as 'Unassigned'",
-        "Karigar names are correctly derived from design code mappings in the backend"
+        "All text content is readable with white or light colors against black backgrounds",
+        "Tables, cards, dialogs, and all UI components have proper text contrast",
+        "Icons and badges are visible with appropriate colors",
+        "No black text appears on black backgrounds anywhere in the app"
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Fix mobile Safari rendering issues where the application displays at 50% zoom. Ensure the viewport is configured correctly so the entire application interface is visible on a single page without requiring zoom adjustments on mobile screens.",
-      "target": "frontend",
+      "text": "Create an Excel Order Reconciliation page that allows uploading customer portal Excel files and comparing them against existing orders (excluding orders with 'Billed' status) to identify missing orders and potential duplicates",
+      "target": "both",
       "source": {
         "messageIds": [
-          "msg-6"
+          "user-current"
         ],
         "quotes": [
-          "I'm using the app in safari iPhone and look how it's giving trouble, run diagnostics to resolve this completely. Same way the app is running on 50% zoom on mobile screens make sure it's completely visible in single page in the display when opened."
+          "compare complete excel",
+          "Compare complete Excel against all order statuses (Total Orders, Pending, Delivered, Given for Hallmark, Billed) Here expect for the status *Billed*"
         ]
       },
       "acceptanceCriteria": [
-        "Application renders at 100% zoom on Safari iPhone",
-        "All UI elements are visible and properly sized on mobile screens",
-        "No horizontal scrolling required on mobile devices",
-        "Viewport meta tags are correctly configured for mobile display",
-        "Touch interactions work smoothly without zoom interference"
+        "Upload interface accepts Excel files from customer portals",
+        "System compares uploaded Excel rows against all existing orders except those with 'Billed' status",
+        "Flags potential duplicates where both design code AND order number combination already exists",
+        "Treats rows with design codes not found in the system as unmapped/new designs for separate review",
+        "Displays reconciliation report showing matched vs missing order counts",
+        "Provides one-click bulk import functionality for missing orders"
       ]
     },
     {
       "id": "REQ-3",
-      "text": "When updating or assigning a design code to a different karigar in the master designs management interface, automatically populate and display the karigar name that was already derived from the uploaded Excel file. The karigar dropdown or selection field should show all existing karigars including those imported from Excel.",
-      "target": "frontend",
+      "text": "Build a Barcode Tagging section with Fast Scanner Mode that continuously scans Code 128 barcodes (from mobile camera or USB scanner), automatically matches orders by extracting design code and order number from scanned data, and marks selected orders as 'Given for Hallmark' status",
+      "target": "both",
       "source": {
         "messageIds": [
-          "msg-6"
+          "user-current"
         ],
         "quotes": [
-          "All item design code and generic are matched with karigar name. When the karigar is already derived from the excel why it is not displaying while updating and assigning the design code to other karigar promptly."
+          "Give option for fast and batch scanning both",
+          "I'm attaching app screenshots with currently prevail plus the tag photo for your reference"
         ]
       },
       "acceptanceCriteria": [
-        "Karigar dropdown in master design edit dialog shows all karigars from both manual creation and Excel imports",
-        "Pre-existing karigar assignments from Excel files are visible when editing a master design",
-        "Updating a design code's karigar assignment immediately reflects the new mapping",
-        "All karigars derived from Excel uploads are available for selection"
+        "Fast Scanner Mode opens camera once and stays active for continuous scanning",
+        "Supports Code 128 linear barcodes from mobile camera and USB barcode scanners",
+        "Automatically extracts design code and order number from scanned barcode data",
+        "Instantly highlights matching order in a list when barcode is scanned",
+        "Provides 'Mark for Hallmark' button to change status to 'Given for Hallmark'",
+        "Scanner remains open and ready for next barcode after marking an order",
+        "Shows running count of scanned items in current session",
+        "Displays ALL orders regardless of current status (Pending, Delivered, etc.)",
+        "Prevents scanning the same item twice in one session with duplicate detection"
       ]
     },
     {
       "id": "REQ-4",
-      "text": "Remove individual karigar tab names from the Total Orders tab in the admin dashboard. Create a separate dedicated tab in the admin dashboard that displays all karigar-specific views and their orders, keeping the Total Orders tab clean and showing only aggregate order data without karigar-specific tabs.",
-      "target": "frontend",
+      "text": "Add Batch Scanner Mode to the Barcode Tagging section that allows scanning multiple barcodes to build a list, reviewing all scanned items together, and bulk marking all as 'Given for Hallmark' at once",
+      "target": "both",
       "source": {
         "messageIds": [
-          "msg-6"
+          "user-current"
         ],
         "quotes": [
-          "The karigar tab names shouldn't show in the total orders tab, it should classified separately in another tab in the admin dashboard"
+          "Give option for fast and batch scanning both"
         ]
       },
       "acceptanceCriteria": [
-        "Total Orders tab no longer displays individual karigar sub-tabs",
-        "A new dedicated tab exists in the admin dashboard for viewing orders by karigar",
-        "The new karigar-focused tab shows all individual karigar tabs and their respective orders",
-        "Navigation between Total Orders and the new Karigar Orders tab is intuitive",
-        "Total Orders tab displays only aggregate data without karigar segmentation"
+        "Batch Scanner Mode allows scanning multiple barcodes without immediately marking status",
+        "Builds a reviewable list of all scanned items",
+        "Shows order details for each scanned item in the batch list",
+        "Provides bulk action button to mark all scanned items as 'Given for Hallmark' at once",
+        "Prevents duplicate items in the batch list",
+        "Allows removing individual items from batch before bulk marking"
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "text": "Implement day-wise timestamp tracking for 'Given for Hallmark' status changes and add functionality to select multiple 'Given for Hallmark' orders and bulk change their status to 'Billed'",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "user-current"
+        ],
+        "quotes": [
+          "Maintain given for hallmark data day wise and give option to select all orders/multiple lines and change the status to billed"
+        ]
+      },
+      "acceptanceCriteria": [
+        "System automatically records the current date and timestamp when an order is marked 'Given for Hallmark'",
+        "Provides interface to view 'Given for Hallmark' orders grouped by date",
+        "Allows selecting multiple 'Given for Hallmark' orders via checkboxes",
+        "Provides bulk action button to change selected orders' status to 'Billed'",
+        "Once orders are marked 'Billed', they are excluded from future Excel reconciliation comparisons",
+        "Billed orders are hidden from the barcode scanner interface"
+      ]
+    },
+    {
+      "id": "REQ-6",
+      "text": "Store and manage 'Given for Hallmark' and 'Billed' statuses in the backend with proper timestamp tracking and status transition validation",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "user-current"
+        ],
+        "quotes": [
+          "Maintain given for hallmark data day wise",
+          "if this way status changes to billed then you could completely validate the new excel against all other order row status"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Backend stores 'Given for Hallmark' status with day-wise timestamps",
+        "Backend stores 'Billed' status and transition history",
+        "Backend provides query methods to filter orders by status and date ranges",
+        "Backend excludes 'Billed' orders from Excel reconciliation queries",
+        "Backend validates status transitions (e.g., only 'Given for Hallmark' orders can be marked 'Billed')"
       ]
     }
   ],
   "constraints": [
-    "Do not modify Internet Identity authentication hooks or components",
-    "Preserve the single-actor Motoko backend architecture",
-    "Do not edit read-only Shadcn UI component sources",
-    "Maintain existing offline sync and caching functionality"
+    "Do not change the backend single-actor architecture",
+    "Do not modify immutable frontend paths (useInternetIdentity, useActor, main.tsx, components/ui)",
+    "Excel reconciliation must exclude orders with 'Billed' status from comparison",
+    "Barcode scanner must support Code 128 format as shown in the uploaded tag image (CHIMN40103 1308)",
+    "All new UI components must use the existing Cyber Bunker theme with proper white/light text colors"
   ],
   "nonGoals": [
-    "Adding new order status types",
-    "Changing the Excel file format or parsing logic beyond fixing karigar display",
-    "Modifying user role permissions or access control",
-    "Adding new export formats beyond existing CSV/PDF/JPEG options"
+    "Support for barcode formats other than Code 128",
+    "Modifying existing order status workflow for statuses other than 'Given for Hallmark' and 'Billed'",
+    "Integration with external barcode scanner hardware beyond standard USB scanners and mobile cameras",
+    "Real-time collaborative scanning across multiple devices",
+    "Historical audit trail for status changes beyond timestamp tracking"
   ],
   "imageRequirements": {
     "required": [],

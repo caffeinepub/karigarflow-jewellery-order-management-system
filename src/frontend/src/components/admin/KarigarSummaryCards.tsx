@@ -42,7 +42,7 @@ export function KarigarSummaryCards({ orders, selectedKarigar, onKarigarSelect, 
 
   if (karigarStats.length === 0) {
     return (
-      <Card className="border-dashed">
+      <Card className="border-dashed bg-card">
         <CardContent className="py-12">
           <div className="text-center space-y-2">
             <Users className="h-12 w-12 mx-auto text-muted-foreground opacity-50" />
@@ -57,7 +57,7 @@ export function KarigarSummaryCards({ orders, selectedKarigar, onKarigarSelect, 
     <div className="space-y-3">
       {selectedKarigar && (
         <div className="flex items-center justify-between p-3 bg-primary/10 rounded-lg border border-primary/20">
-          <span className="text-sm font-medium">
+          <span className="text-sm font-medium text-foreground">
             Filtering by: <span className="font-bold">{formatKarigarName(selectedKarigar)}</span>
           </span>
           <Button variant="ghost" size="sm" onClick={onKarigarDeselect} className="gap-2">
@@ -74,8 +74,8 @@ export function KarigarSummaryCards({ orders, selectedKarigar, onKarigarSelect, 
           return (
             <Card
               key={stat.karigarId}
-              className={`cursor-pointer transition-all hover:shadow-lg ${
-                isSelected ? 'ring-2 ring-primary ring-offset-2' : ''
+              className={`cursor-pointer transition-all hover:shadow-lg bg-card card-glow-subtle ${
+                isSelected ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''
               }`}
               onClick={() => onKarigarSelect(stat.karigarId)}
             >
@@ -93,11 +93,11 @@ export function KarigarSummaryCards({ orders, selectedKarigar, onKarigarSelect, 
                   </div>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Orders:</span>
-                    <span className="font-medium">{stat.totalOrders}</span>
+                    <span className="font-medium text-foreground">{stat.totalOrders}</span>
                   </div>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Qty:</span>
-                    <span className="font-medium">{stat.totalQty}</span>
+                    <span className="font-medium text-foreground">{stat.totalQty}</span>
                   </div>
                 </div>
               </CardContent>

@@ -20,152 +20,126 @@ import { DesignImagesPage } from './pages/admin/DesignImagesPage';
 import { IngestOrdersPage } from './pages/staff/IngestOrdersPage';
 import { UnmappedDesignCodesPage } from './pages/staff/UnmappedDesignCodesPage';
 import { UserManagementPage } from './pages/admin/UserManagementPage';
-import { BootstrapAdminPage } from './pages/setup/BootstrapAdminPage';
-import { AppErrorBoundary } from './components/errors/AppErrorBoundary';
+import { ExcelReconciliationPage } from './pages/admin/ExcelReconciliationPage';
+import { BarcodeTaggingPage } from './pages/admin/BarcodeTaggingPage';
+import { HallmarkManagementPage } from './pages/admin/HallmarkManagementPage';
 import { RoleGate } from './components/auth/RoleGate';
 import { AppRole } from './backend';
 import { useEffect } from 'react';
 
-function Layout() {
+// Root route with layout
+const rootRoute = createRootRoute({
+  component: RootComponent,
+});
+
+function RootComponent() {
   const location = useLocation();
-  const { identity } = useInternetIdentity();
-  const { actor: safeActor, isError: actorError, error: actorErrorObj, refetch: refetchActor } = useSafeActor();
-  const { userProfile, isLoading: profileLoading, isFetched: profileFetched, isError: profileError, error: profileErrorObj, refetch: refetchProfile } = useCurrentUser();
-  const { data: isAdmin, isLoading: isCheckingAdmin, isFetched: adminCheckFetched, isError: adminCheckError, error: adminCheckErrorObj, refetch: refetchAdmin } = useIsCallerAdmin();
-  const { data: isBlocked, isLoading: checkingBlocked, isFetched: blockedCheckFetched } = useCheckUserBlocked();
-  const isAuthenticated = !!identity;
-
-  if (!isAuthenticated) {
-    return <LoginPage />;
-  }
-
-  // Check for bootstrap errors (actor creation, profile fetch, or admin check)
-  const hasBootstrapError = actorError || profileError || adminCheckError;
-  const bootstrapError = actorErrorObj || profileErrorObj || adminCheckErrorObj;
-
-  if (hasBootstrapError) {
-    const handleRetry = async () => {
-      console.log('[bootstrap/retry] Retrying bootstrap...');
-      // First refetch the actor
-      await refetchActor();
-      // Then refetch dependent queries
-      await refetchProfile();
-      await refetchAdmin();
-    };
-
-    return <BootstrapErrorScreen error={bootstrapError} onRetry={handleRetry} />;
-  }
-
-  // Show loading only when actively fetching and not yet resolved
-  const isBootstrapping = (profileLoading && !profileFetched) || (isCheckingAdmin && !adminCheckFetched) || (checkingBlocked && !blockedCheckFetched);
   
-  if (isBootstrapping) {
+  return (
+    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+      <Outlet key={location.pathname} />
+      <Toaster />
+    </ThemeProvider>
+  );
+}
+
+// Login route
+const loginRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/',
+  component: LoginPage,
+});
+
+// Protected routes wrapper
+function ProtectedLayout() {
+  const { identity, isInitializing } = useInternetIdentity();
+  const { userProfile, isLoading: profileLoading, isFetched } = useCurrentUser();
+  const { effectiveRole, isResolved } = useEffectiveAppRole();
+  const { data: isBlocked, isLoading: blockedLoading } = useCheckUserBlocked();
+  const { error: bootstrapError, isFetching: bootstrapLoading, refetch } = useSafeActor();
+  const navigate = useNavigate();
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!isInitializing && !identity) {
+      navigate({ to: '/' });
+    }
+  }, [isInitializing, identity, navigate]);
+
+  // Show bootstrap error screen if actor initialization failed
+  if (bootstrapError) {
+    return <BootstrapErrorScreen error={bootstrapError} onRetry={() => refetch()} />;
+  }
+
+  // Show loading while checking authentication and bootstrap
+  if (isInitializing || bootstrapLoading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="text-center">
-          <div className="mb-4 h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto" />
-          <p className="text-muted-foreground">Loading profile...</p>
+      <AppShell>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center space-y-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <p className="text-muted-foreground">Loading...</p>
+          </div>
         </div>
-      </div>
+      </AppShell>
     );
   }
 
-  // Check if user is blocked (non-admin users only)
-  if (isBlocked && !isAdmin) {
+  // Not authenticated
+  if (!identity) {
+    return null;
+  }
+
+  // Show blocked screen if user is blocked
+  if (isBlocked) {
     return <BlockedUserScreen />;
   }
 
-  // If user has no profile
-  if (userProfile === null) {
-    // If they are admin (first user), show admin setup modal
-    if (isAdmin) {
-      return <ProfileSetupModal open={true} />;
-    }
-    // Otherwise, block them and show instructions
+  // Show profile setup modal for first-time admin
+  const showProfileSetup = !profileLoading && isFetched && userProfile === null && effectiveRole === AppRole.Admin;
+  if (showProfileSetup) {
+    return (
+      <AppShell>
+        <ProfileSetupModal open={true} />
+      </AppShell>
+    );
+  }
+
+  // Show no-profile screen for non-admin users without profile
+  if (!profileLoading && isFetched && userProfile === null && effectiveRole !== AppRole.Admin) {
     return <NoProfileBlockedScreen />;
   }
 
-  // User has a profile, show the app with keyed outlet to ensure route isolation
-  // The key forces React to unmount the previous route component when pathname changes
+  // Show loading while profile is being fetched
+  if (profileLoading || !isResolved) {
+    return (
+      <AppShell>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center space-y-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <p className="text-muted-foreground">Loading profile...</p>
+          </div>
+        </div>
+      </AppShell>
+    );
+  }
+
   return (
     <AppShell>
-      <Outlet key={location.pathname} />
+      <Outlet />
     </AppShell>
   );
 }
 
-function IndexPage() {
-  const navigate = useNavigate();
-  const { effectiveRole, isLoading, isResolved } = useEffectiveAppRole();
-  
-  // Wait for role to be fully resolved before routing
-  useEffect(() => {
-    if (!isResolved) {
-      console.log('[IndexPage] Waiting for role resolution...');
-      return;
-    }
-    
-    if (!effectiveRole) {
-      console.warn('[IndexPage] No effective role found after resolution');
-      return;
-    }
-
-    console.log('[IndexPage] Routing to dashboard for role:', effectiveRole);
-
-    // Route based on effective role
-    switch (effectiveRole) {
-      case AppRole.Admin:
-        navigate({ to: '/admin', replace: true });
-        break;
-      case AppRole.Staff:
-        navigate({ to: '/staff', replace: true });
-        break;
-      case AppRole.Karigar:
-        navigate({ to: '/karigar', replace: true });
-        break;
-      default:
-        console.warn('[IndexPage] Unknown role:', effectiveRole);
-    }
-  }, [effectiveRole, isResolved, navigate]);
-  
-  if (!isResolved) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="text-center">
-          <div className="mb-4 h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto" />
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!effectiveRole) {
-    return <div className="p-8">Unable to determine user role</div>;
-  }
-
-  // This should not render as we navigate away, but provide fallback
-  return (
-    <div className="flex h-screen items-center justify-center">
-      <div className="text-center">
-        <div className="mb-4 h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto" />
-        <p className="text-muted-foreground">Redirecting...</p>
-      </div>
-    </div>
-  );
-}
-
-const rootRoute = createRootRoute({
-  component: Layout,
+const protectedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  id: 'protected',
+  component: ProtectedLayout,
 });
 
-const indexRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/',
-  component: IndexPage,
-});
-
-const adminDashboardRoute = createRoute({
-  getParentRoute: () => rootRoute,
+// Admin routes
+const adminRoute = createRoute({
+  getParentRoute: () => protectedRoute,
   path: '/admin',
   component: () => (
     <RoleGate allowedRoles={[AppRole.Admin]}>
@@ -175,7 +149,7 @@ const adminDashboardRoute = createRoute({
 });
 
 const masterDesignsRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => protectedRoute,
   path: '/admin/master-designs',
   component: () => (
     <RoleGate allowedRoles={[AppRole.Admin]}>
@@ -185,7 +159,7 @@ const masterDesignsRoute = createRoute({
 });
 
 const designImagesRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => protectedRoute,
   path: '/admin/design-images',
   component: () => (
     <RoleGate allowedRoles={[AppRole.Admin]}>
@@ -194,8 +168,38 @@ const designImagesRoute = createRoute({
   ),
 });
 
-const userManagementRoute = createRoute({
-  getParentRoute: () => rootRoute,
+const excelReconciliationRoute = createRoute({
+  getParentRoute: () => protectedRoute,
+  path: '/admin/excel-reconciliation',
+  component: () => (
+    <RoleGate allowedRoles={[AppRole.Admin]}>
+      <ExcelReconciliationPage />
+    </RoleGate>
+  ),
+});
+
+const barcodeTaggingRoute = createRoute({
+  getParentRoute: () => protectedRoute,
+  path: '/admin/barcode-tagging',
+  component: () => (
+    <RoleGate allowedRoles={[AppRole.Admin]}>
+      <BarcodeTaggingPage />
+    </RoleGate>
+  ),
+});
+
+const hallmarkManagementRoute = createRoute({
+  getParentRoute: () => protectedRoute,
+  path: '/admin/hallmark-management',
+  component: () => (
+    <RoleGate allowedRoles={[AppRole.Admin]}>
+      <HallmarkManagementPage />
+    </RoleGate>
+  ),
+});
+
+const usersRoute = createRoute({
+  getParentRoute: () => protectedRoute,
   path: '/admin/users',
   component: () => (
     <RoleGate allowedRoles={[AppRole.Admin]}>
@@ -204,8 +208,9 @@ const userManagementRoute = createRoute({
   ),
 });
 
-const staffDashboardRoute = createRoute({
-  getParentRoute: () => rootRoute,
+// Staff routes
+const staffRoute = createRoute({
+  getParentRoute: () => protectedRoute,
   path: '/staff',
   component: () => (
     <RoleGate allowedRoles={[AppRole.Admin, AppRole.Staff]}>
@@ -214,8 +219,8 @@ const staffDashboardRoute = createRoute({
   ),
 });
 
-const ingestOrdersRoute = createRoute({
-  getParentRoute: () => rootRoute,
+const ingestRoute = createRoute({
+  getParentRoute: () => protectedRoute,
   path: '/staff/ingest',
   component: () => (
     <RoleGate allowedRoles={[AppRole.Admin, AppRole.Staff]}>
@@ -224,8 +229,8 @@ const ingestOrdersRoute = createRoute({
   ),
 });
 
-const unmappedDesignCodesRoute = createRoute({
-  getParentRoute: () => rootRoute,
+const unmappedRoute = createRoute({
+  getParentRoute: () => protectedRoute,
   path: '/staff/unmapped',
   component: () => (
     <RoleGate allowedRoles={[AppRole.Admin, AppRole.Staff]}>
@@ -234,8 +239,9 @@ const unmappedDesignCodesRoute = createRoute({
   ),
 });
 
-const karigarDashboardRoute = createRoute({
-  getParentRoute: () => rootRoute,
+// Karigar routes
+const karigarRoute = createRoute({
+  getParentRoute: () => protectedRoute,
   path: '/karigar',
   component: () => (
     <RoleGate allowedRoles={[AppRole.Karigar]}>
@@ -244,27 +250,28 @@ const karigarDashboardRoute = createRoute({
   ),
 });
 
-const bootstrapAdminRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/setup/bootstrap',
-  component: BootstrapAdminPage,
-});
-
+// Create route tree
 const routeTree = rootRoute.addChildren([
-  indexRoute,
-  adminDashboardRoute,
-  masterDesignsRoute,
-  designImagesRoute,
-  userManagementRoute,
-  staffDashboardRoute,
-  ingestOrdersRoute,
-  unmappedDesignCodesRoute,
-  karigarDashboardRoute,
-  bootstrapAdminRoute,
+  loginRoute,
+  protectedRoute.addChildren([
+    adminRoute,
+    masterDesignsRoute,
+    designImagesRoute,
+    excelReconciliationRoute,
+    barcodeTaggingRoute,
+    hallmarkManagementRoute,
+    usersRoute,
+    staffRoute,
+    ingestRoute,
+    unmappedRoute,
+    karigarRoute,
+  ]),
 ]);
 
+// Create router
 const router = createRouter({ routeTree });
 
+// Register router for type safety
 declare module '@tanstack/react-router' {
   interface Register {
     router: typeof router;
@@ -272,12 +279,5 @@ declare module '@tanstack/react-router' {
 }
 
 export default function App() {
-  return (
-    <AppErrorBoundary>
-      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-        <RouterProvider router={router} />
-        <Toaster />
-      </ThemeProvider>
-    </AppErrorBoundary>
-  );
+  return <RouterProvider router={router} />;
 }

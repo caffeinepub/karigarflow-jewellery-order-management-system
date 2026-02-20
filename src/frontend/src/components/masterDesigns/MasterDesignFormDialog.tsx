@@ -1,212 +1,129 @@
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2 } from 'lucide-react';
-import { useSaveMasterDesigns, useUpdateOrdersForNewKarigar, useListKarigars } from '../../hooks/useQueries';
-import { AddKarigarDialog } from '../karigar/AddKarigarDialog';
-import { toast } from 'sonner';
+import { Checkbox } from '@/components/ui/checkbox';
+import { useListKarigars } from '../../hooks/useQueries';
 import type { MasterDesignEntry } from '../../backend';
 
 interface MasterDesignFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  editingDesign?: { code: string; entry: MasterDesignEntry } | null;
+  editingDesign: { designCode: string; entry: MasterDesignEntry } | null;
+  onSave: (designCode: string, entry: MasterDesignEntry) => void;
 }
 
-export function MasterDesignFormDialog({ open, onOpenChange, editingDesign }: MasterDesignFormDialogProps) {
+export function MasterDesignFormDialog({
+  open,
+  onOpenChange,
+  editingDesign,
+  onSave,
+}: MasterDesignFormDialogProps) {
+  const { data: allKarigars = [] } = useListKarigars();
   const [designCode, setDesignCode] = useState('');
   const [genericName, setGenericName] = useState('');
-  const [selectedKarigarId, setSelectedKarigarId] = useState('');
-  const [showAddKarigarDialog, setShowAddKarigarDialog] = useState(false);
-  const [showReassignConfirm, setShowReassignConfirm] = useState(false);
-  const [pendingKarigarId, setPendingKarigarId] = useState('');
-
-  const saveMutation = useSaveMasterDesigns();
-  const reassignMutation = useUpdateOrdersForNewKarigar();
-  const { data: karigars = [], isLoading: loadingKarigars } = useListKarigars();
-
-  const isEditMode = !!editingDesign;
+  const [karigarId, setKarigarId] = useState('');
+  const [isActive, setIsActive] = useState(true);
 
   useEffect(() => {
     if (editingDesign) {
-      setDesignCode(editingDesign.code);
+      setDesignCode(editingDesign.designCode);
       setGenericName(editingDesign.entry.genericName);
-      setSelectedKarigarId(editingDesign.entry.karigarId);
+      setKarigarId(editingDesign.entry.karigarId);
+      setIsActive(editingDesign.entry.isActive);
     } else {
       setDesignCode('');
       setGenericName('');
-      setSelectedKarigarId('');
+      setKarigarId('');
+      setIsActive(true);
     }
   }, [editingDesign, open]);
 
-  const handleKarigarChange = (newKarigarId: string) => {
-    if (isEditMode && newKarigarId !== editingDesign?.entry.karigarId) {
-      setPendingKarigarId(newKarigarId);
-      setShowReassignConfirm(true);
-    } else {
-      setSelectedKarigarId(newKarigarId);
-    }
-  };
-
-  const handleConfirmReassign = () => {
-    setSelectedKarigarId(pendingKarigarId);
-    setShowReassignConfirm(false);
-  };
-
-  const handleCancelReassign = () => {
-    setPendingKarigarId('');
-    setShowReassignConfirm(false);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!designCode.trim() || !genericName.trim() || !selectedKarigarId) {
-      toast.error('Please fill in all fields');
+  const handleSave = () => {
+    if (!designCode.trim() || !genericName.trim() || !karigarId) {
       return;
     }
 
-    const selectedKarigar = karigars.find(k => k.id === selectedKarigarId);
-    if (!selectedKarigar) {
-      toast.error('Selected karigar does not exist. Please select a valid karigar from the list.');
-      return;
-    }
+    const entry: MasterDesignEntry = {
+      genericName: genericName.trim(),
+      karigarId,
+      isActive,
+    };
 
-    try {
-      const entry: MasterDesignEntry = {
-        genericName: genericName.trim(),
-        karigarId: selectedKarigarId,
-        isActive: true,
-      };
-
-      await saveMutation.mutateAsync({
-        masterDesigns: [[designCode.trim(), entry]],
-      });
-
-      if (isEditMode && selectedKarigarId !== editingDesign?.entry.karigarId) {
-        await reassignMutation.mutateAsync({
-          designCode: designCode.trim(),
-          newKarigarId: selectedKarigarId,
-        });
-        toast.success('Master design updated and orders reassigned');
-      } else {
-        toast.success(isEditMode ? 'Master design updated' : 'Master design created');
-      }
-
-      onOpenChange(false);
-    } catch (error: any) {
-      const errorMessage = error.message || 'Failed to save master design';
-      toast.error(errorMessage);
-    }
-  };
-
-  const handleAddKarigarSuccess = () => {
-    setShowAddKarigarDialog(false);
+    onSave(designCode.trim(), entry);
+    onOpenChange(false);
   };
 
   return (
-    <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>{isEditMode ? 'Edit Master Design' : 'Add Master Design'}</DialogTitle>
-            <DialogDescription>
-              {isEditMode ? 'Update the master design mapping' : 'Create a new master design mapping'}
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="designCode">Design Code</Label>
-              <Input
-                id="designCode"
-                value={designCode}
-                onChange={(e) => setDesignCode(e.target.value)}
-                placeholder="Enter design code"
-                disabled={isEditMode}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="genericName">Generic Name</Label>
-              <Input
-                id="genericName"
-                value={genericName}
-                onChange={(e) => setGenericName(e.target.value)}
-                placeholder="Enter generic name"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="karigar">Karigar</Label>
-                <Button
-                  type="button"
-                  variant="link"
-                  size="sm"
-                  onClick={() => setShowAddKarigarDialog(true)}
-                  className="h-auto p-0 text-xs"
-                >
-                  + Add New Karigar
-                </Button>
-              </div>
-              <Select
-                value={selectedKarigarId}
-                onValueChange={handleKarigarChange}
-                disabled={loadingKarigars}
-              >
-                <SelectTrigger id="karigar">
-                  <SelectValue placeholder={loadingKarigars ? 'Loading karigars...' : 'Select karigar'} />
-                </SelectTrigger>
-                <SelectContent>
-                  {karigars.map((karigar) => (
-                    <SelectItem key={karigar.id} value={karigar.id}>
-                      {karigar.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={saveMutation.isPending || reassignMutation.isPending}>
-                {(saveMutation.isPending || reassignMutation.isPending) && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
-                {isEditMode ? 'Update' : 'Create'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>
+            {editingDesign ? 'Edit Master Design' : 'Add Master Design'}
+          </DialogTitle>
+        </DialogHeader>
 
-      <AlertDialog open={showReassignConfirm} onOpenChange={setShowReassignConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Karigar Reassignment</AlertDialogTitle>
-            <AlertDialogDescription>
-              You are changing the karigar for this design. This will reassign all pending orders with this design code to the new karigar. Orders already sent to hallmark will not be affected.
-              <br /><br />
-              Do you want to proceed?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleCancelReassign}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmReassign}>Confirm Reassignment</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="design-code">Design Code</Label>
+            <Input
+              id="design-code"
+              value={designCode}
+              onChange={(e) => setDesignCode(e.target.value)}
+              placeholder="Enter design code"
+              disabled={!!editingDesign}
+            />
+          </div>
 
-      <AddKarigarDialog
-        open={showAddKarigarDialog}
-        onOpenChange={setShowAddKarigarDialog}
-        onSuccess={handleAddKarigarSuccess}
-      />
-    </>
+          <div className="space-y-2">
+            <Label htmlFor="generic-name">Generic Name</Label>
+            <Input
+              id="generic-name"
+              value={genericName}
+              onChange={(e) => setGenericName(e.target.value)}
+              placeholder="Enter generic name"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="karigar">Karigar</Label>
+            <Select value={karigarId} onValueChange={setKarigarId}>
+              <SelectTrigger id="karigar">
+                <SelectValue placeholder="Select karigar" />
+              </SelectTrigger>
+              <SelectContent>
+                {allKarigars.map((k) => (
+                  <SelectItem key={k.id} value={k.id}>
+                    {k.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="is-active"
+              checked={isActive}
+              onCheckedChange={(checked) => setIsActive(checked as boolean)}
+            />
+            <Label htmlFor="is-active" className="cursor-pointer">
+              Active
+            </Label>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleSave} disabled={!designCode.trim() || !genericName.trim() || !karigarId}>
+            Save
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

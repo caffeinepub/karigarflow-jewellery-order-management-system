@@ -3,13 +3,6 @@ export default {
   darkMode: ['class'],
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
-    container: {
-      center: true,
-      padding: '2rem',
-      screens: {
-        '2xl': '1400px',
-      },
-    },
     extend: {
       colors: {
         border: 'hsl(var(--border))',
@@ -60,30 +53,12 @@ export default {
         sm: 'calc(var(--radius) - 4px)',
       },
       zIndex: {
-        sidebar: 'var(--z-sidebar)',
-        header: 'var(--z-header)',
-        dropdown: 'var(--z-dropdown)',
-        popover: 'var(--z-popover)',
-        modal: 'var(--z-modal)',
-        toast: 'var(--z-toast)',
-      },
-      keyframes: {
-        'accordion-down': {
-          from: { height: 0 },
-          to: { height: 'var(--radix-accordion-content-height)' },
-        },
-        'accordion-up': {
-          from: { height: 'var(--radix-accordion-content-height)' },
-          to: { height: 0 },
-        },
-      },
-      animation: {
-        'accordion-down': 'accordion-down 0.2s ease-out',
-        'accordion-up': 'accordion-up 0.2s ease-out',
+        '9998': '9998',
+        '9999': '9999',
       },
       spacing: {
-        18: '4.5rem',
-        22: '5.5rem',
+        '18': '4.5rem',
+        '88': '22rem',
       },
     },
   },

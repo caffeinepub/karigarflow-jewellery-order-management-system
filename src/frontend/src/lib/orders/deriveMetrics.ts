@@ -1,6 +1,8 @@
 import type { PersistentOrder } from '../../backend';
 import { sanitizeOrders } from './validatePersistentOrder';
 import { formatKarigarName } from './formatKarigarName';
+import { normalizeStatus } from './normalizeStatus';
+import { ORDER_STATUS } from './statusConstants';
 
 export interface KarigarStats {
   totalOrders: number;
@@ -19,8 +21,12 @@ export interface OrderMetrics {
 export function deriveMetrics(orders: PersistentOrder[]): OrderMetrics {
   const { validOrders } = sanitizeOrders(orders);
   
-  // Filter out orders with status 'given_to_hallmark' from metrics calculation
-  const ordersForMetrics = validOrders.filter(order => order.status !== 'given_to_hallmark');
+  // Filter to include only Pending and Returned from Hallmark orders
+  const ordersForMetrics = validOrders.filter(order => {
+    const status = normalizeStatus(order.status);
+    return status === normalizeStatus(ORDER_STATUS.PENDING) || 
+           status === normalizeStatus(ORDER_STATUS.RETURNED_FROM_HALLMARK);
+  });
   
   const byKarigar: Record<string, KarigarStats> = {};
   let totalQty = 0;

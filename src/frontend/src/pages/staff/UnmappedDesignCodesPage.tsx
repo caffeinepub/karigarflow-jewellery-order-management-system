@@ -1,14 +1,17 @@
 import { useState } from 'react';
-import { useGetUnmappedDesignCodes } from '../../hooks/useQueries';
+import { useGetUnmappedDesignCodes, useSaveMasterDesigns } from '../../hooks/useQueries';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { InlineErrorState } from '../../components/errors/InlineErrorState';
 import { MasterDesignFormDialog } from '../../components/masterDesigns/MasterDesignFormDialog';
 import { Search, Plus } from 'lucide-react';
+import { toast } from 'sonner';
+import type { MasterDesignEntry } from '../../backend';
 
 export function UnmappedDesignCodesPage() {
   const { data: unmappedOrders = [], isLoading, error, refetch } = useGetUnmappedDesignCodes();
+  const saveMasterDesignsMutation = useSaveMasterDesigns();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCode, setSelectedCode] = useState<string | null>(null);
 
@@ -24,6 +27,18 @@ export function UnmappedDesignCodesPage() {
   const filteredCodes = Object.keys(groupedByCode).filter((code) =>
     code.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const handleSave = async (designCode: string, entry: MasterDesignEntry) => {
+    try {
+      await saveMasterDesignsMutation.mutateAsync({
+        masterDesigns: [[designCode, entry]],
+      });
+      toast.success('Master design mapping added successfully');
+      setSelectedCode(null);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to add mapping');
+    }
+  };
 
   if (error) {
     return (
@@ -106,11 +121,12 @@ export function UnmappedDesignCodesPage() {
         editingDesign={
           selectedCode
             ? {
-                code: selectedCode,
+                designCode: selectedCode,
                 entry: { genericName: '', karigarId: '', isActive: true },
               }
             : null
         }
+        onSave={handleSave}
       />
     </div>
   );

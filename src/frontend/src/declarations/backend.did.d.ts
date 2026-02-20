@@ -179,6 +179,7 @@ export interface _SERVICE {
   'blockUser' : ActorMethod<[BlockUserRequest], undefined>,
   'bulkMarkOrdersAsDelivered' : ActorMethod<[Array<string>], undefined>,
   'bulkUpdateOrderStatus' : ActorMethod<[BulkOrderUpdate], undefined>,
+  'cancelDeliveredOrders' : ActorMethod<[Array<string>], undefined>,
   'createKarigar' : ActorMethod<[PersistentKarigar], undefined>,
   'createUserProfile' : ActorMethod<[Principal, UserProfile], undefined>,
   'deleteKarigarById' : ActorMethod<[string], undefined>,
@@ -207,12 +208,14 @@ export interface _SERVICE {
   'listKarigarReference' : ActorMethod<[], Array<PersistentKarigar>>,
   'listKarigars' : ActorMethod<[], Array<PersistentKarigar>>,
   'listUserProfiles' : ActorMethod<[], Array<UserProfile>>,
+  'markGivenToHallmark' : ActorMethod<[Array<string>], undefined>,
   'markOrderAsDelivered' : ActorMethod<[string], undefined>,
   'processPartialFulfillment' : ActorMethod<
     [PartialFulfillmentRequest],
     undefined
   >,
   'requestApproval' : ActorMethod<[], undefined>,
+  'returnFromHallmark' : ActorMethod<[Array<string>], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'saveDesignImageMappings' : ActorMethod<
     [Array<DesignImageMapping>],

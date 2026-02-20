@@ -1,23 +1,23 @@
 import type { PersistentKarigar } from '../../backend';
 
 /**
- * Resolves a karigar name from a karigarId by looking it up in the karigars list.
- * Returns 'Unassigned' if the ID is empty, whitespace-only, null, undefined, or no matching karigar is found.
+ * Resolves karigar name from karigarId with enhanced null/undefined handling
+ * Returns 'Unassigned' for empty, null, undefined, or whitespace-only values
  */
 export function resolveKarigarName(karigarId: string | null | undefined, karigars: PersistentKarigar[]): string {
-  // Handle null, undefined, or empty string cases
-  if (!karigarId) {
-    return 'Unassigned';
-  }
-  
-  const trimmedId = karigarId.trim();
-  
-  // Handle whitespace-only strings
-  if (trimmedId === '') {
+  // Handle null, undefined, empty string, or whitespace-only values
+  if (!karigarId || karigarId.trim() === '') {
     return 'Unassigned';
   }
 
-  // Look up the karigar by ID
-  const karigar = karigars.find((k) => k.id === trimmedId);
-  return karigar?.name || 'Unassigned';
+  const trimmedId = karigarId.trim();
+  
+  // Find karigar by ID
+  const karigar = karigars.find(k => k.id === trimmedId);
+  
+  if (karigar && karigar.name && karigar.name.trim() !== '') {
+    return karigar.name;
+  }
+  
+  return 'Unassigned';
 }

@@ -17,6 +17,7 @@ import type {
   BlockUserRequest,
   DesignImageMapping,
   PersistentKarigar,
+  SavedOrder,
 } from '../backend';
 import { Principal } from '@dfinity/principal';
 import { useInternetIdentity } from './useInternetIdentity';
@@ -24,7 +25,7 @@ import { useInternetIdentity } from './useInternetIdentity';
 export function useGetOrders() {
   const { actor, isFetching } = useActor();
 
-  return useQuery<PersistentOrder[]>({
+  return useQuery<SavedOrder[]>({
     queryKey: ['orders'],
     queryFn: async () => {
       if (!actor) return [];
@@ -181,6 +182,7 @@ export function useBulkUpdateOrderStatus() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['orders'] });
       queryClient.invalidateQueries({ queryKey: ['activeOrdersForKarigar'] });
+      queryClient.invalidateQueries({ queryKey: ['givenToHallmarkOrders'] });
     },
   });
 }
@@ -246,6 +248,68 @@ export function useBulkMarkOrdersAsDelivered() {
       queryClient.invalidateQueries({ queryKey: ['orders'] });
       queryClient.invalidateQueries({ queryKey: ['activeOrdersForKarigar'] });
     },
+  });
+}
+
+export function useCancelDeliveredOrders() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (orderNos: string[]) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.cancelDeliveredOrders(orderNos);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['activeOrdersForKarigar'] });
+    },
+  });
+}
+
+export function useMarkGivenToHallmark() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (orderNos: string[]) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.markGivenToHallmark(orderNos);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['activeOrdersForKarigar'] });
+      queryClient.invalidateQueries({ queryKey: ['givenToHallmarkOrders'] });
+    },
+  });
+}
+
+export function useReturnFromHallmark() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (orderNos: string[]) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.returnFromHallmark(orderNos);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['activeOrdersForKarigar'] });
+    },
+  });
+}
+
+export function useGetGivenToHallmarkOrders() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<SavedOrder[]>({
+    queryKey: ['givenToHallmarkOrders'],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getGivenToHallmarkOrders();
+    },
+    enabled: !!actor && !isFetching,
   });
 }
 

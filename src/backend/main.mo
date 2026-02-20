@@ -306,7 +306,7 @@ actor {
     };
 
     let pendingOrders = ordersMap.filter(
-      func(_orderNo, order) { order.designCode == normalizedDesignCode and order.status != "given_to_hallmark" }
+      func(_orderNo, order) { order.designCode == normalizedDesignCode and order.status != "given_to_hallmark" and order.status != "billed" }
     );
 
     for ((orderNo, order) in pendingOrders.entries()) {
@@ -581,6 +581,17 @@ actor {
           case (null) { Runtime.trap("Order with orderNo " # orderNo # " not found") };
         };
       };
+    } else if (bulkUpdate.newStatus == "billed") {
+      for (orderNo in bulkUpdate.orderNos.values()) {
+        switch (ordersMap.get(orderNo)) {
+          case (?order) {
+            if (order.status != "given_to_hallmark") {
+              Runtime.trap("Unauthorized: Orders can only be marked as 'billed' when status is 'given_to_hallmark'");
+            };
+          };
+          case (null) { Runtime.trap("Order with orderNo " # orderNo # " not found") };
+        };
+      };
     };
 
     for (orderNo in bulkUpdate.orderNos.values()) {
@@ -737,14 +748,14 @@ actor {
         for (orderNo in request.orderNos.values()) {
           switch (ordersMap.get(orderNo)) {
             case (?order) {
-              if (order.status == "delivered") {
+              if (order.status == "delivered" or order.status == "pending") {
                 let updatedOrder : PersistentOrder = {
                   order with status = "given_to_hallmark";
                   lastStatusChange = Time.now();
                 };
                 ordersMap.add(orderNo, updatedOrder);
               } else {
-                Runtime.trap("Cannot update status to hallmark unless it is delivered");
+                Runtime.trap("Cannot update status to hallmark unless it is delivered or pending");
               };
             };
             case (null) { Runtime.trap("Order with orderNo " # orderNo # " not found") };
@@ -918,7 +929,7 @@ actor {
       let normalizedKey = normalizeDesignCode(entry.0);
 
       let pendingOrders = ordersMap.filter(
-        func(_orderNo, order) { order.designCode == normalizedKey and order.status != "given_to_hallmark" }
+        func(_orderNo, order) { order.designCode == normalizedKey and order.status != "given_to_hallmark" and order.status != "billed" }
       );
       for ((orderNo, order) in pendingOrders.entries()) {
         let updatedOrder = { order with karigarId = entry.1.karigarId };
@@ -1190,5 +1201,76 @@ actor {
       }
     );
     filteredOrders.map(func(order) { mapOrderToSavedOrder(order) });
+  };
+
+  public shared ({ caller }) func cancelDeliveredOrders(orderNos : [Text]) : async () {
+    if (not isAdminOrStaff(caller)) {
+      Runtime.trap("Unauthorized: Only Admin or Staff can cancel delivered orders");
+    };
+    checkBlockedUser(caller);
+
+    for (orderNo in orderNos.values()) {
+      switch (ordersMap.get(orderNo)) {
+        case (?order) {
+          if (order.status == "delivered") {
+            let updatedOrder : PersistentOrder = {
+              order with status = "pending";
+              lastStatusChange = Time.now();
+            };
+            ordersMap.add(orderNo, updatedOrder);
+          };
+        };
+        case null {};
+      };
+    };
+    recordActivity(caller, "cancelDeliveredOrders", "Cancelled delivered orders");
+  };
+
+  public shared ({ caller }) func markGivenToHallmark(orderNos : [Text]) : async () {
+    if (not isAdminOrStaff(caller)) {
+      Runtime.trap("Unauthorized: Only Admin or Staff can mark orders as given to hallmark");
+    };
+    checkBlockedUser(caller);
+
+    for (orderNo in orderNos.values()) {
+      switch (ordersMap.get(orderNo)) {
+        case (?order) {
+          if (order.status == "pending" or order.status == "delivered") {
+            let updatedOrder : PersistentOrder = {
+              order with status = "given_to_hallmark";
+              lastStatusChange = Time.now();
+            };
+            ordersMap.add(orderNo, updatedOrder);
+          } else {
+            Runtime.trap("Orders can only be marked as 'given_to_hallmark' when status is 'pending' or 'delivered'");
+          };
+        };
+        case null { Runtime.trap("Order with orderNo " # orderNo # " not found") };
+      };
+    };
+    recordActivity(caller, "markGivenToHallmark", "Orders marked as given to hallmark");
+  };
+
+  public shared ({ caller }) func returnFromHallmark(orderNos : [Text]) : async () {
+    if (not isAdminOrStaff(caller)) {
+      Runtime.trap("Unauthorized: Only Admin or Staff can return from hallmark");
+    };
+    checkBlockedUser(caller);
+
+    for (orderNo in orderNos.values()) {
+      switch (ordersMap.get(orderNo)) {
+        case (?order) {
+          if (order.status == "given_to_hallmark") {
+            let updatedOrder : PersistentOrder = {
+              order with status = "returned_from_hallmark";
+              lastStatusChange = Time.now();
+            };
+            ordersMap.add(orderNo, updatedOrder);
+          };
+        };
+        case null {};
+      };
+    };
+    recordActivity(caller, "returnFromHallmark", "Orders returned from hallmark");
   };
 };
