@@ -19,6 +19,7 @@ import type {
   PersistentKarigar,
 } from '../backend';
 import { Principal } from '@dfinity/principal';
+import { useInternetIdentity } from './useInternetIdentity';
 
 export function useGetOrders() {
   const { actor, isFetching } = useActor();
@@ -111,6 +112,7 @@ export function useUploadParsedOrders() {
       queryClient.invalidateQueries({ queryKey: ['orders'] });
       queryClient.invalidateQueries({ queryKey: ['unmappedDesignCodes'] });
       queryClient.invalidateQueries({ queryKey: ['activeOrdersForKarigar'] });
+      queryClient.invalidateQueries({ queryKey: ['masterDesigns'] });
     },
   });
 }
@@ -484,6 +486,3 @@ export function useCreateKarigar() {
     },
   });
 }
-
-// Import useInternetIdentity for useCheckUserBlocked
-import { useInternetIdentity } from './useInternetIdentity';

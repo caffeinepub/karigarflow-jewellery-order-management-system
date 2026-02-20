@@ -1,78 +1,130 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "KarigarFlow: Resolve remaining overlap issues (mobile Sheet nav, calendar popovers, Master Designs dialogs/menus)",
+  "title": "Fix karigar mapping display, mobile Safari zoom issues, and separate karigar tabs from total orders",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Adjust global AppShell layout and mobile Sheet navigation layering/scroll behavior so it never obscures or overlaps routed content across viewport sizes.",
+      "summary": "Fix karigar mapping not displaying correctly across all tabs by ensuring karigar name resolution from master design mappings",
       "acceptanceCriteria": [
-        "On small screens and mobile Safari, opening/closing the left Sheet menu does not cause main content to visually overlap with the header, sidebar, or any overlay.",
-        "Main content remains readable and clickable while the header stays sticky; no elements render underneath the header unexpectedly.",
-        "No new horizontal scrollbars are introduced (overflow-x remains controlled)."
+        "Orders in all tabs display the correct karigar name from master design mappings",
+        "Karigar resolution works consistently across Today, Delivered, Hallmark, Total Orders, Customer Orders, and individual Karigar tabs",
+        "Empty or unassigned karigar fields display as 'Unassigned'",
+        "Karigar names are correctly derived from design code mappings in the backend"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/layout/AppShell.tsx",
+          "path": "frontend/src/lib/orders/resolveKarigarName.ts",
           "operation": "modify",
-          "description": "Tighten the global flex layout to prevent overlap: ensure header/main/footer flex children use min-w-0 where needed, and refine the mobile SheetContent sizing/scroll strategy (e.g., viewport-bounded height with internal scrolling) so the left menu cannot visually collide with the sticky header or main content on iOS Safari."
+          "description": "Update resolveKarigarName function to handle edge cases where karigarId might be empty string, null, undefined, or whitespace-only. Ensure it consistently returns 'Unassigned' for these cases and properly looks up karigar names from the karigars list."
         },
         {
-          "path": "frontend/src/index.css",
+          "path": "frontend/src/lib/mapping/applyMasterDesignMapping.ts",
           "operation": "modify",
-          "description": "Adjust global overflow + stacking rules to ensure consistent overlay layering without content slipping under the sticky header; keep overflow-x constrained while avoiding any new horizontal scrollbars. Retain and refine the existing Radix overlay z-index rules as needed to support the Sheet menu across routes."
+          "description": "Review and strengthen the master design mapping application logic to ensure karigarId is properly assigned from master designs. Verify that empty or 'Unassigned' karigar values are treated as missing and mapped correctly. Ensure the mapping preserves meaningful PDF-derived karigar assignments while applying master design mappings."
+        },
+        {
+          "path": "frontend/src/pages/admin/AdminDashboardPage.tsx",
+          "operation": "modify",
+          "description": "Verify that all tab views (Today, Delivered, Hallmark, Total Orders, Customer Orders, and individual Karigar tabs) use the resolveKarigarName function consistently when displaying orders. Ensure the karigar name resolution happens after applying master design mappings and before rendering the OrdersTable component."
+        },
+        {
+          "path": "frontend/src/pages/staff/StaffDashboardPage.tsx",
+          "operation": "modify",
+          "description": "Verify that all staff tab views use the resolveKarigarName function consistently when displaying orders. Ensure karigar name resolution is applied to all filtered order sets before rendering."
+        },
+        {
+          "path": "frontend/src/pages/karigar/KarigarDashboardPage.tsx",
+          "operation": "modify",
+          "description": "Ensure that the karigar dashboard correctly resolves karigar names for orders filtered by the current karigar's ID. Verify that the karigar name display in the metrics and table views uses the resolveKarigarName function."
+        },
+        {
+          "path": "frontend/src/components/orders/OrdersTable.tsx",
+          "operation": "modify",
+          "description": "Verify that the karigar column in the orders table displays the resolved karigar name using resolveKarigarName. Ensure that orders with missing or empty karigarId values show 'Unassigned' consistently."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "Make OrdersFiltersBar date picker popovers mutually exclusive, unclipped, and self-closing on selection to prevent calendar overlap/collisions.",
+      "summary": "Fix mobile Safari rendering issues where the application displays at 50% zoom by configuring viewport settings correctly",
       "acceptanceCriteria": [
-        "In OrdersFiltersBar date filters, opening 'From Date' closes 'To Date' automatically and vice-versa (no two calendars open simultaneously).",
-        "Calendar popover content is not clipped by parent containers and stays above tables/cards while open.",
-        "After selecting a date, the corresponding popover closes and does not visually collide with other filter controls."
+        "Application renders at 100% zoom on Safari iPhone",
+        "All UI elements are visible and properly sized on mobile screens",
+        "No horizontal scrolling required on mobile devices",
+        "Viewport meta tags are correctly configured for mobile display",
+        "Touch interactions work smoothly without zoom interference"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/orders/OrdersFiltersBar.tsx",
+          "path": "frontend/index.html",
           "operation": "modify",
-          "description": "Update the controlled Popover open-state logic so opening one calendar explicitly closes the other (e.g., custom onOpenChange handlers per popover), and ensure each popover closes on date selection. Also adjust PopoverContent positioning/collision handling (side/align/offset) to reduce collisions with adjacent controls without editing shadcn ui components."
+          "description": "Update the viewport meta tag to prevent iOS Safari zoom issues. Change from the current configuration to include 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no' to ensure the app renders at 100% zoom and prevents unwanted scaling on mobile devices."
         },
         {
           "path": "frontend/src/index.css",
           "operation": "modify",
-          "description": "Ensure popover overlays remain above surrounding UI and are not clipped by common parent containers used by filter bars/tables; leverage the existing global Radix popper/z-index rules and extend only if required to prevent calendar clipping/overlap."
+          "description": "Add CSS rules to prevent text size adjustment on iOS Safari. Include '-webkit-text-size-adjust: 100%' on the html and body elements to ensure consistent text rendering at 100% zoom across mobile devices."
+        },
+        {
+          "path": "frontend/src/components/layout/AppShell.tsx",
+          "operation": "modify",
+          "description": "Review and adjust mobile-responsive styles to ensure all UI elements fit within the viewport without requiring horizontal scrolling. Verify that touch targets are appropriately sized for mobile interaction and that the layout adapts properly to mobile screen widths."
+        },
+        {
+          "path": "frontend/tailwind.config.js",
+          "operation": "modify",
+          "description": "Review Tailwind configuration to ensure mobile breakpoints and responsive utilities are properly configured for iOS Safari. Verify that custom spacing and sizing values work correctly on mobile devices."
         }
       ]
     },
     {
       "id": "REQ-3",
-      "summary": "Fix /admin/master-designs responsive layout and overlay rendering so Karigar List dialog and any table-triggered actions render within viewport and above content without clipping.",
+      "summary": "Auto-populate karigar name from Excel imports when editing master design assignments",
       "acceptanceCriteria": [
-        "On /admin/master-designs, opening 'Total Karigar List' renders a dialog that is fully visible within the viewport (scrolls internally if needed) and does not overlap awkwardly with underlying content.",
-        "On narrow viewports, the Master Designs header title, buttons, filter badge row, and search input wrap/space correctly without overlapping each other.",
-        "Any row-level 'Actions' UI (menus/dialogs triggered from the table) renders above the table and is not clipped by parent containers."
+        "Karigar dropdown in master design edit dialog shows all karigars from both manual creation and Excel imports",
+        "Pre-existing karigar assignments from Excel files are visible when editing a master design",
+        "Updating a design code's karigar assignment immediately reflects the new mapping",
+        "All karigars derived from Excel uploads are available for selection"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/pages/admin/MasterDesignsPage.tsx",
+          "path": "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx",
           "operation": "modify",
-          "description": "Refine Master Designs header and control layout for narrow viewports: enforce consistent wrapping and spacing for title/actions/badge/search rows (min-w-0, break/wrap behavior, and container overflow visibility) so controls never overlap each other."
+          "description": "Update the karigar selection dropdown to include all karigars from the listKarigars query, ensuring karigars imported from Excel files are available. When opening the dialog in edit mode for an existing master design, pre-populate the karigar field with the current karigarId from the master design entry. Ensure the dropdown shows both manually created and Excel-imported karigars."
         },
         {
-          "path": "frontend/src/components/karigar/TotalKarigarListDialog.tsx",
+          "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Make the 'Total Karigar List' dialog viewport-safe on mobile: constrain width/height using viewport units and ensure the dialog content scrolls internally without being cut off; keep the dialog fully visible and usable on small screens."
+          "description": "Verify that the useListKarigars query returns all karigars including those imported from Excel. Ensure the query cache is properly invalidated after master design imports so newly imported karigars appear in the dropdown immediately."
         },
         {
           "path": "frontend/src/components/masterDesigns/MasterDesignsTable.tsx",
           "operation": "modify",
-          "description": "Adjust the table wrapper/container overflow behavior to prevent clipping of any table-triggered overlay UI (menus/dialogs) while retaining horizontal scrolling for the table; ensure overlays render above the table region instead of being cut off by overflow settings."
+          "description": "Ensure that when the edit action opens the MasterDesignFormDialog, it passes the complete master design entry including the karigarId so the dialog can pre-populate the karigar field. Verify that the karigar name column displays the resolved karigar name using the karigars list."
+        }
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "summary": "Remove individual karigar tabs from Total Orders and create a dedicated Karigar Orders tab in admin dashboard",
+      "acceptanceCriteria": [
+        "Total Orders tab no longer displays individual karigar sub-tabs",
+        "A new dedicated tab exists in the admin dashboard for viewing orders by karigar",
+        "The new karigar-focused tab shows all individual karigar tabs and their respective orders",
+        "Navigation between Total Orders and the new Karigar Orders tab is intuitive",
+        "Total Orders tab displays only aggregate data without karigar segmentation"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/admin/AdminDashboardPage.tsx",
+          "operation": "modify",
+          "description": "Restructure the admin dashboard tabs to separate Total Orders from individual karigar views. Remove the karigar sub-tabs from the Total Orders tab. Add a new top-level tab called 'Karigar Orders' or 'By Karigar' that contains all the individual karigar sub-tabs with their respective filtered orders. Update the tab state management to handle the new tab structure. Ensure the Total Orders tab shows only aggregate order data without karigar-specific segmentation. Update touch gesture support to work with the new tab structure."
         },
         {
-          "path": "frontend/src/index.css",
+          "path": "frontend/src/components/admin/KarigarSummaryCards.tsx",
           "operation": "modify",
-          "description": "If needed after layout adjustments, further tune global Radix overlay and popper stacking/clipping safeguards to ensure dialogs/menus used on Master Designs render above cards/tables and are not clipped by overflow containers."
+          "description": "Update the KarigarSummaryCards component to support navigation to the new Karigar Orders tab when a karigar card is clicked. Modify the click handler to switch to the new dedicated karigar tab instead of switching within the Total Orders context."
         }
       ]
     }

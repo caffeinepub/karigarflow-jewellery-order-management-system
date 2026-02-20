@@ -1,11 +1,13 @@
 # Specification
 
 ## Summary
-**Goal:** Resolve remaining UI overlap issues across the app, including the sidebar/mobile Sheet, calendar date-picker popovers, and Master Designs dialogs/menus.
+**Goal:** Fix karigar mapping display across all tabs, resolve mobile Safari zoom issues, populate karigar names from Excel in master design updates, and separate karigar-specific tabs from Total Orders.
 
 **Planned changes:**
-- Adjust global layout/sticky header + sidebar/mobile left Sheet behavior so navigation never obscures or renders content underneath across routes and viewport sizes, while keeping overflow-x controlled (no horizontal scroll).
-- Update date filter calendar popovers so they render above surrounding UI without clipping, automatically close the other calendar when one opens, and close after a date is selected.
-- Fix /admin/master-designs responsive layout and overlays so the “Total Karigar List” dialog fits within the viewport (internal scroll if needed), header/filter/search rows wrap without collisions on narrow screens, and row-level Actions menus/dialogs render above the table without being clipped.
+- Fix karigar name resolution and display across all tabs (Today, Delivered, Hallmark, Total Orders, Customer Orders, and individual Karigar tabs)
+- Configure viewport settings to fix Safari iPhone rendering at 50% zoom and ensure full visibility on mobile screens
+- Auto-populate karigar names from Excel imports when editing/updating master design assignments
+- Remove individual karigar sub-tabs from Total Orders tab
+- Create a new dedicated "Karigar Orders" tab in admin dashboard to display all karigar-specific views separately
 
-**User-visible outcome:** Pages no longer have content hidden behind the sidebar/header, date-picker calendars don’t overlap or stay open together, and Master Designs dialogs/menus open cleanly and remain fully usable on all screen sizes.
+**User-visible outcome:** Users will see correct karigar names displayed consistently across all order tabs, the application will render properly at 100% zoom on mobile Safari without requiring manual adjustments, karigar names from Excel will be visible when updating master designs, and the admin dashboard will have a cleaner Total Orders tab with karigar-specific views moved to a separate dedicated tab.

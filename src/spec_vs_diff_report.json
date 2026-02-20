@@ -1,45 +1,29 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-18T12:21:54.314Z",
-  "summary": "Diff implements several overlap-related layout adjustments (sticky header/root overflow control, responsive wrapping on Master Designs page, viewport-bounded Karigar List dialog scrolling) and adds mutual-exclusion state for OrdersFiltersBar calendar popovers. However, some acceptance criteria are not evidenced in the provided diffs (notably calendar popover clipping/z-index/close-on-select, and Master Designs row-level Actions menus/dialogs rendering above and not being clipped).",
+  "generatedAt": "2026-02-20T19:25:01.199Z",
+  "summary": "The diff implements fixes for karigar mapping display, mobile Safari zoom issues, and UI reorganization. Key changes include: (1) viewport meta tag updates in index.html to fix mobile Safari zoom, (2) new resolveKarigarName utility for consistent karigar name resolution, (3) updates to applyMasterDesignMapping to preserve PDF-derived karigar IDs while treating placeholders correctly, (4) MasterDesignFormDialog enhancements to show all karigars in dropdown and handle reassignments, (5) AdminDashboardPage reorganization with a new 'karigars' tab separate from 'total' tab. Evidence suggests REQ-1, REQ-2, and REQ-4 are addressed, but REQ-3 implementation details are unclear from the truncated diff.",
   "missing_requirements": [
     {
-      "id": "REQ-1",
-      "requirement": "Fix the global layout so the navigation/sidebar (including the mobile left Sheet menu) never overlaps or obscures page content across routes and viewport sizes.",
-      "reason": "AppShell shows changes toward controlling overflow and header stacking (sticky header z-index and overflow-x-hidden), but the diff is truncated before showing how main content is positioned relative to the sticky header and the mobile Sheet overlay (e.g., content padding/offset, SheetContent sizing/scroll behavior). The evidence is insufficient to confirm that content never renders underneath the header/sheet across routes and viewport sizes.",
-      "evidence": [
-        "frontend/src/components/layout/AppShell.tsx (truncated)"
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "requirement": "Fix the date-picker (calendar) popovers so they do not overlap surrounding UI or each other, ensure only one calendar popover can remain open at a time, ensure popover is not clipped and closes after selection.",
-      "reason": "Mutual exclusivity state (fromDateOpen/toDateOpen and open-change handlers) is implemented, but the diff is truncated before showing (1) Popover/PopoverContent configuration that prevents clipping (portal usage, z-index, side/align, container overflow interactions) and (2) the Calendar onSelect handlers closing the corresponding popover after date selection.",
-      "evidence": [
-        "frontend/src/components/orders/OrdersFiltersBar.tsx (truncated)"
-      ]
-    },
-    {
       "id": "REQ-3",
-      "requirement": "Fix the Master Designs page overlap issues so that opening the Karigar List and any action menus/lists does not overlap or collide with the page layout, including row-level Actions UI rendering above the table and not being clipped by parent containers.",
-      "reason": "The Karigar List dialog is adjusted to be viewport-bounded with internal scrolling, and the page header/actions layout is made more wrap-friendly. However, the table implementation shown contains only inline buttons (no menu/popover/dialog for row-level Actions), and there are no evidenced changes ensuring any row-level Actions menus/dialogs render above the table and are not clipped by parent containers.",
+      "requirement": "Karigar dropdown in master design edit dialog shows all karigars from both manual creation and Excel imports",
+      "reason": "While MasterDesignFormDialog.tsx uses useListKarigars() and displays a dropdown, the truncated diff does not show how karigars from Excel imports are specifically included or verified. The logic for populating the dropdown with Excel-derived karigars is not visible in the available code.",
       "evidence": [
-        "frontend/src/components/karigar/TotalKarigarListDialog.tsx (truncated)",
-        "frontend/src/pages/admin/MasterDesignsPage.tsx (truncated)",
-        "frontend/src/components/masterDesigns/MasterDesignsTable.tsx"
+        "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx"
       ]
     }
   ],
   "hallucinated_features": [],
-  "confidence": 0.62,
+  "confidence": 0.75,
   "changed_files": [
+    "backend/main.mo",
     "frontend-file-summaries.txt",
-    "frontend/src/components/karigar/TotalKarigarListDialog.tsx",
-    "frontend/src/components/layout/AppShell.tsx",
-    "frontend/src/components/masterDesigns/MasterDesignsTable.tsx",
-    "frontend/src/components/orders/OrdersFiltersBar.tsx",
-    "frontend/src/pages/admin/MasterDesignsPage.tsx",
+    "frontend/index.html",
+    "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx",
+    "frontend/src/index.css",
+    "frontend/src/lib/mapping/applyMasterDesignMapping.ts",
+    "frontend/src/lib/orders/resolveKarigarName.ts",
+    "frontend/src/pages/admin/AdminDashboardPage.tsx",
     "project_state.json"
   ]
 }

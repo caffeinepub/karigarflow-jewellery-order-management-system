@@ -19,12 +19,15 @@ export interface OrderMetrics {
 export function deriveMetrics(orders: PersistentOrder[]): OrderMetrics {
   const { validOrders } = sanitizeOrders(orders);
   
+  // Filter out orders with status 'given_to_hallmark' from metrics calculation
+  const ordersForMetrics = validOrders.filter(order => order.status !== 'given_to_hallmark');
+  
   const byKarigar: Record<string, KarigarStats> = {};
   let totalQty = 0;
   let totalWeight = 0;
   let customerOrdersCount = 0;
 
-  for (const order of validOrders) {
+  for (const order of ordersForMetrics) {
     const qty = Number(order.qty) || 0;
     const weight = Number(order.weight) || 0;
     
@@ -50,7 +53,7 @@ export function deriveMetrics(orders: PersistentOrder[]): OrderMetrics {
   }
 
   return {
-    totalOrders: validOrders.length,
+    totalOrders: ordersForMetrics.length,
     totalQty,
     totalWeight,
     customerOrdersCount,

@@ -1,89 +1,101 @@
 {
   "kind": "build_request",
-  "title": "Fix remaining UI overlap: sidebar, calendar popovers, and Master Designs dialogs/menus",
-  "projectName": "KarigarFlow",
+  "title": "Fix karigar mapping display, mobile Safari zoom issues, and separate karigar tabs from total orders",
   "priority": "high",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Fix the global layout so the navigation/sidebar (including the mobile left Sheet menu) never overlaps or obscures page content across routes and viewport sizes.",
-      "target": "frontend",
+      "text": "Fix karigar mapping not displaying correctly when viewing orders across all tabs (Today, Delivered, Hallmark, Total Orders, Customer Orders, and individual Karigar tabs). Ensure that when orders are filtered or displayed in any tab, the karigar name is correctly resolved and shown from the master design mappings.",
+      "target": "both",
       "source": {
         "messageIds": [
-          "msg-recent-1"
+          "msg-6"
         ],
         "quotes": [
-          "Sidebar still overlapping"
+          "Karigar mapping is not happening while display orders across tabs. Check front end n back end and solve this."
         ]
       },
       "acceptanceCriteria": [
-        "On small screens and mobile Safari, opening/closing the left Sheet menu does not cause main content to visually overlap with the header, sidebar, or any overlay.",
-        "Main content remains readable and clickable while the header stays sticky; no elements render underneath the header unexpectedly.",
-        "No new horizontal scrollbars are introduced (overflow-x remains controlled)."
+        "Orders in all tabs display the correct karigar name from master design mappings",
+        "Karigar resolution works consistently across Today, Delivered, Hallmark, Total Orders, Customer Orders, and individual Karigar tabs",
+        "Empty or unassigned karigar fields display as 'Unassigned'",
+        "Karigar names are correctly derived from design code mappings in the backend"
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Fix the date-picker (calendar) popovers so they do not overlap surrounding UI or each other, and ensure only one calendar popover can remain open at a time in date filter UIs (e.g., From Date vs To Date).",
+      "text": "Fix mobile Safari rendering issues where the application displays at 50% zoom. Ensure the viewport is configured correctly so the entire application interface is visible on a single page without requiring zoom adjustments on mobile screens.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-recent-1"
+          "msg-6"
         ],
         "quotes": [
-          "Calendar still overlapping"
+          "I'm using the app in safari iPhone and look how it's giving trouble, run diagnostics to resolve this completely. Same way the app is running on 50% zoom on mobile screens make sure it's completely visible in single page in the display when opened."
         ]
       },
       "acceptanceCriteria": [
-        "In OrdersFiltersBar date filters, opening 'From Date' closes 'To Date' automatically and vice-versa (no two calendars open simultaneously).",
-        "Calendar popover content is not clipped by parent containers and stays above tables/cards while open.",
-        "After selecting a date, the corresponding popover closes and does not visually collide with other filter controls."
+        "Application renders at 100% zoom on Safari iPhone",
+        "All UI elements are visible and properly sized on mobile screens",
+        "No horizontal scrolling required on mobile devices",
+        "Viewport meta tags are correctly configured for mobile display",
+        "Touch interactions work smoothly without zoom interference"
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Fix the Master Designs page overlap issues so that opening the Karigar List and any action menus/lists does not overlap or collide with the page layout (header/actions area, filter badge row, search row, card content, and table).",
+      "text": "When updating or assigning a design code to a different karigar in the master designs management interface, automatically populate and display the karigar name that was already derived from the uploaded Excel file. The karigar dropdown or selection field should show all existing karigars including those imported from Excel.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-recent-1"
+          "msg-6"
         ],
         "quotes": [
-          "Master design page also when clicked on karigar list it’s overlapping, when clicking on action list it’s overlapping."
+          "All item design code and generic are matched with karigar name. When the karigar is already derived from the excel why it is not displaying while updating and assigning the design code to other karigar promptly."
         ]
       },
       "acceptanceCriteria": [
-        "On /admin/master-designs, opening 'Total Karigar List' renders a dialog that is fully visible within the viewport (scrolls internally if needed) and does not overlap awkwardly with underlying content.",
-        "On narrow viewports, the Master Designs header title, buttons, filter badge row, and search input wrap/space correctly without overlapping each other.",
-        "Any row-level 'Actions' UI (menus/dialogs triggered from the table) renders above the table and is not clipped by parent containers."
+        "Karigar dropdown in master design edit dialog shows all karigars from both manual creation and Excel imports",
+        "Pre-existing karigar assignments from Excel files are visible when editing a master design",
+        "Updating a design code's karigar assignment immediately reflects the new mapping",
+        "All karigars derived from Excel uploads are available for selection"
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Remove individual karigar tab names from the Total Orders tab in the admin dashboard. Create a separate dedicated tab in the admin dashboard that displays all karigar-specific views and their orders, keeping the Total Orders tab clean and showing only aggregate order data without karigar-specific tabs.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-6"
+        ],
+        "quotes": [
+          "The karigar tab names shouldn't show in the total orders tab, it should classified separately in another tab in the admin dashboard"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Total Orders tab no longer displays individual karigar sub-tabs",
+        "A new dedicated tab exists in the admin dashboard for viewing orders by karigar",
+        "The new karigar-focused tab shows all individual karigar tabs and their respective orders",
+        "Navigation between Total Orders and the new Karigar Orders tab is intuitive",
+        "Total Orders tab displays only aggregate data without karigar segmentation"
       ]
     }
   ],
   "constraints": [
-    "Frontend-only fix: do not change backend canister interfaces or persistent state.",
-    "Do not edit files under frontend/src/components/ui (compose existing shadcn components instead).",
-    "Keep the change set tightly scoped to resolving the reported overlap issues; avoid unrelated UI/feature changes.",
-    "Minimize rebuild iterations and avoid unnecessary deployments to reduce additional credit usage."
+    "Do not modify Internet Identity authentication hooks or components",
+    "Preserve the single-actor Motoko backend architecture",
+    "Do not edit read-only Shadcn UI component sources",
+    "Maintain existing offline sync and caching functionality"
   ],
   "nonGoals": [
-    "Granting, refunding, or modifying user credits.",
-    "Adding new features unrelated to overlap/layout behavior.",
-    "Changing authentication behavior (Internet Identity) or app routing."
+    "Adding new order status types",
+    "Changing the Excel file format or parsing logic beyond fixing karigar display",
+    "Modifying user role permissions or access control",
+    "Adding new export formats beyond existing CSV/PDF/JPEG options"
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
-  },
-  "userProfileUpdate": {
-    "goalsToAdd": [],
-    "goalsToRemove": [],
-    "preferencesToAdd": [
-      "Use English for user-facing UI text."
-    ],
-    "preferencesToRemove": [],
-    "miscToAdd": [],
-    "miscToRemove": [],
-    "fieldsToSet": {},
-    "fieldsToDelete": []
   }
 }

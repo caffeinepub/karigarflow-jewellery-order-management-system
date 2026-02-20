@@ -65,18 +65,18 @@ export function AppShell({ children }: AppShellProps) {
   }
 
   const MobileNavContent = () => (
-    <nav className="space-y-1">
+    <nav className="space-y-2">
       {navItems.map((item) => (
         <Button
           key={item.path}
           variant="ghost"
-          className="w-full justify-start"
+          className="w-full justify-start hover:bg-primary/10 hover:text-primary"
           onClick={() => {
             navigate({ to: item.path });
             setMobileMenuOpen(false);
           }}
         >
-          <item.icon className="mr-2 h-4 w-4" />
+          <item.icon className="mr-3 h-5 w-5" />
           {item.label}
         </Button>
       ))}
@@ -84,13 +84,14 @@ export function AppShell({ children }: AppShellProps) {
   );
 
   const DesktopNavContent = () => (
-    <nav className="flex items-center gap-1">
+    <nav className="flex items-center gap-2">
       {navItems.map((item) => (
         <Button
           key={item.path}
           variant="ghost"
           size="sm"
           onClick={() => navigate({ to: item.path })}
+          className="hover:bg-primary/10 hover:text-primary font-medium"
         >
           <item.icon className="mr-2 h-4 w-4" />
           {item.label}
@@ -101,29 +102,33 @@ export function AppShell({ children }: AppShellProps) {
 
   return (
     <div className="flex flex-col min-h-screen w-full max-w-full overflow-x-hidden bg-background">
-      {/* Sticky header with proper z-index below overlays */}
-      <header className="sticky top-0 z-40 w-full border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
+      {/* Sticky header with improved styling */}
+      <header className="sticky top-0 z-header w-full border-b bg-card/95 backdrop-blur-md supports-[backdrop-filter]:bg-card/80 shadow-sm">
         <div className="container flex h-16 items-center justify-between px-4 gap-4 max-w-full">
           <div className="flex items-center gap-4 min-w-0">
             {navItems.length > 0 && (
               <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                 <SheetTrigger asChild className="lg:hidden flex-shrink-0">
-                  <Button variant="ghost" size="icon">
+                  <Button variant="ghost" size="icon" className="hover:bg-primary/10">
                     <Menu className="h-5 w-5" />
                   </Button>
                 </SheetTrigger>
                 <SheetContent 
                   side="left" 
-                  className="w-64 bg-card max-h-screen overflow-y-auto flex flex-col"
+                  className="w-72 bg-card max-h-screen overflow-y-auto flex flex-col backdrop-blur-md"
                 >
-                  <div className="mb-6 flex-shrink-0">
-                    <div className="flex items-center gap-2 mb-4">
-                      <Gem className="h-6 w-6 text-primary" />
-                      <span className="text-lg font-bold">KarigarFlow</span>
+                  <div className="mb-8 flex-shrink-0">
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="p-2 rounded-lg bg-gradient-to-br from-primary to-accent">
+                        <Gem className="h-6 w-6 text-white" />
+                      </div>
+                      <span className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                        KarigarFlow
+                      </span>
                     </div>
                     {userProfile && (
-                      <div className="space-y-1 text-sm">
-                        <p className="font-medium">{userProfile.name}</p>
+                      <div className="space-y-2 text-sm p-4 rounded-lg bg-muted/50">
+                        <p className="font-semibold text-base">{userProfile.name}</p>
                         <Badge variant="outline" className="text-xs">
                           {effectiveRole || userProfile.appRole}
                         </Badge>
@@ -137,9 +142,13 @@ export function AppShell({ children }: AppShellProps) {
               </Sheet>
             )}
 
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <Gem className="h-6 w-6 text-primary" />
-              <span className="text-lg font-bold hidden sm:inline">KarigarFlow</span>
+            <div className="flex items-center gap-3 flex-shrink-0">
+              <div className="p-1.5 rounded-lg bg-gradient-to-br from-primary to-accent">
+                <Gem className="h-5 w-5 text-white" />
+              </div>
+              <span className="text-lg font-bold hidden sm:inline bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                KarigarFlow
+              </span>
             </div>
           </div>
 
@@ -149,13 +158,13 @@ export function AppShell({ children }: AppShellProps) {
             </div>
           )}
 
-          <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+          <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0">
             <BackendStatusIndicator />
             
             {userProfile && (
-              <div className="hidden sm:flex items-center gap-2">
+              <div className="hidden sm:flex items-center gap-3">
                 <div className="text-right text-sm">
-                  <p className="font-medium truncate max-w-[120px]">{userProfile.name}</p>
+                  <p className="font-semibold truncate max-w-[140px]">{userProfile.name}</p>
                   <Badge variant="outline" className="text-xs">
                     {effectiveRole || userProfile.appRole}
                   </Badge>
@@ -169,27 +178,27 @@ export function AppShell({ children }: AppShellProps) {
 
       <ConnectivityStatusBar />
 
-      {/* Main content area - no padding-top needed as header is in flow */}
+      {/* Main content area with improved spacing */}
       <main className="flex-1 w-full max-w-full overflow-x-hidden">
-        <div className="container py-6 px-4 max-w-full">
+        <div className="container py-8 px-4 max-w-full">
           {children}
         </div>
       </main>
 
-      <footer className="border-t mt-auto w-full">
-        <div className="container py-6 px-4 text-center text-sm text-muted-foreground">
-          <p>
+      <footer className="border-t mt-auto w-full bg-card/50">
+        <div className="container py-8 px-4 text-center text-sm text-muted-foreground">
+          <p className="mb-2">
             © {new Date().getFullYear()} KarigarFlow. Built with ❤️ using{' '}
             <a
               href={`https://caffeine.ai/?utm_source=Caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(window.location.hostname)}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="underline hover:text-foreground"
+              className="underline hover:text-foreground transition-colors"
             >
               caffeine.ai
             </a>
           </p>
-          <p className="mt-2 text-xs opacity-60">
+          <p className="text-xs opacity-60">
             Version: {BUILD_ID}
           </p>
         </div>

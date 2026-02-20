@@ -6,9 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
-import { useSaveMasterDesigns, useUpdateOrdersForNewKarigar, useListKarigarReference } from '../../hooks/useQueries';
+import { useSaveMasterDesigns, useUpdateOrdersForNewKarigar, useListKarigars } from '../../hooks/useQueries';
 import { AddKarigarDialog } from '../karigar/AddKarigarDialog';
-import { normalizeKarigarName } from '../../lib/karigars/normalizeKarigarName';
 import { toast } from 'sonner';
 import type { MasterDesignEntry } from '../../backend';
 
@@ -28,7 +27,7 @@ export function MasterDesignFormDialog({ open, onOpenChange, editingDesign }: Ma
 
   const saveMutation = useSaveMasterDesigns();
   const reassignMutation = useUpdateOrdersForNewKarigar();
-  const { data: karigars = [], isLoading: loadingKarigars } = useListKarigarReference();
+  const { data: karigars = [], isLoading: loadingKarigars } = useListKarigars();
 
   const isEditMode = !!editingDesign;
 

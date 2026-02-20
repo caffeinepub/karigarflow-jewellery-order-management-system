@@ -47,6 +47,23 @@ export interface HealthCheckResponse {
   'status' : string,
   'canisterId' : string,
 }
+export interface KarigarSavedOrder {
+  'qty' : bigint,
+  'weight' : [] | [number],
+  'status' : string,
+  'createdAt' : Time,
+  'size' : [] | [number],
+  'orderType' : string,
+  'lastStatusChange' : Time,
+  'orderNo' : string,
+  'isCustomerOrder' : boolean,
+  'karigarName' : string,
+  'genericName' : string,
+  'designCode' : string,
+  'uploadDate' : Time,
+  'karigarId' : string,
+  'remarks' : string,
+}
 export interface MasterDesignEntry {
   'isActive' : boolean,
   'genericName' : string,
@@ -71,6 +88,7 @@ export interface PersistentOrder {
   'createdAt' : Time,
   'size' : [] | [number],
   'orderType' : string,
+  'lastStatusChange' : Time,
   'orderNo' : string,
   'isCustomerOrder' : boolean,
   'genericName' : string,
@@ -81,6 +99,23 @@ export interface PersistentOrder {
 }
 export interface SavedMasterDesignsRequest {
   'masterDesigns' : Array<[string, MasterDesignEntry]>,
+}
+export interface SavedOrder {
+  'qty' : bigint,
+  'weight' : [] | [number],
+  'status' : string,
+  'createdAt' : Time,
+  'size' : [] | [number],
+  'orderType' : string,
+  'lastStatusChange' : Time,
+  'orderNo' : string,
+  'isCustomerOrder' : boolean,
+  'karigarName' : string,
+  'genericName' : string,
+  'designCode' : string,
+  'uploadDate' : Time,
+  'karigarId' : string,
+  'remarks' : string,
 }
 export type Time = bigint;
 export interface UnmappedOrderEntry {
@@ -147,7 +182,7 @@ export interface _SERVICE {
   'createKarigar' : ActorMethod<[PersistentKarigar], undefined>,
   'createUserProfile' : ActorMethod<[Principal, UserProfile], undefined>,
   'deleteKarigarById' : ActorMethod<[string], undefined>,
-  'getActiveOrdersForKarigar' : ActorMethod<[], Array<PersistentOrder>>,
+  'getActiveOrdersForKarigar' : ActorMethod<[], Array<KarigarSavedOrder>>,
   'getActivityLog' : ActorMethod<[], Array<ActivityLogEntry>>,
   'getAdminDesignImageMappings' : ActorMethod<
     [],
@@ -156,9 +191,10 @@ export interface _SERVICE {
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getDesignImageMappings' : ActorMethod<[], Array<DesignImageMapping>>,
-  'getGivenToHallmarkOrders' : ActorMethod<[], Array<PersistentOrder>>,
+  'getGivenToHallmarkOrders' : ActorMethod<[], Array<SavedOrder>>,
   'getMasterDesigns' : ActorMethod<[], Array<[string, MasterDesignEntry]>>,
-  'getOrders' : ActorMethod<[], Array<PersistentOrder>>,
+  'getOrders' : ActorMethod<[], Array<SavedOrder>>,
+  'getReturnedFromHallmarkToday' : ActorMethod<[], Array<SavedOrder>>,
   'getUnmappedDesignCodes' : ActorMethod<[], Array<UnmappedOrderEntry>>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'handleHallmarkReturns' : ActorMethod<[HallmarkReturnRequest], undefined>,

@@ -49,15 +49,17 @@ export const UserProfile = IDL.Record({
   'karigarId' : IDL.Opt(IDL.Text),
 });
 export const Time = IDL.Int;
-export const PersistentOrder = IDL.Record({
+export const KarigarSavedOrder = IDL.Record({
   'qty' : IDL.Nat,
   'weight' : IDL.Opt(IDL.Float64),
   'status' : IDL.Text,
   'createdAt' : Time,
   'size' : IDL.Opt(IDL.Float64),
   'orderType' : IDL.Text,
+  'lastStatusChange' : Time,
   'orderNo' : IDL.Text,
   'isCustomerOrder' : IDL.Bool,
+  'karigarName' : IDL.Text,
   'genericName' : IDL.Text,
   'designCode' : IDL.Text,
   'uploadDate' : Time,
@@ -77,6 +79,23 @@ export const DesignImageMapping = IDL.Record({
   'genericName' : IDL.Text,
   'image' : ExternalBlob,
   'designCode' : IDL.Text,
+});
+export const SavedOrder = IDL.Record({
+  'qty' : IDL.Nat,
+  'weight' : IDL.Opt(IDL.Float64),
+  'status' : IDL.Text,
+  'createdAt' : Time,
+  'size' : IDL.Opt(IDL.Float64),
+  'orderType' : IDL.Text,
+  'lastStatusChange' : Time,
+  'orderNo' : IDL.Text,
+  'isCustomerOrder' : IDL.Bool,
+  'karigarName' : IDL.Text,
+  'genericName' : IDL.Text,
+  'designCode' : IDL.Text,
+  'uploadDate' : Time,
+  'karigarId' : IDL.Text,
+  'remarks' : IDL.Text,
 });
 export const MasterDesignEntry = IDL.Record({
   'isActive' : IDL.Bool,
@@ -129,6 +148,22 @@ export const UpdateOrderTotalSuppliedRequest = IDL.Record({
   'orderNo' : IDL.Text,
   'newTotalSupplied' : IDL.Nat,
 });
+export const PersistentOrder = IDL.Record({
+  'qty' : IDL.Nat,
+  'weight' : IDL.Opt(IDL.Float64),
+  'status' : IDL.Text,
+  'createdAt' : Time,
+  'size' : IDL.Opt(IDL.Float64),
+  'orderType' : IDL.Text,
+  'lastStatusChange' : Time,
+  'orderNo' : IDL.Text,
+  'isCustomerOrder' : IDL.Bool,
+  'genericName' : IDL.Text,
+  'designCode' : IDL.Text,
+  'uploadDate' : Time,
+  'karigarId' : IDL.Text,
+  'remarks' : IDL.Text,
+});
 
 export const idlService = IDL.Service({
   '_caffeineStorageBlobIsLive' : IDL.Func(
@@ -165,7 +200,7 @@ export const idlService = IDL.Service({
   'createKarigar' : IDL.Func([PersistentKarigar], [], []),
   'createUserProfile' : IDL.Func([IDL.Principal, UserProfile], [], []),
   'deleteKarigarById' : IDL.Func([IDL.Text], [], []),
-  'getActiveOrdersForKarigar' : IDL.Func([], [IDL.Vec(PersistentOrder)], []),
+  'getActiveOrdersForKarigar' : IDL.Func([], [IDL.Vec(KarigarSavedOrder)], []),
   'getActivityLog' : IDL.Func([], [IDL.Vec(ActivityLogEntry)], ['query']),
   'getAdminDesignImageMappings' : IDL.Func(
       [],
@@ -179,17 +214,18 @@ export const idlService = IDL.Service({
       [IDL.Vec(DesignImageMapping)],
       ['query'],
     ),
-  'getGivenToHallmarkOrders' : IDL.Func(
-      [],
-      [IDL.Vec(PersistentOrder)],
-      ['query'],
-    ),
+  'getGivenToHallmarkOrders' : IDL.Func([], [IDL.Vec(SavedOrder)], ['query']),
   'getMasterDesigns' : IDL.Func(
       [],
       [IDL.Vec(IDL.Tuple(IDL.Text, MasterDesignEntry))],
       ['query'],
     ),
-  'getOrders' : IDL.Func([], [IDL.Vec(PersistentOrder)], []),
+  'getOrders' : IDL.Func([], [IDL.Vec(SavedOrder)], []),
+  'getReturnedFromHallmarkToday' : IDL.Func(
+      [],
+      [IDL.Vec(SavedOrder)],
+      ['query'],
+    ),
   'getUnmappedDesignCodes' : IDL.Func(
       [],
       [IDL.Vec(UnmappedOrderEntry)],
@@ -284,15 +320,17 @@ export const idlFactory = ({ IDL }) => {
     'karigarId' : IDL.Opt(IDL.Text),
   });
   const Time = IDL.Int;
-  const PersistentOrder = IDL.Record({
+  const KarigarSavedOrder = IDL.Record({
     'qty' : IDL.Nat,
     'weight' : IDL.Opt(IDL.Float64),
     'status' : IDL.Text,
     'createdAt' : Time,
     'size' : IDL.Opt(IDL.Float64),
     'orderType' : IDL.Text,
+    'lastStatusChange' : Time,
     'orderNo' : IDL.Text,
     'isCustomerOrder' : IDL.Bool,
+    'karigarName' : IDL.Text,
     'genericName' : IDL.Text,
     'designCode' : IDL.Text,
     'uploadDate' : Time,
@@ -312,6 +350,23 @@ export const idlFactory = ({ IDL }) => {
     'genericName' : IDL.Text,
     'image' : ExternalBlob,
     'designCode' : IDL.Text,
+  });
+  const SavedOrder = IDL.Record({
+    'qty' : IDL.Nat,
+    'weight' : IDL.Opt(IDL.Float64),
+    'status' : IDL.Text,
+    'createdAt' : Time,
+    'size' : IDL.Opt(IDL.Float64),
+    'orderType' : IDL.Text,
+    'lastStatusChange' : Time,
+    'orderNo' : IDL.Text,
+    'isCustomerOrder' : IDL.Bool,
+    'karigarName' : IDL.Text,
+    'genericName' : IDL.Text,
+    'designCode' : IDL.Text,
+    'uploadDate' : Time,
+    'karigarId' : IDL.Text,
+    'remarks' : IDL.Text,
   });
   const MasterDesignEntry = IDL.Record({
     'isActive' : IDL.Bool,
@@ -364,6 +419,22 @@ export const idlFactory = ({ IDL }) => {
     'orderNo' : IDL.Text,
     'newTotalSupplied' : IDL.Nat,
   });
+  const PersistentOrder = IDL.Record({
+    'qty' : IDL.Nat,
+    'weight' : IDL.Opt(IDL.Float64),
+    'status' : IDL.Text,
+    'createdAt' : Time,
+    'size' : IDL.Opt(IDL.Float64),
+    'orderType' : IDL.Text,
+    'lastStatusChange' : Time,
+    'orderNo' : IDL.Text,
+    'isCustomerOrder' : IDL.Bool,
+    'genericName' : IDL.Text,
+    'designCode' : IDL.Text,
+    'uploadDate' : Time,
+    'karigarId' : IDL.Text,
+    'remarks' : IDL.Text,
+  });
   
   return IDL.Service({
     '_caffeineStorageBlobIsLive' : IDL.Func(
@@ -400,7 +471,11 @@ export const idlFactory = ({ IDL }) => {
     'createKarigar' : IDL.Func([PersistentKarigar], [], []),
     'createUserProfile' : IDL.Func([IDL.Principal, UserProfile], [], []),
     'deleteKarigarById' : IDL.Func([IDL.Text], [], []),
-    'getActiveOrdersForKarigar' : IDL.Func([], [IDL.Vec(PersistentOrder)], []),
+    'getActiveOrdersForKarigar' : IDL.Func(
+        [],
+        [IDL.Vec(KarigarSavedOrder)],
+        [],
+      ),
     'getActivityLog' : IDL.Func([], [IDL.Vec(ActivityLogEntry)], ['query']),
     'getAdminDesignImageMappings' : IDL.Func(
         [],
@@ -414,17 +489,18 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Vec(DesignImageMapping)],
         ['query'],
       ),
-    'getGivenToHallmarkOrders' : IDL.Func(
-        [],
-        [IDL.Vec(PersistentOrder)],
-        ['query'],
-      ),
+    'getGivenToHallmarkOrders' : IDL.Func([], [IDL.Vec(SavedOrder)], ['query']),
     'getMasterDesigns' : IDL.Func(
         [],
         [IDL.Vec(IDL.Tuple(IDL.Text, MasterDesignEntry))],
         ['query'],
       ),
-    'getOrders' : IDL.Func([], [IDL.Vec(PersistentOrder)], []),
+    'getOrders' : IDL.Func([], [IDL.Vec(SavedOrder)], []),
+    'getReturnedFromHallmarkToday' : IDL.Func(
+        [],
+        [IDL.Vec(SavedOrder)],
+        ['query'],
+      ),
     'getUnmappedDesignCodes' : IDL.Func(
         [],
         [IDL.Vec(UnmappedOrderEntry)],

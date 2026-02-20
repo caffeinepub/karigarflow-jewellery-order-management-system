@@ -26,9 +26,43 @@ export interface BulkOrderUpdate {
     newStatus: string;
 }
 export type Time = bigint;
+export interface KarigarSavedOrder {
+    qty: bigint;
+    weight?: number;
+    status: string;
+    createdAt: Time;
+    size?: number;
+    orderType: string;
+    lastStatusChange: Time;
+    orderNo: string;
+    isCustomerOrder: boolean;
+    karigarName: string;
+    genericName: string;
+    designCode: string;
+    uploadDate: Time;
+    karigarId: string;
+    remarks: string;
+}
 export interface HealthCheckResponse {
     status: string;
     canisterId: string;
+}
+export interface SavedOrder {
+    qty: bigint;
+    weight?: number;
+    status: string;
+    createdAt: Time;
+    size?: number;
+    orderType: string;
+    lastStatusChange: Time;
+    orderNo: string;
+    isCustomerOrder: boolean;
+    karigarName: string;
+    genericName: string;
+    designCode: string;
+    uploadDate: Time;
+    karigarId: string;
+    remarks: string;
 }
 export interface HallmarkReturnRequest {
     actionType: Variant_update_status_return_hallmark;
@@ -75,6 +109,7 @@ export interface PersistentOrder {
     createdAt: Time;
     size?: number;
     orderType: string;
+    lastStatusChange: Time;
     orderNo: string;
     isCustomerOrder: boolean;
     genericName: string;
@@ -132,15 +167,16 @@ export interface backendInterface {
     createKarigar(karigar: PersistentKarigar): Promise<void>;
     createUserProfile(user: Principal, profile: UserProfile): Promise<void>;
     deleteKarigarById(karigarId: string): Promise<void>;
-    getActiveOrdersForKarigar(): Promise<Array<PersistentOrder>>;
+    getActiveOrdersForKarigar(): Promise<Array<KarigarSavedOrder>>;
     getActivityLog(): Promise<Array<ActivityLogEntry>>;
     getAdminDesignImageMappings(): Promise<Array<[DesignImageMapping, ExternalBlob]>>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     getDesignImageMappings(): Promise<Array<DesignImageMapping>>;
-    getGivenToHallmarkOrders(): Promise<Array<PersistentOrder>>;
+    getGivenToHallmarkOrders(): Promise<Array<SavedOrder>>;
     getMasterDesigns(): Promise<Array<[string, MasterDesignEntry]>>;
-    getOrders(): Promise<Array<PersistentOrder>>;
+    getOrders(): Promise<Array<SavedOrder>>;
+    getReturnedFromHallmarkToday(): Promise<Array<SavedOrder>>;
     getUnmappedDesignCodes(): Promise<Array<UnmappedOrderEntry>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     handleHallmarkReturns(request: HallmarkReturnRequest): Promise<void>;

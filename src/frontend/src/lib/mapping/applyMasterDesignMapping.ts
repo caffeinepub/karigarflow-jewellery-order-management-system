@@ -10,7 +10,7 @@ export interface MappingResult {
 
 /**
  * Applies master design mapping to parsed orders.
- * Treats empty, whitespace-only, or "Unassigned" (case-insensitive) karigar IDs as missing.
+ * Treats empty, whitespace-only, null, undefined, or "Unassigned" (case-insensitive) karigar IDs as missing.
  * Preserves meaningful PDF-derived karigar IDs.
  * 
  * This function is idempotent and can be called multiple times with the same raw orders
@@ -37,9 +37,12 @@ export function applyMasterDesignMapping(
     const mapping = designMap.get(normalizedOrderCode);
     
     // Check if PDF-derived karigarId is meaningful
-    // Treat empty, whitespace-only, or "Unassigned" (case-insensitive) as missing
+    // Treat null, undefined, empty, whitespace-only, or "Unassigned" (case-insensitive) as missing
     const trimmedKarigar = order.karigarId?.trim() || '';
-    const isPlaceholder = trimmedKarigar === '' || trimmedKarigar.toLowerCase() === 'unassigned';
+    const isPlaceholder = 
+      !order.karigarId || 
+      trimmedKarigar === '' || 
+      trimmedKarigar.toLowerCase() === 'unassigned';
     const hasMeaningfulKarigarId = !isPlaceholder;
     
     if (mapping && mapping.isActive) {

@@ -4,60 +4,75 @@
 
 @layer base {
   :root {
-    /* Warm neutral base with gold accents */
-    --background: oklch(0.98 0.005 60);
-    --foreground: oklch(0.15 0.01 60);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.15 0.01 60);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.15 0.01 60);
-    --primary: oklch(0.45 0.12 40);
-    --primary-foreground: oklch(0.98 0.005 40);
-    --secondary: oklch(0.92 0.01 60);
-    --secondary-foreground: oklch(0.2 0.01 60);
-    --muted: oklch(0.94 0.01 60);
-    --muted-foreground: oklch(0.5 0.01 60);
-    --accent: oklch(0.92 0.02 40);
-    --accent-foreground: oklch(0.2 0.02 40);
-    --destructive: oklch(0.55 0.22 25);
-    --destructive-foreground: oklch(0.98 0.005 25);
-    --border: oklch(0.88 0.01 60);
-    --input: oklch(0.88 0.01 60);
-    --ring: oklch(0.45 0.12 40);
+    /* Modern vibrant color palette using OKLCH */
+    --background: oklch(98% 0.01 240);
+    --foreground: oklch(20% 0.02 240);
+    --card: oklch(100% 0 0);
+    --card-foreground: oklch(20% 0.02 240);
+    --popover: oklch(100% 0 0);
+    --popover-foreground: oklch(20% 0.02 240);
+    
+    /* Vibrant primary - bright blue */
+    --primary: oklch(60% 0.25 250);
+    --primary-foreground: oklch(100% 0 0);
+    
+    /* Vibrant secondary - purple */
+    --secondary: oklch(65% 0.22 290);
+    --secondary-foreground: oklch(100% 0 0);
+    
+    /* Vibrant accent - teal */
+    --accent: oklch(70% 0.18 180);
+    --accent-foreground: oklch(100% 0 0);
+    
+    --muted: oklch(96% 0.01 240);
+    --muted-foreground: oklch(50% 0.02 240);
+    --border: oklch(90% 0.01 240);
+    --input: oklch(90% 0.01 240);
+    --ring: oklch(60% 0.25 250);
     --radius: 0.5rem;
-    --chart-1: oklch(0.55 0.15 30);
-    --chart-2: oklch(0.65 0.12 120);
-    --chart-3: oklch(0.60 0.14 200);
-    --chart-4: oklch(0.70 0.10 280);
-    --chart-5: oklch(0.50 0.18 340);
+    
+    /* Status colors - vibrant */
+    --success: oklch(65% 0.20 145);
+    --success-foreground: oklch(100% 0 0);
+    --warning: oklch(75% 0.18 80);
+    --warning-foreground: oklch(20% 0.02 80);
+    --destructive: oklch(60% 0.25 25);
+    --destructive-foreground: oklch(100% 0 0);
   }
 
   .dark {
-    /* Dark theme with warm tones matching v54 */
-    --background: oklch(0.12 0.015 60);
-    --foreground: oklch(0.92 0.01 60);
-    --card: oklch(0.15 0.015 60);
-    --card-foreground: oklch(0.92 0.01 60);
-    --popover: oklch(0.15 0.015 60);
-    --popover-foreground: oklch(0.92 0.01 60);
-    --primary: oklch(0.65 0.15 40);
-    --primary-foreground: oklch(0.12 0.015 40);
-    --secondary: oklch(0.22 0.02 60);
-    --secondary-foreground: oklch(0.92 0.01 60);
-    --muted: oklch(0.20 0.02 60);
-    --muted-foreground: oklch(0.60 0.02 60);
-    --accent: oklch(0.25 0.03 40);
-    --accent-foreground: oklch(0.92 0.01 40);
-    --destructive: oklch(0.55 0.22 25);
-    --destructive-foreground: oklch(0.98 0.005 25);
-    --border: oklch(0.25 0.02 60);
-    --input: oklch(0.25 0.02 60);
-    --ring: oklch(0.65 0.15 40);
-    --chart-1: oklch(0.60 0.18 30);
-    --chart-2: oklch(0.70 0.15 120);
-    --chart-3: oklch(0.65 0.16 200);
-    --chart-4: oklch(0.75 0.12 280);
-    --chart-5: oklch(0.55 0.20 340);
+    --background: oklch(18% 0.02 240);
+    --foreground: oklch(95% 0.01 240);
+    --card: oklch(20% 0.02 240);
+    --card-foreground: oklch(95% 0.01 240);
+    --popover: oklch(20% 0.02 240);
+    --popover-foreground: oklch(95% 0.01 240);
+    
+    /* Vibrant primary - bright blue (adjusted for dark) */
+    --primary: oklch(65% 0.25 250);
+    --primary-foreground: oklch(100% 0 0);
+    
+    /* Vibrant secondary - purple (adjusted for dark) */
+    --secondary: oklch(70% 0.22 290);
+    --secondary-foreground: oklch(100% 0 0);
+    
+    /* Vibrant accent - teal (adjusted for dark) */
+    --accent: oklch(75% 0.18 180);
+    --accent-foreground: oklch(100% 0 0);
+    
+    --muted: oklch(25% 0.02 240);
+    --muted-foreground: oklch(65% 0.02 240);
+    --border: oklch(30% 0.02 240);
+    --input: oklch(30% 0.02 240);
+    --ring: oklch(65% 0.25 250);
+    
+    /* Status colors - vibrant (adjusted for dark) */
+    --success: oklch(70% 0.20 145);
+    --success-foreground: oklch(100% 0 0);
+    --warning: oklch(80% 0.18 80);
+    --warning-foreground: oklch(20% 0.02 80);
+    --destructive: oklch(65% 0.25 25);
+    --destructive-foreground: oklch(100% 0 0);
   }
 }
 
@@ -65,139 +80,136 @@
   * {
     @apply border-border;
   }
-  
-  /* Prevent horizontal overflow globally */
   html {
-    overflow-x: hidden;
-    width: 100%;
-    max-width: 100vw;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
-  
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
-    overflow-x: hidden;
-    width: 100%;
-    max-width: 100vw;
-    min-width: 320px;
-    /* iOS Safari safe area support */
-    padding-left: env(safe-area-inset-left);
-    padding-right: env(safe-area-inset-right);
-  }
-  
-  /* Ensure root container doesn't create overflow */
-  #root {
-    overflow-x: hidden;
-    width: 100%;
-    max-width: 100vw;
-    min-height: 100vh;
-    /* iOS Safari viewport height fix */
-    min-height: -webkit-fill-available;
-    display: flex;
-    flex-direction: column;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 }
 
-/* Admin Dashboard Tabs - v54 Segmented/Pill Style */
-.admin-tabs-list {
-  @apply inline-flex h-11 items-center justify-start rounded-full bg-muted/50 p-1 text-muted-foreground;
-  @apply overflow-x-auto overflow-y-hidden;
-  @apply gap-1;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(128, 128, 128, 0.2) transparent;
+/* Z-index system using CSS custom properties */
+:root {
+  --z-sidebar: 40;
+  --z-header: 40;
+  --z-dropdown: 50;
+  --z-popover: 100;
+  --z-modal: 200;
+  --z-toast: 300;
 }
 
-.admin-tabs-list::-webkit-scrollbar {
-  height: 6px;
-}
-
-.admin-tabs-list::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.admin-tabs-list::-webkit-scrollbar-thumb {
-  background-color: rgba(128, 128, 128, 0.2);
-  border-radius: 9999px;
-}
-
-.admin-tabs-list::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(128, 128, 128, 0.3);
-}
-
-.admin-tabs-trigger {
-  @apply inline-flex items-center justify-center whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium;
-  @apply ring-offset-background transition-all;
-  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
-  @apply disabled:pointer-events-none disabled:opacity-50;
-  @apply data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm;
-  @apply hover:bg-background/50;
-}
-
-/* Mobile horizontal scroll for tabs */
-@media (max-width: 640px) {
-  .admin-tabs-list {
-    @apply w-full justify-start;
-  }
-}
-
-/* Gradient card styles for dashboard metrics */
+/* Gradient card styles - vibrant colors */
 .gradient-card-violet {
-  background: linear-gradient(135deg, oklch(0.20 0.08 280) 0%, oklch(0.15 0.015 60) 100%);
-  border: 1px solid oklch(0.25 0.06 280 / 0.3);
+  @apply bg-gradient-to-br from-violet-500 via-violet-600 to-purple-600 border-0;
 }
 
 .gradient-card-pink {
-  background: linear-gradient(135deg, oklch(0.20 0.08 340) 0%, oklch(0.15 0.015 60) 100%);
-  border: 1px solid oklch(0.25 0.06 340 / 0.3);
+  @apply bg-gradient-to-br from-pink-500 via-pink-600 to-rose-600 border-0;
 }
 
 .gradient-card-gold {
-  background: linear-gradient(135deg, oklch(0.20 0.08 60) 0%, oklch(0.15 0.015 60) 100%);
-  border: 1px solid oklch(0.25 0.06 60 / 0.3);
+  @apply bg-gradient-to-br from-amber-500 via-orange-500 to-yellow-600 border-0;
 }
 
 .gradient-card-green {
-  background: linear-gradient(135deg, oklch(0.20 0.08 140) 0%, oklch(0.15 0.015 60) 100%);
-  border: 1px solid oklch(0.25 0.06 140 / 0.3);
+  @apply bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 border-0;
 }
 
-.gradient-card-blue {
-  background: linear-gradient(135deg, oklch(0.20 0.08 220) 0%, oklch(0.15 0.015 60) 100%);
-  border: 1px solid oklch(0.25 0.06 220 / 0.3);
+/* Admin tabs styling - vibrant pill design */
+.admin-tabs-list {
+  @apply inline-flex h-12 items-center justify-center rounded-full bg-gradient-to-r from-primary/10 via-accent/10 to-secondary/10 p-1.5 text-muted-foreground shadow-md border border-primary/20;
 }
 
-.gradient-card-orange {
-  background: linear-gradient(135deg, oklch(0.20 0.08 40) 0%, oklch(0.15 0.015 60) 100%);
-  border: 1px solid oklch(0.25 0.06 40 / 0.3);
+.admin-tabs-trigger {
+  @apply inline-flex items-center justify-center whitespace-nowrap rounded-full px-5 py-2 text-sm font-semibold ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:via-accent data-[state=active]:to-secondary data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-muted/50;
 }
 
-/* Ensure Radix overlays (Dialog, Sheet, Popover) render above all content */
-/* Popovers should be above tables and cards but below dialogs/sheets */
-[data-radix-popper-content-wrapper] {
-  z-index: 100 !important;
+/* Tab content slide animation */
+.tab-content-slide {
+  animation: slideIn 0.3s ease-out;
 }
 
-[data-radix-popover-content] {
-  z-index: 100 !important;
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
-/* Dialog/Sheet overlays should be highest */
-[data-radix-dialog-overlay],
-[data-radix-sheet-overlay] {
-  z-index: 200 !important;
+/* Touch-friendly swipe container */
+.swipe-container {
+  touch-action: pan-y;
+  user-select: none;
 }
 
-[data-radix-dialog-content],
-[data-radix-sheet-content] {
-  z-index: 201 !important;
+/* Improved overlay backdrop for better visibility */
+.dialog-overlay,
+.sheet-overlay {
+  @apply bg-black/40 backdrop-blur-sm;
 }
 
-/* Prevent parent containers from clipping popovers */
-.popover-container-safe {
-  overflow: visible !important;
+/* Better spacing and layout utilities */
+.section-spacing {
+  @apply space-y-8;
 }
 
-/* Ensure Cards allow popover overflow */
-[data-radix-popover-trigger] {
-  position: relative;
+.card-spacing {
+  @apply space-y-6;
+}
+
+.content-spacing {
+  @apply space-y-4;
+}
+
+/* Improved typography hierarchy */
+h1 {
+  @apply scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl;
+}
+
+h2 {
+  @apply scroll-m-20 text-3xl font-semibold tracking-tight;
+}
+
+h3 {
+  @apply scroll-m-20 text-2xl font-semibold tracking-tight;
+}
+
+h4 {
+  @apply scroll-m-20 text-xl font-semibold tracking-tight;
+}
+
+/* Enhanced focus states for better accessibility */
+*:focus-visible {
+  @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+}
+
+/* Smooth transitions */
+* {
+  @apply transition-colors duration-200;
+}
+
+/* Better scrollbar styling */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-muted/30;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-muted-foreground/30 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-muted-foreground/50;
 }

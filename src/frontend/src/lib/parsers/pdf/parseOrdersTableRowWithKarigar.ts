@@ -57,5 +57,6 @@ export function parseOrdersTableRowWithKarigar(line: string, uploadTimestamp: bi
     isCustomerOrder,
     uploadDate: uploadTimestamp,
     createdAt: uploadTimestamp,
+    lastStatusChange: uploadTimestamp,
   };
 }

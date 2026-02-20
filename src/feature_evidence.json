@@ -2,10 +2,12 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-fix-the-global-layout-so-the-navigation-sidebar-including-the-mobile-left-sheet-menu-never-overlaps-or-obscures-page-content-across-routes-and-viewport-sizes",
-      "featureTitle": "Fix the global layout so the navigation/sidebar (including the mobile left Sheet menu) never overlaps or obscures page content across routes and viewport sizes.",
+      "featureId": "feature-fix-karigar-mapping-not-displaying-correctly-when-viewing-orders-across-all-tabs-today-delivered-hallmark-total-orders-customer-orders-and-individual-karigar-tabs-ensure-that-when-orders-are-filtered-or-displayed-in-any-tab-the-karigar-name-is-correctly-resolved-and-shown-from-the-master-design-mappings",
+      "featureTitle": "Fix karigar mapping not displaying correctly when viewing orders across all tabs (Today, Delivered, Hallmark, Total Orders, Customer Orders, and individual Karigar tabs). Ensure that when orders are filtered or displayed in any tab, the karigar name is correctly resolved and shown from the master design mappings.",
       "files": [
-        "frontend/src/components/layout/AppShell.tsx"
+        "frontend/src/lib/mapping/applyMasterDesignMapping.ts",
+        "frontend/src/lib/orders/resolveKarigarName.ts",
+        "frontend/src/pages/admin/AdminDashboardPage.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -24,10 +26,11 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-fix-the-date-picker-calendar-popovers-so-they-do-not-overlap-surrounding-ui-or-each-other-and-ensure-only-one-calendar-popover-can-remain-open-at-a-time-in-date-filter-uis-e-g-from-date-vs-to-date",
-      "featureTitle": "Fix the date-picker (calendar) popovers so they do not overlap surrounding UI or each other, and ensure only one calendar popover can remain open at a time in date filter UIs (e.g., From Date vs To Date).",
+      "featureId": "feature-fix-mobile-safari-rendering-issues-where-the-application-displays-at-50-zoom-ensure-the-viewport-is-configured-correctly-so-the-entire-application-interface-is-visible-on-a-single-page-without-requiring-zoom-adjustments-on-mobile-screens",
+      "featureTitle": "Fix mobile Safari rendering issues where the application displays at 50% zoom. Ensure the viewport is configured correctly so the entire application interface is visible on a single page without requiring zoom adjustments on mobile screens.",
       "files": [
-        "frontend/src/components/orders/OrdersFiltersBar.tsx"
+        "frontend/index.html",
+        "frontend/src/index.css"
       ],
       "components": [
         "authorization@4.0.0",
@@ -46,12 +49,10 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-fix-the-master-designs-page-overlap-issues-so-that-opening-the-karigar-list-and-any-action-menus-lists-does-not-overlap-or-collide-with-the-page-layout-header-actions-area-filter-badge-row-search-row-card-content-and-table",
-      "featureTitle": "Fix the Master Designs page overlap issues so that opening the Karigar List and any action menus/lists does not overlap or collide with the page layout (header/actions area, filter badge row, search row, card content, and table).",
+      "featureId": "feature-when-updating-or-assigning-a-design-code-to-a-different-karigar-in-the-master-designs-management-interface-automatically-populate-and-display-the-karigar-name-that-was-already-derived-from-the-uploaded-excel-file-the-karigar-dropdown-or-selection-field-should-show-all-existing-karigars-including-those-imported-from-excel",
+      "featureTitle": "When updating or assigning a design code to a different karigar in the master designs management interface, automatically populate and display the karigar name that was already derived from the uploaded Excel file. The karigar dropdown or selection field should show all existing karigars including those imported from Excel.",
       "files": [
-        "frontend/src/components/karigar/TotalKarigarListDialog.tsx",
-        "frontend/src/components/masterDesigns/MasterDesignsTable.tsx",
-        "frontend/src/pages/admin/MasterDesignsPage.tsx"
+        "frontend/src/components/masterDesigns/MasterDesignFormDialog.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -66,6 +67,28 @@
       ],
       "testIds": [
         "REQ-3"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-remove-individual-karigar-tab-names-from-the-total-orders-tab-in-the-admin-dashboard-create-a-separate-dedicated-tab-in-the-admin-dashboard-that-displays-all-karigar-specific-views-and-their-orders-keeping-the-total-orders-tab-clean-and-showing-only-aggregate-order-data-without-karigar-specific-tabs",
+      "featureTitle": "Remove individual karigar tab names from the Total Orders tab in the admin dashboard. Create a separate dedicated tab in the admin dashboard that displays all karigar-specific views and their orders, keeping the Total Orders tab clean and showing only aggregate order data without karigar-specific tabs.",
+      "files": [
+        "frontend/src/pages/admin/AdminDashboardPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "user-approval@3.0.0",
+        "blob-storage@4.0.0",
+        "http-outcalls@3.0.0"
+      ],
+      "testIds": [
+        "REQ-4"
       ],
       "confidence": "high"
     }

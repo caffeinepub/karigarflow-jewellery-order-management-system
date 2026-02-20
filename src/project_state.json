@@ -1,45 +1,62 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "New project",
+  "summary": "Admin dashboard application for managing karigars (workers), orders, and design codes with Excel import functionality",
   "architectural_notes": [
-    "User requested to avoid spending their credits while fixing issues (pause builds until confirmation / only make targeted changes)."
+    "Excel import system for karigar and design code data",
+    "Multi-tab admin dashboard (orders, karigars)",
+    "Mobile-responsive design required for Safari iPhone"
   ],
   "known_issues": [
-    "Sidebar is overlapping content in the UI layout.",
-    "Calendar component is overlapping content in the UI layout.",
-    "On the Master Design page, clicking Karigar List causes overlapping UI.",
-    "On the Master Design page, clicking Action List causes overlapping UI."
+    "Karigar mapping not displaying correctly across order tabs",
+    "Mobile Safari rendering issues - app shows at 50% zoom",
+    "Karigar names from Excel not auto-populating when updating/assigning design codes",
+    "Karigar tab names incorrectly appearing in total orders tab"
   ],
   "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-fix-the-global-layout-so-the-navigation-sidebar-including-the-mobile-left-sheet-menu-never-overlaps-or-obscures-page-content-across-routes-and-viewport-sizes",
-      "title": "Fix the global layout so the navigation/sidebar (including the mobile left Sheet menu) never overlaps or obscures page content across routes and viewport sizes.",
+      "id": "feature-fix-karigar-mapping-not-displaying-correctly-when-viewing-orders-across-all-tabs-today-delivered-hallmark-total-orders-customer-orders-and-individual-karigar-tabs-ensure-that-when-orders-are-filtered-or-displayed-in-any-tab-the-karigar-name-is-correctly-resolved-and-shown-from-the-master-design-mappings",
+      "title": "Fix karigar mapping not displaying correctly when viewing orders across all tabs (Today, Delivered, Hallmark, Total Orders, Customer Orders, and individual Karigar tabs). Ensure that when orders are filtered or displayed in any tab, the karigar name is correctly resolved and shown from the master design mappings.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-fix-the-date-picker-calendar-popovers-so-they-do-not-overlap-surrounding-ui-or-each-other-and-ensure-only-one-calendar-popover-can-remain-open-at-a-time-in-date-filter-uis-e-g-from-date-vs-to-date",
-      "title": "Fix the date-picker (calendar) popovers so they do not overlap surrounding UI or each other, and ensure only one calendar popover can remain open at a time in date filter UIs (e.g., From Date vs To Date).",
+      "id": "feature-fix-mobile-safari-rendering-issues-where-the-application-displays-at-50-zoom-ensure-the-viewport-is-configured-correctly-so-the-entire-application-interface-is-visible-on-a-single-page-without-requiring-zoom-adjustments-on-mobile-screens",
+      "title": "Fix mobile Safari rendering issues where the application displays at 50% zoom. Ensure the viewport is configured correctly so the entire application interface is visible on a single page without requiring zoom adjustments on mobile screens.",
       "reqIds": [
         "REQ-2"
       ],
       "version": 1
     },
     {
-      "id": "feature-fix-the-master-designs-page-overlap-issues-so-that-opening-the-karigar-list-and-any-action-menus-lists-does-not-overlap-or-collide-with-the-page-layout-header-actions-area-filter-badge-row-search-row-card-content-and-table",
-      "title": "Fix the Master Designs page overlap issues so that opening the Karigar List and any action menus/lists does not overlap or collide with the page layout (header/actions area, filter badge row, search row, card content, and table).",
+      "id": "feature-when-updating-or-assigning-a-design-code-to-a-different-karigar-in-the-master-designs-management-interface-automatically-populate-and-display-the-karigar-name-that-was-already-derived-from-the-uploaded-excel-file-the-karigar-dropdown-or-selection-field-should-show-all-existing-karigars-including-those-imported-from-excel",
+      "title": "When updating or assigning a design code to a different karigar in the master designs management interface, automatically populate and display the karigar name that was already derived from the uploaded Excel file. The karigar dropdown or selection field should show all existing karigars including those imported from Excel.",
       "reqIds": [
         "REQ-3"
       ],
       "version": 1
+    },
+    {
+      "id": "feature-remove-individual-karigar-tab-names-from-the-total-orders-tab-in-the-admin-dashboard-create-a-separate-dedicated-tab-in-the-admin-dashboard-that-displays-all-karigar-specific-views-and-their-orders-keeping-the-total-orders-tab-clean-and-showing-only-aggregate-order-data-without-karigar-specific-tabs",
+      "title": "Remove individual karigar tab names from the Total Orders tab in the admin dashboard. Create a separate dedicated tab in the admin dashboard that displays all karigar-specific views and their orders, keeping the Total Orders tab clean and showing only aggregate order data without karigar-specific tabs.",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "version": 1
     }
   ],
-  "new_feature_requests": [],
-  "projectName": "KarigarFlow",
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "Separate karigar tabs from total orders tab in admin dashboard",
+      "reqIds": [],
+      "status": "pending"
+    }
+  ],
+  "projectName": "Fix karigar mapping display, mobile Safari zoom issues, and separate karigar tabs from total orders",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }
