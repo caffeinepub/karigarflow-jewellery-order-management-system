@@ -1,34 +1,52 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-20T21:35:29.450Z",
-  "summary": "The diff implements Excel reconciliation, barcode scanning (Fast and Batch modes), Hallmark management with timestamp tracking, and comprehensive visibility fixes by changing text colors to white/light throughout the application. Backend changes add status transitions, timestamp tracking, and filtering for 'Given for Hallmark' and 'Billed' statuses. All major requirements appear to be implemented.",
+  "generatedAt": "2026-02-21T06:27:17.582Z",
+  "summary": "The diff implements comprehensive fixes for both the authentication loop (REQ-1) and UI visibility issues (REQ-2). The authentication flow has been refactored with sequential state checks, improved error handling, and proper loading states. The UI has been updated with a light theme, high-contrast styling, and explicit color definitions throughout the application to ensure readability.",
   "missing_requirements": [],
-  "hallucinated_features": [],
-  "confidence": 0.88,
+  "hallucinated_features": [
+    {
+      "description": "Added hallmark management features including 'Given to Hallmark' and 'Return from Hallmark' buttons, hallmark filter dropdown, and useGetGivenToHallmarkOrders query",
+      "reason": "The BuildRequest explicitly states 'Do not modify the backend' and 'Non-goals: Adding new features or functionality'. The diff adds hallmark-related features (Given to Hallmark buttons, Return from Hallmark functionality, hallmark filter dropdown) that were not requested in either REQ-1 or REQ-2.",
+      "evidence": [
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/pages/admin/AdminDashboardPage.tsx",
+        "frontend-file-summaries.txt"
+      ]
+    },
+    {
+      "description": "Added 'Today' tab in staff dashboard showing orders with activity today using isTodayOrder utility",
+      "reason": "The BuildRequest non-goals explicitly state 'Adding new features or functionality'. The 'Today' tab with activity filtering is a new feature not requested in REQ-1 or REQ-2.",
+      "evidence": [
+        "frontend/src/pages/staff/StaffDashboardPage.tsx",
+        "frontend-file-summaries.txt"
+      ]
+    },
+    {
+      "description": "Added tap-only navigation, light red row highlighting, Cancel button in Delivered tab, Karigar tab with export options, and PartialFulfillmentDialog enhancements",
+      "reason": "These UI/UX enhancements go beyond the scope of REQ-2 which focused on fixing visibility/contrast issues. While some styling changes were necessary, features like tap-only navigation mode, new tabs, export options, and dialog enhancements constitute new functionality explicitly excluded in non-goals.",
+      "evidence": [
+        "frontend/src/pages/admin/AdminDashboardPage.tsx",
+        "frontend-file-summaries.txt"
+      ]
+    },
+    {
+      "description": "Enhanced connectivity status bar with pending sync queue count, last sync time, and manual sync trigger",
+      "reason": "Adding sync queue functionality and manual sync triggers constitutes new feature development, which is explicitly listed in non-goals as 'Adding new features or functionality'.",
+      "evidence": [
+        "frontend/src/components/status/ConnectivityStatusBar.tsx",
+        "frontend-file-summaries.txt"
+      ]
+    }
+  ],
+  "confidence": 0.85,
   "changed_files": [
-    "backend/main.mo",
     "frontend-file-summaries.txt",
     "frontend/src/App.tsx",
-    "frontend/src/components/barcode/BarcodeOrdersList.tsx",
-    "frontend/src/components/barcode/BatchOrdersTable.tsx",
-    "frontend/src/components/barcode/BatchScannerView.tsx",
-    "frontend/src/components/barcode/FastScannerView.tsx",
-    "frontend/src/components/hallmark/HallmarkOrdersGroupedByDate.tsx",
-    "frontend/src/components/hallmark/HallmarkOrdersTable.tsx",
-    "frontend/src/components/layout/AppShell.tsx",
-    "frontend/src/components/orders/OrdersFiltersBar.tsx",
-    "frontend/src/components/reconciliation/ReconciliationFileUpload.tsx",
-    "frontend/src/components/reconciliation/ReconciliationReport.tsx",
-    "frontend/src/hooks/useQueries.ts",
-    "frontend/src/index.css",
-    "frontend/src/lib/barcode/parseBarcodeData.ts",
-    "frontend/src/lib/orders/getOrderTimestamp.ts",
-    "frontend/src/lib/orders/statusConstants.ts",
-    "frontend/src/lib/reconciliation/compareOrdersWithExcel.ts",
-    "frontend/src/pages/admin/BarcodeTaggingPage.tsx",
-    "frontend/src/pages/admin/ExcelReconciliationPage.tsx",
-    "frontend/src/pages/admin/HallmarkManagementPage.tsx",
+    "frontend/src/hooks/useCurrentUser.ts",
+    "frontend/src/hooks/useEffectiveAppRole.ts",
+    "frontend/src/pages/LoginPage.tsx",
+    "frontend/src/pages/karigar/KarigarDashboardPage.tsx",
     "project_state.json"
   ]
 }

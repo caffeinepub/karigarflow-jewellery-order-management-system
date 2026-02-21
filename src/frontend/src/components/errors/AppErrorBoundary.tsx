@@ -1,6 +1,6 @@
 import { Component, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, LogOut } from 'lucide-react';
+import { AlertCircle, LogOut, RefreshCw } from 'lucide-react';
 import { presentError } from '@/utils/errorPresentation';
 import { ErrorDetailsPanel } from './ErrorDetailsPanel';
 import { clearPwaCaches } from '../../pwa/clearPwaCaches';
@@ -21,14 +21,27 @@ export class AppErrorBoundary extends Component<Props, State> {
   }
 
   static getDerivedStateFromError(error: Error): State {
+    console.error('[AppErrorBoundary] Error caught:', error);
     return { hasError: true, error };
   }
 
   componentDidCatch(error: Error, errorInfo: any) {
-    console.error('App error:', error, errorInfo);
+    console.error('[AppErrorBoundary] Component error:', error, errorInfo);
+    
+    // Check if this is an authentication-related error
+    const errorMsg = error.message || String(error);
+    if (errorMsg.includes('Unauthorized') || errorMsg.includes('permission') || errorMsg.includes('Actor not available')) {
+      console.error('[AppErrorBoundary] Authentication-related error detected');
+    }
   }
 
+  handleReload = () => {
+    console.log('[AppErrorBoundary] Reloading page...');
+    window.location.reload();
+  };
+
   handleLogout = async () => {
+    console.log('[AppErrorBoundary] Logging out and clearing session...');
     try {
       // Clear PWA caches before clearing storage
       await clearPwaCaches();
@@ -38,7 +51,7 @@ export class AppErrorBoundary extends Component<Props, State> {
       // Reload to reset state
       window.location.href = '/';
     } catch (error) {
-      console.error('Logout failed:', error);
+      console.error('[AppErrorBoundary] Logout failed:', error);
       window.location.reload();
     }
   };
@@ -67,7 +80,8 @@ export class AppErrorBoundary extends Component<Props, State> {
             )}
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Button onClick={() => window.location.reload()}>
+              <Button onClick={this.handleReload} className="gap-2">
+                <RefreshCw className="h-4 w-4" />
                 Reload Page
               </Button>
               <Button variant="outline" onClick={this.handleLogout} className="gap-2">

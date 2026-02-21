@@ -1,67 +1,72 @@
 import { useQuery } from '@tanstack/react-query';
-import { useSafeActor } from './useSafeActor';
+import { useActor } from './useActor';
 import type { UserProfile } from '../backend';
-import { classifyBootstrapError, getSafeErrorString } from '@/utils/bootstrapErrorClassification';
 
+/**
+ * Fetches the current user's profile from the backend.
+ * Returns null if no profile exists (first-time user).
+ */
 export function useCurrentUser() {
-  const { actor, isFetching: actorFetching, isError: actorError, error: actorErrorObj } = useSafeActor();
+  const { actor, isFetching: actorFetching } = useActor();
 
   const query = useQuery<UserProfile | null>({
     queryKey: ['currentUserProfile'],
     queryFn: async () => {
-      if (!actor) throw new Error('Actor not available');
-      console.log('[profile/fetch] Fetching user profile...');
+      console.log('[useCurrentUser] Fetching user profile...');
+      if (!actor) {
+        console.error('[useCurrentUser] Actor not available');
+        throw new Error('Actor not available');
+      }
+      
       try {
         const profile = await actor.getCallerUserProfile();
-        console.log('[profile/fetch] Profile fetch succeeded:', profile ? 'profile found' : 'no profile');
+        console.log('[useCurrentUser] Profile fetched successfully:', profile);
         return profile;
-      } catch (error) {
-        const errorMsg = getSafeErrorString(error);
-        const classification = classifyBootstrapError(error);
+      } catch (error: any) {
+        console.error('[useCurrentUser] Failed to fetch profile:', error);
         
-        // Log with classification tag if available
-        if (classification.diagnosticTag) {
-          console.error(classification.diagnosticTag, errorMsg);
-        } else {
-          console.error('[profile/fetch] Profile fetch failed:', errorMsg);
+        // Don't retry on auth errors or timeouts
+        const errorMessage = error?.message || String(error);
+        const isAuthError = errorMessage.includes('Unauthorized') || 
+                           errorMessage.includes('Anonymous') ||
+                           errorMessage.includes('not authenticated');
+        const isTimeoutError = errorMessage.includes('timeout') || 
+                              errorMessage.includes('timed out');
+        
+        if (isAuthError || isTimeoutError) {
+          console.log('[useCurrentUser] Auth/timeout error detected, not retrying');
+          throw error;
         }
         
-        // Check if it's an authorization error
-        if (errorMsg.includes('Unauthorized') || errorMsg.includes('permission')) {
-          console.error('[profile/fetch] Authorization/permission failure detected');
-        }
         throw error;
       }
     },
-    enabled: !!actor && !actorFetching && !actorError,
-    retry: (failureCount, error) => {
-      // Don't retry on auth errors
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      if (errorMsg.includes('Unauthorized') || errorMsg.includes('permission')) {
+    enabled: !!actor && !actorFetching,
+    retry: (failureCount, error: any) => {
+      // Don't retry on auth errors or timeouts
+      const errorMessage = error?.message || String(error);
+      const isAuthError = errorMessage.includes('Unauthorized') || 
+                         errorMessage.includes('Anonymous') ||
+                         errorMessage.includes('not authenticated');
+      const isTimeoutError = errorMessage.includes('timeout') || 
+                            errorMessage.includes('timed out');
+      
+      if (isAuthError || isTimeoutError) {
+        console.log('[useCurrentUser] Not retrying due to auth/timeout error');
         return false;
       }
+      
+      // Retry up to 2 times for other errors
       return failureCount < 2;
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes - prevents refetch on navigation
-    gcTime: 10 * 60 * 1000, // 10 minutes - keep in cache longer
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  // If actor creation failed, surface that error
-  if (actorError) {
-    return {
-      ...query,
-      userProfile: null,
-      isLoading: false,
-      isFetched: true,
-      isError: true,
-      error: actorErrorObj,
-    };
-  }
-
   return {
-    ...query,
     userProfile: query.data,
     isLoading: actorFetching || query.isLoading,
     isFetched: !!actor && query.isFetched,
+    isError: query.isError,
+    error: query.error,
   };
 }

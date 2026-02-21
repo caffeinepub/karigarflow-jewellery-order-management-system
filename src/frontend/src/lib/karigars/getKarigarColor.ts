@@ -1,60 +1,33 @@
-/**
- * Utility function to assign consistent colors to karigar names
- * Uses a deterministic hash-based approach to ensure the same karigar
- * always gets the same color across the application
- */
+import { normalizeKarigarName } from './normalizeKarigarName';
 
-const KARIGAR_COLORS = [
-  'emerald',
-  'amber',
-  'rose',
-  'blue',
-  'violet',
-  'orange',
-  'cyan',
-  'pink',
-  'teal',
-  'indigo',
-  'lime',
-  'fuchsia',
-] as const;
-
-type KarigarColor = typeof KARIGAR_COLORS[number];
-
-/**
- * Simple hash function to convert a string to a number
- */
+// Deterministic hash function for consistent color assignment
 function hashString(str: string): number {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash = hash & hash; // Convert to 32-bit integer
   }
   return Math.abs(hash);
 }
 
-/**
- * Get a consistent color for a karigar name
- */
-export function getKarigarColor(karigarName: string): KarigarColor {
-  const hash = hashString(karigarName.toLowerCase().trim());
-  const index = hash % KARIGAR_COLORS.length;
-  return KARIGAR_COLORS[index];
-}
+// Light theme color palette with good contrast
+const COLOR_PALETTE = [
+  { card: 'bg-blue-100 border-blue-300', badge: 'bg-blue-500 text-white' },
+  { card: 'bg-green-100 border-green-300', badge: 'bg-green-500 text-white' },
+  { card: 'bg-purple-100 border-purple-300', badge: 'bg-purple-500 text-white' },
+  { card: 'bg-pink-100 border-pink-300', badge: 'bg-pink-500 text-white' },
+  { card: 'bg-yellow-100 border-yellow-300', badge: 'bg-yellow-600 text-white' },
+  { card: 'bg-indigo-100 border-indigo-300', badge: 'bg-indigo-500 text-white' },
+  { card: 'bg-red-100 border-red-300', badge: 'bg-red-500 text-white' },
+  { card: 'bg-teal-100 border-teal-300', badge: 'bg-teal-500 text-white' },
+  { card: 'bg-orange-100 border-orange-300', badge: 'bg-orange-500 text-white' },
+  { card: 'bg-cyan-100 border-cyan-300', badge: 'bg-cyan-500 text-white' },
+];
 
-/**
- * Get CSS classes for a karigar card based on their name
- */
-export function getKarigarCardClasses(karigarName: string): string {
-  const color = getKarigarColor(karigarName);
-  return `border-${color}-500 bg-gradient-to-br from-${color}-500 to-${color}-600 text-white shadow-lg hover:shadow-xl`;
-}
-
-/**
- * Get CSS classes for a karigar badge/label based on their name
- */
-export function getKarigarBadgeClasses(karigarName: string): string {
-  const color = getKarigarColor(karigarName);
-  return `bg-${color}-100 text-${color}-800 dark:bg-${color}-900/30 dark:text-${color}-300 border-${color}-200 dark:border-${color}-800`;
+export function getKarigarColor(karigarName: string): { card: string; badge: string } {
+  const normalized = normalizeKarigarName(karigarName);
+  const hash = hashString(normalized);
+  const index = hash % COLOR_PALETTE.length;
+  return COLOR_PALETTE[index];
 }

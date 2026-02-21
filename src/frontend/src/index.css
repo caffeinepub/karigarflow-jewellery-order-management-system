@@ -4,58 +4,58 @@
 
 @layer base {
   :root {
-    /* Cyber Bunker theme - Deep black with electric purple/cyan accents */
-    --background: oklch(0% 0 0); /* Pure black #000000 */
-    --foreground: oklch(98% 0 0); /* Near-white for maximum contrast */
-    --card: oklch(12% 0.01 270); /* Dark charcoal #1F1F1F */
-    --card-foreground: oklch(98% 0 0); /* Near-white */
-    --popover: oklch(12% 0.01 270); /* Dark charcoal */
-    --popover-foreground: oklch(98% 0 0); /* Near-white */
+    /* Light theme - Clean and professional */
+    --background: oklch(100% 0 0); /* Pure white #FFFFFF */
+    --foreground: oklch(9% 0 0); /* Near-black for text */
+    --card: oklch(98% 0 0); /* Very light gray #FAFAFA */
+    --card-foreground: oklch(9% 0 0); /* Near-black */
+    --popover: oklch(100% 0 0); /* Pure white */
+    --popover-foreground: oklch(9% 0 0); /* Near-black */
     --primary: oklch(58% 0.24 285); /* Electric purple #7C3AED */
     --primary-foreground: oklch(100% 0 0); /* Pure white */
     --secondary: oklch(60% 0.15 195); /* Cyan/teal #14B8A6 */
     --secondary-foreground: oklch(100% 0 0); /* Pure white */
-    --accent: oklch(60% 0.15 195); /* Cyan/teal #14B8A6 */
-    --accent-foreground: oklch(100% 0 0); /* Pure white */
-    --muted: oklch(25% 0.02 270); /* Darker gray */
-    --muted-foreground: oklch(85% 0.01 270); /* Very light gray for readability */
+    --accent: oklch(96% 0.01 270); /* Very light gray accent */
+    --accent-foreground: oklch(9% 0 0); /* Near-black */
+    --muted: oklch(96% 0.01 270); /* Light gray */
+    --muted-foreground: oklch(45% 0.01 270); /* Medium gray for secondary text */
     --destructive: oklch(55% 0.22 25); /* Red for errors */
     --destructive-foreground: oklch(100% 0 0); /* Pure white */
     --success: oklch(60% 0.15 145); /* Green for success */
     --success-foreground: oklch(100% 0 0); /* Pure white */
     --warning: oklch(70% 0.18 80); /* Yellow for warnings */
     --warning-foreground: oklch(20% 0.02 80); /* Dark text */
-    --border: oklch(20% 0.03 285); /* Subtle purple border */
-    --input: oklch(20% 0.03 285); /* Subtle purple border */
+    --border: oklch(90% 0.01 270); /* Light gray border */
+    --input: oklch(90% 0.01 270); /* Light gray border */
     --ring: oklch(58% 0.24 285); /* Electric purple ring */
     --radius: 0.5rem;
   }
 
   .dark {
-    /* Dark mode uses same Cyber Bunker theme */
-    --background: oklch(0% 0 0); /* Pure black #000000 */
-    --foreground: oklch(98% 0 0); /* Near-white for maximum contrast */
-    --card: oklch(12% 0.01 270); /* Dark charcoal #1F1F1F */
-    --card-foreground: oklch(98% 0 0); /* Near-white */
-    --popover: oklch(12% 0.01 270); /* Dark charcoal */
-    --popover-foreground: oklch(98% 0 0); /* Near-white */
-    --primary: oklch(58% 0.24 285); /* Electric purple #7C3AED */
-    --primary-foreground: oklch(100% 0 0); /* Pure white */
-    --secondary: oklch(60% 0.15 195); /* Cyan/teal #14B8A6 */
-    --secondary-foreground: oklch(100% 0 0); /* Pure white */
-    --accent: oklch(60% 0.15 195); /* Cyan/teal #14B8A6 */
-    --accent-foreground: oklch(100% 0 0); /* Pure white */
-    --muted: oklch(25% 0.02 270); /* Darker gray */
-    --muted-foreground: oklch(85% 0.01 270); /* Very light gray for readability */
-    --destructive: oklch(55% 0.22 25); /* Red for errors */
-    --destructive-foreground: oklch(100% 0 0); /* Pure white */
-    --success: oklch(60% 0.15 145); /* Green for success */
-    --success-foreground: oklch(100% 0 0); /* Pure white */
-    --warning: oklch(70% 0.18 80); /* Yellow for warnings */
-    --warning-foreground: oklch(20% 0.02 80); /* Dark text */
-    --border: oklch(20% 0.03 285); /* Subtle purple border */
-    --input: oklch(20% 0.03 285); /* Subtle purple border */
-    --ring: oklch(58% 0.24 285); /* Electric purple ring */
+    /* Dark mode - same light theme for consistency */
+    --background: oklch(100% 0 0);
+    --foreground: oklch(9% 0 0);
+    --card: oklch(98% 0 0);
+    --card-foreground: oklch(9% 0 0);
+    --popover: oklch(100% 0 0);
+    --popover-foreground: oklch(9% 0 0);
+    --primary: oklch(58% 0.24 285);
+    --primary-foreground: oklch(100% 0 0);
+    --secondary: oklch(60% 0.15 195);
+    --secondary-foreground: oklch(100% 0 0);
+    --accent: oklch(96% 0.01 270);
+    --accent-foreground: oklch(9% 0 0);
+    --muted: oklch(96% 0.01 270);
+    --muted-foreground: oklch(45% 0.01 270);
+    --destructive: oklch(55% 0.22 25);
+    --destructive-foreground: oklch(100% 0 0);
+    --success: oklch(60% 0.15 145);
+    --success-foreground: oklch(100% 0 0);
+    --warning: oklch(70% 0.18 80);
+    --warning-foreground: oklch(20% 0.02 80);
+    --border: oklch(90% 0.01 270);
+    --input: oklch(90% 0.01 270);
+    --ring: oklch(58% 0.24 285);
   }
 }
 
@@ -69,34 +69,9 @@
     -webkit-text-size-adjust: 100%;
   }
 
-  /* Subtle grid pattern background */
+  /* Remove dark grid pattern */
   body::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: -1;
-    background-image: 
-      linear-gradient(rgba(124, 58, 237, 0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(124, 58, 237, 0.03) 1px, transparent 1px);
-    background-size: 50px 50px;
-    pointer-events: none;
-  }
-
-  /* Icon styling - white by default, purple on hover */
-  svg.lucide,
-  .lucide {
-    color: oklch(98% 0 0);
-    transition: color 0.2s ease;
-  }
-
-  button:hover svg.lucide,
-  button:hover .lucide,
-  a:hover svg.lucide,
-  a:hover .lucide {
-    color: oklch(58% 0.24 285);
+    content: none;
   }
 }
 
@@ -128,11 +103,11 @@
   }
 }
 
-/* Purple glow effect for cards */
+/* Subtle shadow for cards */
 .card-glow {
-  box-shadow: 0 0 20px rgba(124, 58, 237, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .card-glow-subtle {
-  box-shadow: 0 0 10px rgba(124, 58, 237, 0.15);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
 }

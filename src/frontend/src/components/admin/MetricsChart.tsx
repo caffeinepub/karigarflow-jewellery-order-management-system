@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Package, Weight, Hash, ShoppingCart } from 'lucide-react';
+import { Package, TrendingUp, Users, DollarSign } from 'lucide-react';
+import { deriveMetrics } from '../../lib/orders/deriveMetrics';
 import type { PersistentOrder } from '../../backend';
 
 interface MetricsChartProps {
@@ -8,65 +9,56 @@ interface MetricsChartProps {
 }
 
 export function MetricsChart({ orders }: MetricsChartProps) {
-  const metrics = useMemo(() => {
-    const totalOrders = orders.length;
-    const totalQty = orders.reduce((sum, order) => sum + Number(order.qty), 0);
-    const totalWeight = orders.reduce((sum, order) => sum + (order.weight || 0), 0);
-    const customerOrders = orders.filter((order) => order.isCustomerOrder).length;
+  const metrics = useMemo(() => deriveMetrics(orders), [orders]);
 
-    return {
-      totalOrders,
-      totalQty,
-      totalWeight: totalWeight.toFixed(2),
-      customerOrders,
-    };
-  }, [orders]);
+  const metricCards = [
+    {
+      title: 'Total Orders',
+      value: metrics.totalOrders,
+      icon: Package,
+      color: 'text-primary',
+      bgColor: 'bg-primary/10',
+    },
+    {
+      title: 'Total Quantity',
+      value: metrics.totalQty,
+      icon: TrendingUp,
+      color: 'text-secondary',
+      bgColor: 'bg-secondary/10',
+    },
+    {
+      title: 'Unique Karigars',
+      value: metrics.uniqueKarigars,
+      icon: Users,
+      color: 'text-success',
+      bgColor: 'bg-success/10',
+    },
+    {
+      title: 'Unique Designs',
+      value: metrics.uniqueDesigns,
+      icon: DollarSign,
+      color: 'text-warning',
+      bgColor: 'bg-warning/10',
+    },
+  ];
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      <Card className="bg-card border-primary/20 card-glow-subtle">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-foreground">Total Orders</CardTitle>
-          <Package className="h-5 w-5 text-primary" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-foreground">{metrics.totalOrders}</div>
-          <p className="text-xs text-muted-foreground">Active orders in system</p>
-        </CardContent>
-      </Card>
-
-      <Card className="bg-card border-accent/20 card-glow-subtle">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-foreground">Total Quantity</CardTitle>
-          <Hash className="h-5 w-5 text-accent" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-foreground">{metrics.totalQty}</div>
-          <p className="text-xs text-muted-foreground">Total pieces</p>
-        </CardContent>
-      </Card>
-
-      <Card className="bg-card border-secondary/20 card-glow-subtle">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-foreground">Total Weight</CardTitle>
-          <Weight className="h-5 w-5 text-secondary" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-foreground">{metrics.totalWeight}g</div>
-          <p className="text-xs text-muted-foreground">Combined weight</p>
-        </CardContent>
-      </Card>
-
-      <Card className="bg-card border-primary/20 card-glow-subtle">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-foreground">Customer Orders</CardTitle>
-          <ShoppingCart className="h-5 w-5 text-primary" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-foreground">{metrics.customerOrders}</div>
-          <p className="text-xs text-muted-foreground">Custom orders</p>
-        </CardContent>
-      </Card>
+      {metricCards.map((metric) => (
+        <Card key={metric.title} className="bg-card border-border shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-card-foreground">
+              {metric.title}
+            </CardTitle>
+            <div className={`p-2 rounded-lg ${metric.bgColor}`}>
+              <metric.icon className={`h-4 w-4 ${metric.color}`} />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-card-foreground">{metric.value}</div>
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
 }

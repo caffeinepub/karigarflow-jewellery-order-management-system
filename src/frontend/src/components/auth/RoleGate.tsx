@@ -2,6 +2,7 @@ import { type ReactNode } from 'react';
 import { useEffectiveAppRole } from '../../hooks/useEffectiveAppRole';
 import { AccessDeniedScreen } from './AccessDeniedScreen';
 import { AppRole } from '../../backend';
+import { Loader2 } from 'lucide-react';
 
 interface RoleGateProps {
   allowedRoles: AppRole[];
@@ -11,24 +12,38 @@ interface RoleGateProps {
 export function RoleGate({ allowedRoles, children }: RoleGateProps) {
   const { effectiveRole, isLoading, isResolved } = useEffectiveAppRole();
 
-  // Only show loading when actively loading and not yet resolved
-  if (isLoading && !isResolved) {
+  console.log('[RoleGate] State:', {
+    isLoading,
+    isResolved,
+    effectiveRole,
+    allowedRoles,
+  });
+
+  // Show loading while role is being determined
+  if (isLoading || !isResolved) {
+    console.log('[RoleGate] Showing loading state');
     return (
       <div className="flex h-[60vh] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <div className="text-center space-y-4">
+          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
+          <p className="text-sm text-muted-foreground">Checking permissions...</p>
+        </div>
       </div>
     );
   }
 
   // If resolved but no role, show access denied
-  if (isResolved && !effectiveRole) {
+  if (!effectiveRole) {
+    console.log('[RoleGate] No effective role, showing access denied');
     return <AccessDeniedScreen />;
   }
 
   // Check role permission
-  if (effectiveRole && !allowedRoles.includes(effectiveRole)) {
+  if (!allowedRoles.includes(effectiveRole)) {
+    console.log('[RoleGate] Role not allowed, showing access denied. User role:', effectiveRole, 'Allowed:', allowedRoles);
     return <AccessDeniedScreen />;
   }
 
+  console.log('[RoleGate] ✓ Access granted for role:', effectiveRole);
   return <>{children}</>;
 }

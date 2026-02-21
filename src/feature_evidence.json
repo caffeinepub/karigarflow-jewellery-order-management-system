@@ -2,12 +2,13 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-fix-critical-black-on-black-text-visibility-issue-across-the-entire-application-by-changing-all-text-colors-to-white-or-light-colors-that-contrast-properly-with-the-dark-cyber-bunker-theme-background",
-      "featureTitle": "Fix critical black-on-black text visibility issue across the entire application by changing all text colors to white or light colors that contrast properly with the dark Cyber Bunker theme background",
+      "featureId": "feature-fix-the-authentication-loop-where-after-internet-identity-login-the-app-gets-stuck-on-loading-your-profile-and-redirects-back-to-the-login-screen-instead-of-reaching-the-dashboard-the-authentication-state-should-properly-complete-login-load-the-user-profile-and-navigate-to-the-role-appropriate-dashboard-admin-staff-karigar-without-cycling-between-loading-and-logout-states",
+      "featureTitle": "Fix the authentication loop where after Internet Identity login, the app gets stuck on 'Loading your profile...' and redirects back to the login screen instead of reaching the dashboard. The authentication state should properly complete login, load the user profile, and navigate to the role-appropriate dashboard (admin/staff/karigar) without cycling between loading and logout states.",
       "files": [
-        "frontend/src/components/layout/AppShell.tsx",
-        "frontend/src/components/orders/OrdersFiltersBar.tsx",
-        "frontend/src/index.css"
+        "frontend/src/App.tsx",
+        "frontend/src/hooks/useCurrentUser.ts",
+        "frontend/src/hooks/useEffectiveAppRole.ts",
+        "frontend/src/pages/LoginPage.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -28,15 +29,11 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-create-an-excel-order-reconciliation-page-that-allows-uploading-customer-portal-excel-files-and-comparing-them-against-existing-orders-excluding-orders-with-billed-status-to-identify-missing-orders-and-potential-duplicates",
-      "featureTitle": "Create an Excel Order Reconciliation page that allows uploading customer portal Excel files and comparing them against existing orders (excluding orders with 'Billed' status) to identify missing orders and potential duplicates",
+      "featureId": "feature-fix-the-ui-visibility-problem-where-all-screens-appear-with-black-text-on-a-beige-tan-patterned-background-making-all-content-invisible-and-unreadable-implement-proper-high-contrast-color-scheme-with-readable-text-colors-visible-buttons-clear-data-displays-and-appropriate-backgrounds-throughout-the-entire-application-so-users-can-view-data-and-access-all-app-features",
+      "featureTitle": "Fix the UI visibility problem where all screens appear with black text on a beige/tan patterned background, making all content invisible and unreadable. Implement proper high-contrast color scheme with readable text colors, visible buttons, clear data displays, and appropriate backgrounds throughout the entire application so users can view data and access all app features.",
       "files": [
-        "frontend/src/App.tsx",
-        "frontend/src/components/layout/AppShell.tsx",
-        "frontend/src/components/reconciliation/ReconciliationFileUpload.tsx",
-        "frontend/src/components/reconciliation/ReconciliationReport.tsx",
-        "frontend/src/lib/reconciliation/compareOrdersWithExcel.ts",
-        "frontend/src/pages/admin/ExcelReconciliationPage.tsx"
+        "frontend/src/pages/LoginPage.tsx",
+        "frontend/src/pages/karigar/KarigarDashboardPage.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -53,94 +50,6 @@
       ],
       "testIds": [
         "REQ-2"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-build-a-barcode-tagging-section-with-fast-scanner-mode-that-continuously-scans-code-128-barcodes-from-mobile-camera-or-usb-scanner-automatically-matches-orders-by-extracting-design-code-and-order-number-from-scanned-data-and-marks-selected-orders-as-given-for-hallmark-status",
-      "featureTitle": "Build a Barcode Tagging section with Fast Scanner Mode that continuously scans Code 128 barcodes (from mobile camera or USB scanner), automatically matches orders by extracting design code and order number from scanned data, and marks selected orders as 'Given for Hallmark' status",
-      "files": [
-        "frontend/src/App.tsx",
-        "frontend/src/components/barcode/BarcodeOrdersList.tsx",
-        "frontend/src/components/barcode/FastScannerView.tsx",
-        "frontend/src/components/layout/AppShell.tsx",
-        "frontend/src/hooks/useQueries.ts",
-        "frontend/src/lib/barcode/parseBarcodeData.ts",
-        "frontend/src/pages/admin/BarcodeTaggingPage.tsx"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0",
-        "user-approval@3.0.0",
-        "blob-storage@4.0.0",
-        "http-outcalls@3.0.0",
-        "camera@1.0.0",
-        "qr-code@1.0.0"
-      ],
-      "testIds": [
-        "REQ-3"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-add-batch-scanner-mode-to-the-barcode-tagging-section-that-allows-scanning-multiple-barcodes-to-build-a-list-reviewing-all-scanned-items-together-and-bulk-marking-all-as-given-for-hallmark-at-once",
-      "featureTitle": "Add Batch Scanner Mode to the Barcode Tagging section that allows scanning multiple barcodes to build a list, reviewing all scanned items together, and bulk marking all as 'Given for Hallmark' at once",
-      "files": [
-        "frontend/src/components/barcode/BatchOrdersTable.tsx",
-        "frontend/src/components/barcode/BatchScannerView.tsx",
-        "frontend/src/pages/admin/BarcodeTaggingPage.tsx"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0",
-        "user-approval@3.0.0",
-        "blob-storage@4.0.0",
-        "http-outcalls@3.0.0",
-        "camera@1.0.0",
-        "qr-code@1.0.0"
-      ],
-      "testIds": [
-        "REQ-4"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-implement-day-wise-timestamp-tracking-for-given-for-hallmark-status-changes-and-add-functionality-to-select-multiple-given-for-hallmark-orders-and-bulk-change-their-status-to-billed",
-      "featureTitle": "Implement day-wise timestamp tracking for 'Given for Hallmark' status changes and add functionality to select multiple 'Given for Hallmark' orders and bulk change their status to 'Billed'",
-      "files": [
-        "frontend/src/App.tsx",
-        "frontend/src/components/hallmark/HallmarkOrdersGroupedByDate.tsx",
-        "frontend/src/components/hallmark/HallmarkOrdersTable.tsx",
-        "frontend/src/components/layout/AppShell.tsx",
-        "frontend/src/hooks/useQueries.ts",
-        "frontend/src/lib/orders/getOrderTimestamp.ts",
-        "frontend/src/lib/orders/statusConstants.ts",
-        "frontend/src/pages/admin/BarcodeTaggingPage.tsx",
-        "frontend/src/pages/admin/HallmarkManagementPage.tsx"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0",
-        "user-approval@3.0.0",
-        "blob-storage@4.0.0",
-        "http-outcalls@3.0.0",
-        "camera@1.0.0",
-        "qr-code@1.0.0"
-      ],
-      "testIds": [
-        "REQ-5"
       ],
       "confidence": "high"
     }

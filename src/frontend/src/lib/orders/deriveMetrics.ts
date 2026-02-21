@@ -15,6 +15,8 @@ export interface OrderMetrics {
   totalQty: number;
   totalWeight: number;
   customerOrdersCount: number;
+  uniqueKarigars: number;
+  uniqueDesigns: number;
   byKarigar: Record<string, KarigarStats>;
 }
 
@@ -29,6 +31,8 @@ export function deriveMetrics(orders: PersistentOrder[]): OrderMetrics {
   });
   
   const byKarigar: Record<string, KarigarStats> = {};
+  const uniqueKarigarIds = new Set<string>();
+  const uniqueDesignCodes = new Set<string>();
   let totalQty = 0;
   let totalWeight = 0;
   let customerOrdersCount = 0;
@@ -43,6 +47,10 @@ export function deriveMetrics(orders: PersistentOrder[]): OrderMetrics {
     if (order.isCustomerOrder) {
       customerOrdersCount++;
     }
+
+    // Track unique karigars and designs
+    uniqueKarigarIds.add(order.karigarId);
+    uniqueDesignCodes.add(order.designCode);
 
     const karigarName = formatKarigarName(order.karigarId);
     if (!byKarigar[karigarName]) {
@@ -63,6 +71,8 @@ export function deriveMetrics(orders: PersistentOrder[]): OrderMetrics {
     totalQty,
     totalWeight,
     customerOrdersCount,
+    uniqueKarigars: uniqueKarigarIds.size,
+    uniqueDesigns: uniqueDesignCodes.size,
     byKarigar,
   };
 }

@@ -1,103 +1,98 @@
 import { useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Users, X } from 'lucide-react';
-import { formatKarigarName } from '../../lib/orders/formatKarigarName';
-import { getKarigarBadgeClasses } from '../../lib/karigars/getKarigarColor';
+import { Badge } from '@/components/ui/badge';
+import { X } from 'lucide-react';
+import { getKarigarColor } from '../../lib/karigars/getKarigarColor';
+import { resolveKarigarName } from '../../lib/orders/resolveKarigarName';
+import { useListKarigarReference } from '../../hooks/useQueries';
 import type { PersistentOrder } from '../../backend';
 
 interface KarigarSummaryCardsProps {
   orders: PersistentOrder[];
   selectedKarigar: string | null;
-  onKarigarSelect: (karigar: string) => void;
+  onKarigarSelect: (karigarId: string) => void;
   onKarigarDeselect: () => void;
 }
 
-export function KarigarSummaryCards({ orders, selectedKarigar, onKarigarSelect, onKarigarDeselect }: KarigarSummaryCardsProps) {
-  const karigarStats = useMemo(() => {
-    const stats = new Map<string, { totalOrders: number; totalQty: number; karigarId: string }>();
-    
-    orders.forEach(order => {
-      const karigar = formatKarigarName(order.karigarId);
-      if (karigar === 'Unassigned') return;
-      
-      const current = stats.get(order.karigarId) || { totalOrders: 0, totalQty: 0, karigarId: order.karigarId };
-      stats.set(order.karigarId, {
-        totalOrders: current.totalOrders + 1,
-        totalQty: current.totalQty + Number(order.qty),
-        karigarId: order.karigarId,
-      });
-    });
-    
-    return Array.from(stats.entries())
-      .map(([karigarId, data]) => ({ 
-        name: formatKarigarName(karigarId),
-        totalOrders: data.totalOrders,
-        totalQty: data.totalQty,
-        karigarId: data.karigarId,
-      }))
-      .sort((a, b) => a.name.localeCompare(b.name));
-  }, [orders]);
+export function KarigarSummaryCards({
+  orders,
+  selectedKarigar,
+  onKarigarSelect,
+  onKarigarDeselect,
+}: KarigarSummaryCardsProps) {
+  const { data: karigars = [] } = useListKarigarReference();
 
-  if (karigarStats.length === 0) {
+  const karigarSummary = useMemo(() => {
+    const summary = new Map<string, { name: string; count: number; qty: number }>();
+
+    orders.forEach((order) => {
+      const karigarId = order.karigarId;
+      const karigarName = resolveKarigarName(karigarId, karigars);
+
+      if (!summary.has(karigarId)) {
+        summary.set(karigarId, { name: karigarName, count: 0, qty: 0 });
+      }
+
+      const entry = summary.get(karigarId)!;
+      entry.count += 1;
+      entry.qty += Number(order.qty);
+    });
+
+    return Array.from(summary.entries())
+      .map(([id, data]) => ({ id, ...data }))
+      .sort((a, b) => b.count - a.count);
+  }, [orders, karigars]);
+
+  if (karigarSummary.length === 0) {
     return (
-      <Card className="border-dashed bg-card">
-        <CardContent className="py-12">
-          <div className="text-center space-y-2">
-            <Users className="h-12 w-12 mx-auto text-muted-foreground opacity-50" />
-            <p className="text-sm text-muted-foreground">No karigars found</p>
-          </div>
+      <Card className="bg-card border-border">
+        <CardContent className="pt-6">
+          <p className="text-center text-muted-foreground">No karigars found in current dataset</p>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {selectedKarigar && (
-        <div className="flex items-center justify-between p-3 bg-primary/10 rounded-lg border border-primary/20">
-          <span className="text-sm font-medium text-foreground">
-            Filtering by: <span className="font-bold">{formatKarigarName(selectedKarigar)}</span>
-          </span>
-          <Button variant="ghost" size="sm" onClick={onKarigarDeselect} className="gap-2">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-foreground">
+            Filtered by: {resolveKarigarName(selectedKarigar, karigars)}
+          </h3>
+          <Button variant="outline" size="sm" onClick={onKarigarDeselect} className="gap-2">
             <X className="h-4 w-4" />
             Clear Filter
           </Button>
         </div>
       )}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {karigarStats.map((stat) => {
-          const badgeClass = getKarigarBadgeClasses(stat.name);
-          const isSelected = selectedKarigar === stat.karigarId;
-          
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {karigarSummary.map((karigar) => {
+          const isSelected = selectedKarigar === karigar.id;
+          const colorClasses = getKarigarColor(karigar.name);
+
           return (
             <Card
-              key={stat.karigarId}
-              className={`cursor-pointer transition-all hover:shadow-lg bg-card card-glow-subtle ${
-                isSelected ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''
+              key={karigar.id}
+              className={`cursor-pointer transition-all hover:shadow-md border-2 ${
+                isSelected
+                  ? 'border-primary bg-primary/5'
+                  : 'border-border bg-card hover:border-primary/50'
               }`}
-              onClick={() => onKarigarSelect(stat.karigarId)}
+              onClick={() => onKarigarSelect(karigar.id)}
             >
-              <CardContent className="p-4">
-                <div className="space-y-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <Badge className={`text-xs font-semibold ${badgeClass}`}>
-                      {stat.name}
+              <CardContent className="pt-6">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-semibold text-foreground truncate">{karigar.name}</h4>
+                    <Badge className={colorClasses.badge}>
+                      {karigar.count}
                     </Badge>
-                    {isSelected && (
-                      <Badge variant="default" className="text-xs shrink-0">
-                        Selected
-                      </Badge>
-                    )}
                   </div>
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">Orders:</span>
-                    <span className="font-medium text-foreground">{stat.totalOrders}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">Qty:</span>
-                    <span className="font-medium text-foreground">{stat.totalQty}</span>
+                  <div className="text-sm text-muted-foreground">
+                    <span className="font-medium text-foreground">{karigar.qty}</span> total qty
                   </div>
                 </div>
               </CardContent>

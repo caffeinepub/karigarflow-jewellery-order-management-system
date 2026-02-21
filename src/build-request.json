@@ -1,153 +1,65 @@
 {
   "kind": "build_request",
-  "title": "Excel reconciliation, barcode scanner, and visibility fixes",
-  "projectName": "KarigarFlow",
+  "title": "Fix authentication loop and UI visibility issues",
   "priority": "high",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Fix critical black-on-black text visibility issue across the entire application by changing all text colors to white or light colors that contrast properly with the dark Cyber Bunker theme background",
+      "text": "Fix the authentication loop where after Internet Identity login, the app gets stuck on 'Loading your profile...' and redirects back to the login screen instead of reaching the dashboard. The authentication state should properly complete login, load the user profile, and navigate to the role-appropriate dashboard (admin/staff/karigar) without cycling between loading and logout states.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "user-current"
+          "msg-recent"
         ],
         "quotes": [
-          "new development still shows texts and background in black so no data is clearly visible",
-          "I'm attaching app screenshots with currently prevail"
+          "After login, the app gets stuck on 'Loading your profile...' and then redirects back to the login screen instead of showing the dashboard",
+          "Issue1 Fix the login and authentication issue, where the page is stuck in login and not able to get to the app portal or dashboard page"
         ]
       },
       "acceptanceCriteria": [
-        "All text content is readable with white or light colors against black backgrounds",
-        "Tables, cards, dialogs, and all UI components have proper text contrast",
-        "Icons and badges are visible with appropriate colors",
-        "No black text appears on black backgrounds anywhere in the app"
+        "After Internet Identity login, the authentication flow completes successfully",
+        "User profile loads without errors",
+        "App navigates to the appropriate dashboard (admin/staff/karigar) based on user role",
+        "No cycling between loading and logout states",
+        "No redirect back to login screen after successful authentication"
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Create an Excel Order Reconciliation page that allows uploading customer portal Excel files and comparing them against existing orders (excluding orders with 'Billed' status) to identify missing orders and potential duplicates",
-      "target": "both",
+      "text": "Fix the UI visibility problem where all screens appear with black text on a beige/tan patterned background, making all content invisible and unreadable. Implement proper high-contrast color scheme with readable text colors, visible buttons, clear data displays, and appropriate backgrounds throughout the entire application so users can view data and access all app features.",
+      "target": "frontend",
       "source": {
         "messageIds": [
-          "user-current"
+          "msg-recent"
         ],
         "quotes": [
-          "compare complete excel",
-          "Compare complete Excel against all order statuses (Total Orders, Pending, Delivered, Given for Hallmark, Billed) Here expect for the status *Billed*"
+          "All the screen in the app looks black with all texts black, can't see anything",
+          "Issue2 All the screen in the app looks black with all texts black, can't see anything. Give proper coloring across the app so we can view the data easily and have access of our app"
         ]
       },
       "acceptanceCriteria": [
-        "Upload interface accepts Excel files from customer portals",
-        "System compares uploaded Excel rows against all existing orders except those with 'Billed' status",
-        "Flags potential duplicates where both design code AND order number combination already exists",
-        "Treats rows with design codes not found in the system as unmapped/new designs for separate review",
-        "Displays reconciliation report showing matched vs missing order counts",
-        "Provides one-click bulk import functionality for missing orders"
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "text": "Build a Barcode Tagging section with Fast Scanner Mode that continuously scans Code 128 barcodes (from mobile camera or USB scanner), automatically matches orders by extracting design code and order number from scanned data, and marks selected orders as 'Given for Hallmark' status",
-      "target": "both",
-      "source": {
-        "messageIds": [
-          "user-current"
-        ],
-        "quotes": [
-          "Give option for fast and batch scanning both",
-          "I'm attaching app screenshots with currently prevail plus the tag photo for your reference"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Fast Scanner Mode opens camera once and stays active for continuous scanning",
-        "Supports Code 128 linear barcodes from mobile camera and USB barcode scanners",
-        "Automatically extracts design code and order number from scanned barcode data",
-        "Instantly highlights matching order in a list when barcode is scanned",
-        "Provides 'Mark for Hallmark' button to change status to 'Given for Hallmark'",
-        "Scanner remains open and ready for next barcode after marking an order",
-        "Shows running count of scanned items in current session",
-        "Displays ALL orders regardless of current status (Pending, Delivered, etc.)",
-        "Prevents scanning the same item twice in one session with duplicate detection"
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "text": "Add Batch Scanner Mode to the Barcode Tagging section that allows scanning multiple barcodes to build a list, reviewing all scanned items together, and bulk marking all as 'Given for Hallmark' at once",
-      "target": "both",
-      "source": {
-        "messageIds": [
-          "user-current"
-        ],
-        "quotes": [
-          "Give option for fast and batch scanning both"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Batch Scanner Mode allows scanning multiple barcodes without immediately marking status",
-        "Builds a reviewable list of all scanned items",
-        "Shows order details for each scanned item in the batch list",
-        "Provides bulk action button to mark all scanned items as 'Given for Hallmark' at once",
-        "Prevents duplicate items in the batch list",
-        "Allows removing individual items from batch before bulk marking"
-      ]
-    },
-    {
-      "id": "REQ-5",
-      "text": "Implement day-wise timestamp tracking for 'Given for Hallmark' status changes and add functionality to select multiple 'Given for Hallmark' orders and bulk change their status to 'Billed'",
-      "target": "both",
-      "source": {
-        "messageIds": [
-          "user-current"
-        ],
-        "quotes": [
-          "Maintain given for hallmark data day wise and give option to select all orders/multiple lines and change the status to billed"
-        ]
-      },
-      "acceptanceCriteria": [
-        "System automatically records the current date and timestamp when an order is marked 'Given for Hallmark'",
-        "Provides interface to view 'Given for Hallmark' orders grouped by date",
-        "Allows selecting multiple 'Given for Hallmark' orders via checkboxes",
-        "Provides bulk action button to change selected orders' status to 'Billed'",
-        "Once orders are marked 'Billed', they are excluded from future Excel reconciliation comparisons",
-        "Billed orders are hidden from the barcode scanner interface"
-      ]
-    },
-    {
-      "id": "REQ-6",
-      "text": "Store and manage 'Given for Hallmark' and 'Billed' statuses in the backend with proper timestamp tracking and status transition validation",
-      "target": "backend",
-      "source": {
-        "messageIds": [
-          "user-current"
-        ],
-        "quotes": [
-          "Maintain given for hallmark data day wise",
-          "if this way status changes to billed then you could completely validate the new excel against all other order row status"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Backend stores 'Given for Hallmark' status with day-wise timestamps",
-        "Backend stores 'Billed' status and transition history",
-        "Backend provides query methods to filter orders by status and date ranges",
-        "Backend excludes 'Billed' orders from Excel reconciliation queries",
-        "Backend validates status transitions (e.g., only 'Given for Hallmark' orders can be marked 'Billed')"
+        "Text is clearly visible with high contrast against backgrounds",
+        "Buttons and interactive elements are easily identifiable",
+        "Data tables and cards display information with proper contrast",
+        "Background colors do not interfere with text readability",
+        "Color scheme is consistent across all pages (login, dashboard, orders, etc.)",
+        "Status indicators and badges are clearly visible"
       ]
     }
   ],
   "constraints": [
-    "Do not change the backend single-actor architecture",
-    "Do not modify immutable frontend paths (useInternetIdentity, useActor, main.tsx, components/ui)",
-    "Excel reconciliation must exclude orders with 'Billed' status from comparison",
-    "Barcode scanner must support Code 128 format as shown in the uploaded tag image (CHIMN40103 1308)",
-    "All new UI components must use the existing Cyber Bunker theme with proper white/light text colors"
+    "Do not modify the backend (backend/main.mo)",
+    "Do not change Internet Identity authentication hooks (frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts)",
+    "Do not modify immutable UI components (frontend/src/components/ui/)",
+    "Preserve existing functionality from version 72 that worked correctly",
+    "Keep the single-actor backend architecture unchanged"
   ],
   "nonGoals": [
-    "Support for barcode formats other than Code 128",
-    "Modifying existing order status workflow for statuses other than 'Given for Hallmark' and 'Billed'",
-    "Integration with external barcode scanner hardware beyond standard USB scanners and mobile cameras",
-    "Real-time collaborative scanning across multiple devices",
-    "Historical audit trail for status changes beyond timestamp tracking"
+    "Adding new features or functionality",
+    "Changing the technology stack",
+    "Modifying database schema or backend logic",
+    "Redesigning the application layout or structure",
+    "Adding new authentication methods"
   ],
   "imageRequirements": {
     "required": [],

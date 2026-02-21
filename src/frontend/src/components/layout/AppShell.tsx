@@ -76,7 +76,7 @@ export function AppShell({ children }: AppShellProps) {
         <Button
           key={item.path}
           variant="ghost"
-          className="w-full justify-start hover:bg-primary/10 hover:text-primary text-white"
+          className="w-full justify-start hover:bg-primary/10 hover:text-primary text-foreground"
           onClick={() => {
             navigate({ to: item.path });
             setMobileMenuOpen(false);
@@ -97,7 +97,7 @@ export function AppShell({ children }: AppShellProps) {
           variant="ghost"
           size="sm"
           onClick={() => navigate({ to: item.path })}
-          className="hover:bg-primary/10 hover:text-primary font-medium text-white"
+          className="hover:bg-primary/10 hover:text-primary font-medium text-foreground"
         >
           <item.icon className="mr-2 h-4 w-4" />
           {item.label}
@@ -108,34 +108,34 @@ export function AppShell({ children }: AppShellProps) {
 
   return (
     <div className="flex flex-col min-h-screen w-full max-w-full overflow-x-hidden bg-background">
-      {/* Sticky header with cyber bunker styling */}
-      <header className="sticky top-0 z-header w-full border-b border-primary/20 bg-card/95 backdrop-blur-md supports-[backdrop-filter]:bg-card/80 shadow-lg card-glow-subtle">
+      {/* Sticky header with light theme */}
+      <header className="sticky top-0 z-50 w-full border-b border-border bg-card/95 backdrop-blur-md supports-[backdrop-filter]:bg-card/80 shadow-sm">
         <div className="container flex h-16 items-center justify-between px-4 gap-4 max-w-full">
           <div className="flex items-center gap-4 min-w-0">
             {navItems.length > 0 && (
               <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                 <SheetTrigger asChild className="lg:hidden flex-shrink-0">
-                  <Button variant="ghost" size="icon" className="hover:bg-primary/10 text-white">
+                  <Button variant="ghost" size="icon" className="hover:bg-primary/10 text-foreground">
                     <Menu className="h-5 w-5" />
                   </Button>
                 </SheetTrigger>
                 <SheetContent 
                   side="left" 
-                  className="w-72 bg-card max-h-screen overflow-y-auto flex flex-col backdrop-blur-md border-primary/20"
+                  className="w-72 bg-card max-h-screen overflow-y-auto flex flex-col backdrop-blur-md border-border"
                 >
                   <div className="mb-8 flex-shrink-0">
                     <div className="flex items-center gap-3 mb-6">
-                      <div className="p-2 rounded-lg bg-gradient-to-br from-primary to-accent">
+                      <div className="p-2 rounded-lg bg-gradient-to-br from-primary to-secondary">
                         <Gem className="h-6 w-6 text-white" />
                       </div>
-                      <span className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                      <span className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
                         KarigarFlow
                       </span>
                     </div>
                     {userProfile && (
                       <div className="space-y-2 text-sm p-4 rounded-lg bg-muted/50">
-                        <p className="font-semibold text-base text-white">{userProfile.name}</p>
-                        <Badge variant="outline" className="text-xs text-white">
+                        <p className="font-semibold text-base text-foreground">{userProfile.name}</p>
+                        <Badge variant="outline" className="text-xs text-foreground">
                           {effectiveRole || userProfile.appRole}
                         </Badge>
                       </div>
@@ -149,10 +149,10 @@ export function AppShell({ children }: AppShellProps) {
             )}
 
             <div className="flex items-center gap-3 flex-shrink-0">
-              <div className="p-1.5 rounded-lg bg-gradient-to-br from-primary to-accent">
+              <div className="p-1.5 rounded-lg bg-gradient-to-br from-primary to-secondary">
                 <Gem className="h-5 w-5 text-white" />
               </div>
-              <span className="text-lg font-bold hidden sm:inline bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              <span className="text-lg font-bold hidden sm:inline bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
                 KarigarFlow
               </span>
             </div>
@@ -170,8 +170,8 @@ export function AppShell({ children }: AppShellProps) {
             {userProfile && (
               <div className="hidden sm:flex items-center gap-3">
                 <div className="text-right text-sm">
-                  <p className="font-semibold truncate max-w-[140px] text-white">{userProfile.name}</p>
-                  <Badge variant="outline" className="text-xs text-white">
+                  <p className="font-semibold truncate max-w-[140px] text-foreground">{userProfile.name}</p>
+                  <Badge variant="outline" className="text-xs text-foreground">
                     {effectiveRole || userProfile.appRole}
                   </Badge>
                 </div>
@@ -191,7 +191,7 @@ export function AppShell({ children }: AppShellProps) {
         </div>
       </main>
 
-      <footer className="border-t border-primary/20 mt-auto w-full bg-card/50">
+      <footer className="border-t border-border mt-auto w-full bg-card/50">
         <div className="container py-8 px-4 text-center text-sm text-muted-foreground">
           <p className="mb-2">
             © {new Date().getFullYear()} KarigarFlow. Built with ❤️ using{' '}

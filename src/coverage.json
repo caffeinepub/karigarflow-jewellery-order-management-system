@@ -1,166 +1,67 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-20T21:35:29.455Z",
+  "generatedAt": "2026-02-21T06:27:17.586Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 6,
-    "implemented": 5,
+    "total": 2,
+    "implemented": 2,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Fix critical black-on-black text visibility issue across the entire application by changing all text colors to white or light colors that contrast properly with the dark Cyber Bunker theme background",
+        "summary": "Fix the authentication loop where after Internet Identity login, the app gets stuck on 'Loading your profile...' and redirects back to the login screen instead of reaching the dashboard. The authentication state should properly complete login, load the user profile, and navigate to the role-appropriate dashboard (admin/staff/karigar) without cycling between loading and logout states.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/index.css",
-          "frontend/tailwind.config.js",
-          "frontend/src/components/orders/OrdersTable.tsx",
-          "frontend/src/components/admin/MetricsChart.tsx",
-          "frontend/src/components/admin/KarigarSummaryCards.tsx",
-          "frontend/src/components/orders/OrdersFiltersBar.tsx",
-          "frontend/src/components/layout/AppShell.tsx",
-          "frontend/src/pages/admin/AdminDashboardPage.tsx",
-          "frontend/src/components/admin/TotalQtyBreakdownDialog.tsx",
-          "frontend/src/components/karigar/KarigarOrderViewDialog.tsx",
-          "frontend/src/components/masterDesigns/MasterDesignsTable.tsx",
-          "frontend/src/components/errors/InlineErrorState.tsx",
-          "frontend/src/components/auth/NoProfileBlockedScreen.tsx",
-          "frontend/src/pages/staff/StaffDashboardPage.tsx",
-          "frontend/src/pages/karigar/KarigarDashboardPage.tsx"
+          "frontend/src/App.tsx",
+          "frontend/src/pages/LoginPage.tsx",
+          "frontend/src/hooks/useEffectiveAppRole.ts",
+          "frontend/src/hooks/useCurrentUser.ts"
         ],
         "matchedFiles": [
-          "frontend/src/index.css",
-          "frontend/src/components/orders/OrdersFiltersBar.tsx",
-          "frontend/src/components/layout/AppShell.tsx"
+          "frontend/src/App.tsx",
+          "frontend/src/pages/LoginPage.tsx",
+          "frontend/src/hooks/useEffectiveAppRole.ts",
+          "frontend/src/hooks/useCurrentUser.ts"
         ]
       },
       {
         "id": "REQ-2",
-        "summary": "Create an Excel Order Reconciliation page that allows uploading customer portal Excel files and comparing them against existing orders (excluding orders with 'Billed' status) to identify missing orders and potential duplicates",
+        "summary": "Fix the UI visibility problem where all screens appear with black text on a beige/tan patterned background, making all content invisible and unreadable. Implement proper high-contrast color scheme with readable text colors, visible buttons, clear data displays, and appropriate backgrounds throughout the entire application so users can view data and access all app features.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/pages/admin/ExcelReconciliationPage.tsx",
-          "frontend/src/components/reconciliation/ReconciliationReport.tsx",
-          "frontend/src/components/reconciliation/ReconciliationFileUpload.tsx",
-          "frontend/src/lib/reconciliation/compareOrdersWithExcel.ts",
-          "frontend/src/App.tsx",
-          "frontend/src/components/layout/AppShell.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/pages/admin/ExcelReconciliationPage.tsx",
-          "frontend/src/components/reconciliation/ReconciliationReport.tsx",
-          "frontend/src/components/reconciliation/ReconciliationFileUpload.tsx",
-          "frontend/src/lib/reconciliation/compareOrdersWithExcel.ts",
-          "frontend/src/App.tsx",
-          "frontend/src/components/layout/AppShell.tsx"
-        ]
-      },
-      {
-        "id": "REQ-3",
-        "summary": "Build a Barcode Tagging section with Fast Scanner Mode that continuously scans Code 128 barcodes (from mobile camera or USB scanner), automatically matches orders by extracting design code and order number from scanned data, and marks selected orders as 'Given for Hallmark' status",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/pages/admin/BarcodeTaggingPage.tsx",
-          "frontend/src/components/barcode/FastScannerView.tsx",
-          "frontend/src/components/barcode/BarcodeOrdersList.tsx",
-          "frontend/src/lib/barcode/parseBarcodeData.ts",
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/App.tsx",
-          "frontend/src/components/layout/AppShell.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/pages/admin/BarcodeTaggingPage.tsx",
-          "frontend/src/components/barcode/FastScannerView.tsx",
-          "frontend/src/components/barcode/BarcodeOrdersList.tsx",
-          "frontend/src/lib/barcode/parseBarcodeData.ts",
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/App.tsx",
-          "frontend/src/components/layout/AppShell.tsx"
-        ]
-      },
-      {
-        "id": "REQ-4",
-        "summary": "Add Batch Scanner Mode to the Barcode Tagging section that allows scanning multiple barcodes to build a list, reviewing all scanned items together, and bulk marking all as 'Given for Hallmark' at once",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/components/barcode/BatchScannerView.tsx",
-          "frontend/src/components/barcode/BatchOrdersTable.tsx",
-          "frontend/src/pages/admin/BarcodeTaggingPage.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/components/barcode/BatchScannerView.tsx",
-          "frontend/src/components/barcode/BatchOrdersTable.tsx",
-          "frontend/src/pages/admin/BarcodeTaggingPage.tsx"
-        ]
-      },
-      {
-        "id": "REQ-5",
-        "summary": "Implement day-wise timestamp tracking for 'Given for Hallmark' status changes and add functionality to select multiple 'Given for Hallmark' orders and bulk change their status to 'Billed'",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/pages/admin/HallmarkManagementPage.tsx",
-          "frontend/src/components/hallmark/HallmarkOrdersGroupedByDate.tsx",
-          "frontend/src/components/hallmark/HallmarkOrdersTable.tsx",
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/App.tsx",
+          "frontend/src/index.css",
+          "frontend/tailwind.config.js",
+          "frontend/src/pages/LoginPage.tsx",
+          "frontend/src/pages/admin/AdminDashboardPage.tsx",
+          "frontend/src/pages/staff/StaffDashboardPage.tsx",
+          "frontend/src/pages/karigar/KarigarDashboardPage.tsx",
+          "frontend/src/components/orders/OrdersTable.tsx",
+          "frontend/src/components/admin/MetricsChart.tsx",
           "frontend/src/components/layout/AppShell.tsx",
-          "frontend/src/lib/orders/statusConstants.ts",
-          "frontend/src/pages/admin/BarcodeTaggingPage.tsx",
-          "frontend/src/lib/orders/getOrderTimestamp.ts"
+          "frontend/src/components/orders/OrdersFiltersBar.tsx",
+          "frontend/src/lib/orders/getStatusRowColor.ts",
+          "frontend/src/components/admin/KarigarSummaryCards.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/pages/admin/HallmarkManagementPage.tsx",
-          "frontend/src/components/hallmark/HallmarkOrdersGroupedByDate.tsx",
-          "frontend/src/components/hallmark/HallmarkOrdersTable.tsx",
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/App.tsx",
-          "frontend/src/components/layout/AppShell.tsx",
-          "frontend/src/lib/orders/statusConstants.ts",
-          "frontend/src/pages/admin/BarcodeTaggingPage.tsx",
-          "frontend/src/lib/orders/getOrderTimestamp.ts"
+          "frontend/src/pages/LoginPage.tsx",
+          "frontend/src/pages/karigar/KarigarDashboardPage.tsx"
         ]
-      },
-      {
-        "id": "REQ-6",
-        "summary": "Store and manage 'Given for Hallmark' and 'Billed' statuses in the backend with proper timestamp tracking and status transition validation",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
       }
     ]
   },
   "changedFiles": [
-    "backend/main.mo",
     "build-request.json",
-    "caffeine.lock.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
     "frontend/src/App.tsx",
-    "frontend/src/camera/useCamera.ts",
-    "frontend/src/components/barcode/BarcodeOrdersList.tsx",
-    "frontend/src/components/barcode/BatchOrdersTable.tsx",
-    "frontend/src/components/barcode/BatchScannerView.tsx",
-    "frontend/src/components/barcode/FastScannerView.tsx",
-    "frontend/src/components/hallmark/HallmarkOrdersGroupedByDate.tsx",
-    "frontend/src/components/hallmark/HallmarkOrdersTable.tsx",
-    "frontend/src/components/layout/AppShell.tsx",
-    "frontend/src/components/orders/OrdersFiltersBar.tsx",
-    "frontend/src/components/reconciliation/ReconciliationFileUpload.tsx",
-    "frontend/src/components/reconciliation/ReconciliationReport.tsx",
-    "frontend/src/hooks/useQueries.ts",
-    "frontend/src/index.css",
-    "frontend/src/lib/barcode/parseBarcodeData.ts",
-    "frontend/src/lib/orders/getOrderTimestamp.ts",
-    "frontend/src/lib/orders/statusConstants.ts",
-    "frontend/src/lib/reconciliation/compareOrdersWithExcel.ts",
-    "frontend/src/pages/admin/BarcodeTaggingPage.tsx",
-    "frontend/src/pages/admin/ExcelReconciliationPage.tsx",
-    "frontend/src/pages/admin/HallmarkManagementPage.tsx",
-    "frontend/src/qr-code/useQRScanner.ts",
+    "frontend/src/hooks/useCurrentUser.ts",
+    "frontend/src/hooks/useEffectiveAppRole.ts",
+    "frontend/src/pages/LoginPage.tsx",
+    "frontend/src/pages/karigar/KarigarDashboardPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

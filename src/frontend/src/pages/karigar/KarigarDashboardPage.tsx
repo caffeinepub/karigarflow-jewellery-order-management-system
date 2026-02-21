@@ -16,7 +16,7 @@ import type { PersistentOrder } from '../../backend';
 export function KarigarDashboardPage() {
   const { data: orders = [], isLoading, error, refetch } = useGetActiveOrdersForKarigar();
   const { data: karigars = [] } = useListKarigarReference();
-  const { data: userProfile } = useCurrentUser();
+  const { userProfile } = useCurrentUser();
   const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<string>('all');
 
